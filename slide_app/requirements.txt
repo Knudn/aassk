@@ -31,3 +31,5 @@ virtualenv-clone==0.5.3
 Werkzeug==1.0.1
 WTForms==2.3.3
 psycopg2
+pdf2image
+Image
