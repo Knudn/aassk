@@ -1,0 +1,11 @@
+---
+screens:
+  - name: slide1
+    ip: 192.168.10.204
+    local_png_dir: /share/Skjerm1
+  - name: slide2
+    ip: 192.168.10.205
+    local_png_dir: /share/Skjerm2
+  - name: slide3
+    ip: 192.168.10.206
+    local_png_dir: /share/Skjerm3
