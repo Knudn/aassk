@@ -9,6 +9,8 @@ python3 -m venv venv
 
 source venv/bin/activate
 
+homedir=$(pwd)
+
 pip install -r ../slide_app/requirements.txt
 
 #Find running instences
@@ -35,9 +37,9 @@ ip address add 192.168.10.205/255.255.255.0 dev ens33
 ip address add 192.168.10.206/255.255.255.0 dev ens33
 
 #Amount of instences
-cd /tmp/slide1; nohup flask run -h 192.168.10.204 -p 5000 > slide1.log 2>&1 &
-cd /tmp/slide2; nohup flask run -h 192.168.10.205 -p 5000 > slide2.log 2>&1 &
-cd /tmp/slide3; nohup flask run -h 192.168.10.206 -p 5000 > slide3.log 2>&1 &
+cd /tmp/slide1; nohup flask run -h 192.168.10.204 -p 5000 > /tmp/slide1/slide1.log 2>&1 &
+cd /tmp/slide2; nohup flask run -h 192.168.10.205 -p 5000 > /tmp/slide2/slide2.log 2>&1 &
+cd /tmp/slide3; nohup flask run -h 192.168.10.206 -p 5000 > /tmp/slide3/slide3.log 2>&1 &
 
 #Create folder
 mkdir -p /tmp/slide1/slideshow/static/images/slideshow_images/
@@ -49,3 +51,7 @@ sed -i -e 's/slideshow:password@database:5432\/slideshow/slide1:slide1@127.0.0.1
 sed -i -e 's/slideshow:password@database:5432\/slideshow/slide2:slide2@127.0.0.1:5432\/slide2/g' /tmp/slide2/config.py
 sed -i -e 's/slideshow:password@database:5432\/slideshow/slide3:slide3@127.0.0.1:5432\/slide3/g' /tmp/slide3/config.py
 
+cd $homedir
+nohup python pdf_converte.py -i 192.168.10.204 -d /share/Skjerm1 2>&1 &
+nohup python pdf_converte.py -i 192.168.10.205 -d /share/Skjerm2 2>&1 &
+nohup python pdf_converte.py -i 192.168.10.206 -d /share/Skjerm3 2>&1 &

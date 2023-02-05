@@ -1,14 +1,29 @@
-#!/usr/bin/python3
 
 import os
 import hashlib
 import time
 from pdf2image import *
-import sys
+import sys, getopt
 from PIL import Image
+from upload import *
 
-# folder path
-dir_path = r'/share/Skjerm1'
+def main(argv):
+
+    ip = ''
+    dir_path = ''
+    opts, args = getopt.getopt(argv,"hi:d:",["ip=","dir="])
+    for opt, arg in opts:
+        if opt == '-h':
+            print ('pdf_converte.py -i <ip address to slideshow> -p <path to filedir>')
+            sys.exit()
+        elif opt in ("-i", "--ip"):
+            ip = arg
+        elif opt in ("-d", "--dir"):
+            dir_path = arg
+    if ip == '' or dir_path == '':
+        print ('pdf_converte.py -i <ip address to slideshow> -d <path to filedir>')
+        sys.exit()
+    return ip, dir_path
 
 def check_files():
     # Iterate directory
@@ -43,35 +58,40 @@ def crop_image(path,jpg):
     img2 = img.crop(box)
     img2.save(path + jpg + ".jpg")
 
-curr_data = check_files()
 
-while True: 
-    
-    old_data = curr_data
-    time.sleep(3)
+if __name__ == "__main__":
+
+    ip, dir_path = main(sys.argv[1:])
+    print(ip, dir_path)
     curr_data = check_files()
 
-    if old_data != curr_data:
-        print("Changed found!")
+    while True: 
         
-        for a in curr_data:
-            if not old_data:
-                print("Added:", a)
-                convert_files(dir_path+"/",a)
+        old_data = curr_data
+        time.sleep(3)
+        curr_data = check_files()
+        try:
+            if len(old_data) < len(curr_data):
+                print("New file added!")
 
-            for b in old_data:
-                if curr_data[a] not in old_data.values():
-                    print("Added:", a)
-                    convert_files(dir_path+"/",a)
-                    break
-                elif old_data[b] not in curr_data.values():
-                    try:
+                for a in curr_data:
+                    if curr_data[a] not in old_data.values():
+                        print("Added:", a)
+                        convert_files(dir_path+"/",a)
+                        upload(ip,dir_path[6:]+"/"+a+".jpg")
+
+            elif len(old_data) > len(curr_data):
+
+                for b in old_data:
+                    if old_data[b] not in curr_data.values():
                         print("Removed:", b)
+                        remove(ip,dir_path[6:]+"/"+b+".jpg")
                         remove_file(dir_path+"/"+b+'.jpg')
-                        break
-                    except:
-                        print("Failed")
-                    
-                    
-
-
+            elif str(old_data.values()) != str(curr_data.values()):
+                for a in curr_data:
+                    if curr_data[a] not in old_data.values():
+                        print("Replaced:", a)
+                        convert_files(dir_path+"/",a)
+                        upload(ip,dir_path[6:]+"/"+a+".jpg")
+        except:
+            print("Shit hit the fan...")
