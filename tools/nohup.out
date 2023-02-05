@@ -1,5 +1,0 @@
-192.168.10.204 /share/Skjerm1
-Traceback (most recent call last):
-  File "pdf_converte.py", line 71, in <module>
-    time.sleep(3)
-KeyboardInterrupt
