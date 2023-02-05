@@ -63,7 +63,7 @@ if __name__ == "__main__":
 
     ip, dir_path = main(sys.argv[1:])
     print(ip, dir_path)
-    curr_data = check_files()
+    curr_data = {}
 
     while True: 
         

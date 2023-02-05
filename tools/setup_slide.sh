@@ -51,6 +51,7 @@ sed -i -e 's/slideshow:password@database:5432\/slideshow/slide1:slide1@127.0.0.1
 sed -i -e 's/slideshow:password@database:5432\/slideshow/slide2:slide2@127.0.0.1:5432\/slide2/g' /tmp/slide2/config.py
 sed -i -e 's/slideshow:password@database:5432\/slideshow/slide3:slide3@127.0.0.1:5432\/slide3/g' /tmp/slide3/config.py
 
+ps -aux | grep pdf_converte.py | awk '{print $2}'| xargs kill
 cd $homedir
 python pdf_converte.py -i 192.168.10.204 -d /share/Skjerm1 2>&1 &
 python pdf_converte.py -i 192.168.10.205 -d /share/Skjerm2 2>&1 &
