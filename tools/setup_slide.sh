@@ -5,7 +5,7 @@ add-apt-repository ppa:rmescandon/yq -y
 
 # Update packages and install required software
 apt update
-apt install postgresql postgresql-contrib jq python3-virtualenv -y
+apt install yq postgresql postgresql-contrib jq python3-venv gcc libpq-dev python3-wheel python3-dev python3-pip -y
 
 # Create a Python virtual environment
 python3 -m venv venv
@@ -23,10 +23,10 @@ pip install -r ../slide_app/requirements.txt
 netstat -tulpn | grep 5000 | awk '{print $7}' | awk -F "/" '{print $1}' | xargs kill
 
 # Convert instances.yaml to instances.json
-cat instances.yaml | yq -j > instances.json
+cat instances.yaml | yq e -j > instances.json
 
 # Get screens data from instances.json
-screens=$(jq '.screens[]' instances.json)
+screens=$(cat instances.yaml | yq e -j | jq '.screens[]')
 
 # Loop through each screen instance
 for inst in $(echo "${screens}" | jq -c '.'); do
@@ -35,7 +35,8 @@ for inst in $(echo "${screens}" | jq -c '.'); do
   name=$(echo "${inst}" | jq -r '.name')
   ip=$(echo "${inst}" | jq -r '.ip')
   local_png_dir=$(echo "${inst}" | jq -r '.local_png_dir')
-
+  mkdir -p "$local_png_dir/tmp"
+  read -p
   # Remove existing /tmp/$name directory
   rm -rf "/tmp/$name"
 
@@ -46,7 +47,7 @@ for inst in $(echo "${screens}" | jq -c '.'); do
   sudo -u postgres ./db.sh $name
 
   # Add IP address to ens33 interface
-  ip address add $ip/255.255.255.0 dev ens33
+  ip address add $ip/255.255.255.0 dev wlan0
 
   # Change to /tmp/$name directory and run Flask app in background
   cd /tmp/$name
@@ -60,7 +61,7 @@ for inst in $(echo "${screens}" | jq -c '.'); do
 
   # Kill any existing pdf_converte.py processes
   ps -aux | grep pdf_converte.py | awk '{print $2}'| xargs kill
-  
+
   # Change back to the original working directory
   cd $homedir
 
