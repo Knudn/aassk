@@ -94,4 +94,4 @@ if __name__ == "__main__":
                         convert_files(dir_path+"/",a)
                         upload(ip,dir_path[6:]+"/"+a+".jpg")
         except:
-            print("Shit hit the fan...")
+            print("Fault!")

@@ -1,0 +1,1 @@
+pdf_converte.py -i <ip address to slideshow> -d <path to filedir>
