@@ -45,6 +45,8 @@ for inst in $(echo "${screens}" | jq -c '.'); do
   ip=$(echo "${inst}" | jq -r '.ip')
   local_png_dir=$(echo "${inst}" | jq -r '.local_png_dir')
   mkdir -p "$local_png_dir/tmp"
+  mkdir -p "$local_png_dir/other"
+  
   echo "$local_png_dir/tmp"
 
   # Remove existing /tmp/$name directory

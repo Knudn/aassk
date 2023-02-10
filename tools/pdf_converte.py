@@ -28,6 +28,8 @@ def main(argv):
 def check_files():
     # Iterate directory
     data = {}
+    images = {}
+
     h = hashlib.sha1()
     for path in os.listdir(dir_path):
         if os.path.isfile(os.path.join(dir_path, path)):
@@ -39,7 +41,15 @@ def check_files():
                         chunk = file.read(1024)
                         h.update(chunk)
                 data[path] = h.hexdigest()
-    return data
+            elif path[-4:] == ".jpg":
+                with open(dir_path + "/" +path,'rb') as file:
+                    chunk = 0
+                    while chunk != b'':
+                        # read only 1024 bytes at a time
+                        chunk = file.read(1024)
+                        h.update(chunk)
+                images[path] = h.hexdigest()
+    return [data, images]
 
 def convert_files(path,pdf):
     pages = convert_from_path(path+pdf)
@@ -64,13 +74,15 @@ if __name__ == "__main__":
     ip, dir_path = main(sys.argv[1:])
     print(ip, dir_path)
     curr_data = {}
+    curr_images = {}
 
     while True: 
-        
-        old_data = curr_data
-        time.sleep(3)
-        curr_data = check_files()
-        try:
+        try: 
+            old_data = curr_data
+            old_images = curr_images
+            time.sleep(3)
+            curr_data, curr_images = check_files()
+
             if len(old_data) < len(curr_data):
                 print("New file added!")
 
@@ -86,7 +98,10 @@ if __name__ == "__main__":
                     if old_data[b] not in curr_data.values():
                         print("Removed:", b)
                         remove(ip,dir_path[6:]+"/"+b+".jpg")
-                        remove_file(dir_path+"/"+b+'.jpg')
+                        try:
+                            remove_file(dir_path+"/"+b+'.jpg')
+                        except:
+                            print(b+".jpg not found in folder, but removed from slideshow database!")
             elif str(old_data.values()) != str(curr_data.values()):
                 for a in curr_data:
                     if curr_data[a] not in old_data.values():
@@ -94,4 +109,5 @@ if __name__ == "__main__":
                         convert_files(dir_path+"/",a)
                         upload(ip,dir_path[6:]+"/"+a+".jpg")
         except:
-            print("Fault!")
+            print("Error")
+
