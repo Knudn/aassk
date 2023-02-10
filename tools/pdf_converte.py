@@ -43,7 +43,7 @@ def check_files():
                 data[path] = h.hexdigest()
 
     for path in os.listdir(dir_path+"/other/"):
-        if path[-4:] == ".jpg" or path[-4:] == ".png":
+        if path[-4:] == ".jpg" or path[-4:] == ".png" or path[-5:] == ".jpeg":
             with open(dir_path + "/other/" +path,'rb') as file:
                 chunk = 0
                 while chunk != b'':
