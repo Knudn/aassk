@@ -41,14 +41,17 @@ def check_files():
                         chunk = file.read(1024)
                         h.update(chunk)
                 data[path] = h.hexdigest()
-            elif path[-4:] == ".jpg":
-                with open(dir_path + "/" +path,'rb') as file:
-                    chunk = 0
-                    while chunk != b'':
-                        # read only 1024 bytes at a time
-                        chunk = file.read(1024)
-                        h.update(chunk)
-                images[path] = h.hexdigest()
+
+    for path in os.listdir(dir_path+"/other/"):
+        if path[-4:] == ".jpg" or path[-4:] == ".png":
+            with open(dir_path + "/other/" +path,'rb') as file:
+                chunk = 0
+                while chunk != b'':
+                    # read only 1024 bytes at a time
+                    chunk = file.read(1024)
+                    h.update(chunk)
+            images[path] = h.hexdigest()
+
     return [data, images]
 
 def convert_files(path,pdf):
@@ -77,37 +80,48 @@ if __name__ == "__main__":
     curr_images = {}
 
     while True: 
-        try: 
-            old_data = curr_data
-            old_images = curr_images
-            time.sleep(3)
-            curr_data, curr_images = check_files()
 
-            if len(old_data) < len(curr_data):
-                print("New file added!")
+        old_data = curr_data
+        old_images = curr_images
+        time.sleep(3)
+        curr_data, curr_images = check_files()
+        if len(old_data) < len(curr_data):
+            print("New file added!")
 
-                for a in curr_data:
-                    if curr_data[a] not in old_data.values():
-                        print("Added:", a)
-                        convert_files(dir_path+"/",a)
-                        upload(ip,dir_path[6:]+"/"+a+".jpg")
+            for a in curr_data:
+                if curr_data[a] not in old_data.values():
+                    print("Added:", a)
+                    convert_files(dir_path+"/",a)
+                    upload(ip,dir_path[6:]+"/"+a+".jpg")
 
-            elif len(old_data) > len(curr_data):
+        elif len(old_data) > len(curr_data):
 
-                for b in old_data:
-                    if old_data[b] not in curr_data.values():
-                        print("Removed:", b)
-                        remove(ip,dir_path[6:]+"/"+b+".jpg")
-                        try:
-                            remove_file(dir_path+"/"+b+'.jpg')
-                        except:
-                            print(b+".jpg not found in folder, but removed from slideshow database!")
-            elif str(old_data.values()) != str(curr_data.values()):
-                for a in curr_data:
-                    if curr_data[a] not in old_data.values():
-                        print("Replaced:", a)
-                        convert_files(dir_path+"/",a)
-                        upload(ip,dir_path[6:]+"/"+a+".jpg")
-        except:
-            print("Error")
+            for b in old_data:
+                if old_data[b] not in curr_data.values():
+                    print("Removed:", b)
+                    remove(ip,dir_path[6:]+"/"+b+".jpg")
+                    try:
+                        remove_file(dir_path+"/"+b+'.jpg')
+                    except:
+                        print(b+".jpg not found in folder, but removed from slideshow database!")
+        elif str(old_data.values()) != str(curr_data.values()):
+            for a in curr_data:
+                if curr_data[a] not in old_data.values():
+                    print("Replaced:", a)
+                    convert_files(dir_path+"/",a)
+                    upload(ip,dir_path[6:]+"/"+a+".jpg")
+                    
+        if len(old_images) < len(curr_images):
+            
+            for a in curr_images:
+                print(dir_path[6:]+"/other/"+a)
+                if curr_images[a] not in old_images.values():
+                    print("Added:", a)
+                    upload(ip,dir_path[6:]+"/other/"+a)
 
+        elif len(old_images) > len(curr_images):
+
+            for b in old_images:
+                if old_images[b] not in curr_images.values():
+                    print("Removed:", b)
+                    remove(ip,dir_path[6:]+"/other/"+b)
