@@ -5,7 +5,7 @@ sudo add-apt-repository ppa:rmescandon/yq -y
 
 # Update packages and install required software
 sudo apt update
-sudo apt install yq postgresql postgresql-contrib jq python3-venv gcc libpq-dev python3-wheel python3-dev python3-pip poppler-utils -y
+sudo apt install yq postgresql postgresql-contrib jq python3-venv gcc libpq-dev python3-wheel python3-dev python3-pip poppler-utils sshpass -y
 
 # Create a Python virtual environment
 python3 -m venv venv

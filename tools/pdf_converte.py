@@ -66,10 +66,12 @@ def remove_file(jpg):
     print("Removed " + dir_path+"/"+b+'.jpg')
 
 def crop_image(path,jpg):
+    res = 1920, 1080
     img = Image.open(path+"/tmp/"+jpg +'.jpg')
     box = (0, 0, 1875, 1300)
     img2 = img.crop(box)
-    img2.save(path + jpg + ".jpg")
+    res_image = img2.resize(res, Image.ANTIALIAS)
+    res_image.save(path + jpg + ".jpg")
 
 
 if __name__ == "__main__":

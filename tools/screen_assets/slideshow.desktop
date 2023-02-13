@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Chrome
+Exec=bash /home/rock/chrome.sh
+StartupNotify=false
+Terminal=false
