@@ -4,8 +4,8 @@
 sudo add-apt-repository ppa:rmescandon/yq -y
 
 # Update packages and install required software
-sudo apt update
-sudo apt install yq postgresql postgresql-contrib jq python3-venv gcc libpq-dev python3-wheel python3-dev python3-pip poppler-utils sshpass -y
+#sudo apt update
+#sudo apt install yq postgresql postgresql-contrib jq python3-venv gcc libpq-dev python3-wheel python3-dev python3-pip poppler-utils sshpass -y
 
 # Create a Python virtual environment
 python3 -m venv venv
@@ -32,8 +32,8 @@ sudo ps -aux | grep "webfsd" | awk '{print $2}' | xargs sudo kill
 sudo /usr/bin/webfsd -k /var/run/webfs/webfsd.pid -r /share/ -u www-data -g www-data
 
 # Get screens data from instances.json
-screens=$(cat instances.yaml | yq e -j | jq '.screens[]')
-
+screens=$(yq e -j instances.json | jq '.screens[]')
+echo $screens
 # Kill any existing pdf_converte.py processes
 ps -aux | grep pdf_converte.py | awk '{print $2}'| xargs kill
 
@@ -44,6 +44,14 @@ for inst in $(echo "${screens}" | jq -c '.'); do
   name=$(echo "${inst}" | jq -r '.name')
   ip=$(echo "${inst}" | jq -r '.ip')
   local_png_dir=$(echo "${inst}" | jq -r '.local_png_dir')
+  slide_client=$(echo "${inst}" | jq -r '.slide_client')
+  res=$(echo "${inst}" | jq -r '.res')
+
+  echo $name 123
+  echo $ip 123
+  echo $local_png_dir 123
+  echo $res 123
+
   mkdir -p "$local_png_dir/tmp"
   mkdir -p "$local_png_dir/other"
   
@@ -76,7 +84,7 @@ for inst in $(echo "${screens}" | jq -c '.'); do
 
   # Run pdf_converte.py in background
   printf "\nStarting pdf_converte.py for screen '%s'\n" "$name"
-  python pdf_converte.py -i $ip -d $local_png_dir 2>&1 &
+  python pdf_converte.py -i $ip -d $local_png_dir -r $res 2>&1 &
 
 
 done

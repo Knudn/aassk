@@ -11,19 +11,23 @@ def main(argv):
 
     ip = ''
     dir_path = ''
-    opts, args = getopt.getopt(argv,"hi:d:",["ip=","dir="])
+    res = ''
+    opts, args = getopt.getopt(argv,"hi:d:r:",["ip=","dir=","resolution="])
     for opt, arg in opts:
         if opt == '-h':
-            print ('pdf_converte.py -i <ip address to slideshow> -p <path to filedir>')
+            print ('pdf_converte.py -i <ip address to slideshow> -p <path to filedir> -r <Screen resolution>')
             sys.exit()
         elif opt in ("-i", "--ip"):
             ip = arg
         elif opt in ("-d", "--dir"):
             dir_path = arg
-    if ip == '' or dir_path == '':
-        print ('pdf_converte.py -i <ip address to slideshow> -d <path to filedir>')
+        elif opt in ("-r", "--resolution"):
+            res = tuple(map(int, arg.split('x')))
+    if ip == '' or dir_path == '' or res == '':
+        print ('pdf_converte.py -i <ip address to slideshow> -d <path to filedir> -r <Screen resolution>')
         sys.exit()
-    return ip, dir_path
+    print(ip)
+    return ip, dir_path, res
 
 def check_files():
     # Iterate directory
@@ -66,7 +70,6 @@ def remove_file(jpg):
     print("Removed " + dir_path+"/"+b+'.jpg')
 
 def crop_image(path,jpg):
-    res = 1920, 1080
     img = Image.open(path+"/tmp/"+jpg +'.jpg')
     box = (0, 0, 1875, 1300)
     img2 = img.crop(box)
@@ -76,7 +79,7 @@ def crop_image(path,jpg):
 
 if __name__ == "__main__":
 
-    ip, dir_path = main(sys.argv[1:])
+    ip, dir_path, res = main(sys.argv[1:])
     print(ip, dir_path)
     curr_data = {}
     curr_images = {}
