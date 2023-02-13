@@ -1,4 +1,7 @@
 #!/bin/bash
+
+ip_data=$1
+
 apt update
 apt-get install tigervnc-scraping-server xfce4 xfce4-goodies tightvncserver -y
 
@@ -6,6 +9,10 @@ mkdir -p /home/rock/.vnc
 chown rock:rock /home/rock/.vnc
 
 cd screen_assets
+
+echo "Replace!"
+sed -i "s/slide_host/$1/g" chrome_autodeploy.sh
+
 
 echo "Copy Chrome script"
 cp chrome_autodeploy.sh /home/rock/chrome.sh
@@ -28,6 +35,5 @@ else
         line_number=$(grep -n "exit 0" "/etc/rc.local" | tail -n 1 | awk -F: '{print $1}')
         sudo sed -i "${line_number}i\\sleep 5; su rock -c 'x0vncserver :0 -localhost no -PasswordFile /home/rock/.vnc/passwd'" "/etc/rc.local"
 fi
-
 sleep 5
 reboot

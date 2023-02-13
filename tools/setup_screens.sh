@@ -17,6 +17,7 @@ for inst in $(echo "${screens}" | jq -c '.'); do
 
     # Get name, IP, and local_png_dir of the screen
     remote_host=$(echo "${inst}" | jq -r '.slide_client')
+    slide_host=$(echo "${inst}" | jq -r '.ip')
 
     if grep -q "$remote_host" "~/.ssh/known_hosts"; then
         echo "Key added for $remote_host"
@@ -35,7 +36,7 @@ for inst in $(echo "${screens}" | jq -c '.'); do
 
     # Execute the script as root on the remote host
     echo "Executing the script as root on the remote host..."
-    sshpass -p "$remote_pass" ssh -oStrictHostKeyChecking=no "$remote_user"@"$remote_host" "chmod +x ~/screen_assets/init_screens.sh; bash ~/screen_assets/init_screens.sh"
+    sshpass -p "$remote_pass" ssh -oStrictHostKeyChecking=no "$remote_user"@"$remote_host" "chmod +x ~/screen_assets/init_screens.sh; bash ~/screen_assets/init_screens.sh $slide_host"
 
     echo "Done."
 
