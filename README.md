@@ -35,8 +35,11 @@ As long as the controller has enough resources, any amount of clients can be dep
 
 1. Clone the repo
 `git clone https://github.com/Knudn/aassk.git; cd aassk/tools`
+2. Open instances.yaml to configure the clients
 2. Install the SMB share
-`chmod +x; ./smb_share.sh`
-3. 
+`chmod +x smb_share.sh; ./smb_share.sh --install`
+
+3. Deploys the webserver, one for each client
+`chmod +x setup_slide.sh; ./setup_slide.sh`
 
 
