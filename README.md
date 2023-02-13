@@ -12,23 +12,31 @@ This software suite will do the following things:
 - Setup the slideshow application
 - Initiate the clients
 
-#### Struture:
+#### Folder Struture:
 
 ##### slide_app
-
-
+A Flask application used to display the images being put in the SMB file share. 
+Ref: https://github.com/Digital-Signage-Slideshow/DS_Slideshow
+##### tools
+Contains all the custom deployment tools
 ### Prerequisite
 
-This software was writter to be compateble with Debian on ARM, it should techiclly workd on x86 put this cannot be guaranteed.
+This software was writter to be compateble with Debian on ARM, it should technically work on x86 but this cannot be guaranteed.
 
-1 Controller: This act as the main hub which will run all the microservices.
+#### Controller
+This act as the main hub which will orcestrate all the services used (db, Flask, smb, etc..).
+The deployment tools are written for Debian on ARM, but most of the script should work with other distributions/architectures as well after a bit of tinkering
 
-### Setup
+#### Client
+The client needs to have Chromium installed, and needs to be manageable by SSH with the user root (security was not considered when designing this). 
+As long as the controller has enough resources, any amount of clients can be deployed.
 
+### Setup - Controller
 
 1. Clone the repo
-`git clone https://github.com/Knudn/aassk.git`
-2. 
-
+`git clone https://github.com/Knudn/aassk.git; cd aassk/tools`
+2. Install the SMB share
+`chmod +x; ./smb_share.sh`
+3. 
 
 
