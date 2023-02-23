@@ -29,6 +29,20 @@ def main(argv):
     print(ip)
     return ip, dir_path, res
 
+def setup_default():
+
+    for path in os.listdir(dir_path+"/default/"):
+        if path[-4:] == ".jpg" or path[-4:] == ".png" or path[-5:] == ".jpeg":
+            with open(dir_path + "/default/" +path,'rb') as file:
+                chunk = 0
+                while chunk != b'':
+                    # read only 1024 bytes at a time
+                    chunk = file.read(1024)
+                    h.update(chunk)
+            images[path] = h.hexdigest()
+    return [data, images]
+
+
 def check_files():
     # Iterate directory
     data = {}
@@ -56,7 +70,6 @@ def check_files():
                     h.update(chunk)
             images[path] = h.hexdigest()
 
-    return [data, images]
 
 def convert_files(path,pdf):
     pages = convert_from_path(path+pdf)
@@ -79,14 +92,20 @@ def crop_image(path,jpg):
 
 if __name__ == "__main__":
 
+
     ip, dir_path, res = main(sys.argv[1:])
     print(ip, dir_path)
     curr_data = {}
     curr_images = {}
 
     while True: 
-
+    
         old_data = curr_data
+        if not curr_data:
+            upload(ip,dir_path[6:]+"/default/default.jpg")
+        else:
+            remove(ip,dir_path[6:]+"/default/default.jpg")
+            
         old_images = curr_images
         time.sleep(3)
         curr_data, curr_images = check_files()

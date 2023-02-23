@@ -33,9 +33,9 @@ sudo /usr/bin/webfsd -k /var/run/webfs/webfsd.pid -r /share/ -u www-data -g www-
 
 # Get screens data from instances.json
 screens=$(yq e -j instances.json | jq '.screens[]')
-echo $screens
+
 # Kill any existing pdf_converte.py processes
-ps -aux | grep pdf_converte.py | awk '{print $2}'| xargs kill
+sudo ps -aux | grep "pdf_converte.py" | awk '{print $2}'| sudo xargs kill
 
 # Loop through each screen instance
 for inst in $(echo "${screens}" | jq -c '.'); do
@@ -47,18 +47,12 @@ for inst in $(echo "${screens}" | jq -c '.'); do
   slide_client=$(echo "${inst}" | jq -r '.slide_client')
   res=$(echo "${inst}" | jq -r '.res')
 
-  echo $name 123
-  echo $ip 123
-  echo $local_png_dir 123
-  echo $res 123
-
   mkdir -p "$local_png_dir/tmp"
   mkdir -p "$local_png_dir/other"
-  
-  echo "$local_png_dir/tmp"
+  mkdir -p "$local_png_dir/default/tmp"
 
   # Remove existing /tmp/$name directory
-  rm -rf "/tmp/$name"
+  sudo rm -rf "/tmp/$name"
 
   # Copy slide_app to /tmp/$name
   cp -r ../slide_app "/tmp/$name"
