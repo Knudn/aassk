@@ -1,19 +1,19 @@
----
+'---
 screens:
   - name: slide1
     ip: 192.168.1.54
     local_png_dir: /share/Skjerm1
-    slide_client: 192.168.1.101
+    slide_client: 192.168.1.51
     res: 1920x1080
 
   - name: slide2
-    ip: 192.168.1.55
+    ip: 192.168.32.55
     local_png_dir: /share/Skjerm2
-    slide_client: 192.168.1.102
+    slide_client: 192.168.1.52
     res: 1920x1080
 
   - name: slide3
-    ip: 192.168.1.56
+    ip: 192.168.32.56
     local_png_dir: /share/Skjerm3
-    slide_client: 192.168.1.103
+    slide_client: 192.168.1.53
     res: 1920x1080

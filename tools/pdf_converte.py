@@ -71,9 +71,9 @@ def remove_file(jpg):
 
 def crop_image(path,jpg):
     img = Image.open(path+"/tmp/"+jpg +'.jpg')
-    box = (0, 0, 1875, 1300)
-    img2 = img.crop(box)
-    res_image = img2.resize(res, Image.ANTIALIAS)
+#    box = (0, 0, 1875, 1300)
+#    img2 = img.crop(box)
+    res_image = img.resize(res, Image.ANTIALIAS)
     res_image.save(path + jpg + ".jpg")
 
 
