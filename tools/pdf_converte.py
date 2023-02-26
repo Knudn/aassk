@@ -8,8 +8,8 @@ from PIL import Image
 from upload import *
 import logging
 import warnings
-warnings.filterwarnings("ignore", category=DeprecationWarning) 
 
+warnings.filterwarnings("ignore", category=DeprecationWarning) 
 
 logging.basicConfig(
     level=logging.INFO,
@@ -139,7 +139,7 @@ if __name__ == "__main__":
                         upload(ip,dir_path[6:]+"/"+a+".jpg")
             except:
                 pass
-                
+
         elif len(old_data) > len(curr_data):
             try:
                 for b in old_data:
