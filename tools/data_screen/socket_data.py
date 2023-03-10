@@ -32,13 +32,14 @@ def threaded(c):
     while True:
         
         data = c.recv(1024)
-        print("asd")
+
         if not data:
             print('Bye')
             print_lock.release()
             break
-        print(data)
+        
         data = data.decode('iso-8859-1')
+        print(data)
         name_1 = re.search(pattern_name_1, data)
         name_2 = re.search(pattern_name_2, data)
         time_1 = re.search(pattern_time_1, data)

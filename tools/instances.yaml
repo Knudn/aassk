@@ -4,7 +4,7 @@ screens:
     ip: 192.168.1.54
     local_png_dir: /share/Skjerm1
     slide_client: 192.168.1.101
-    res: 1920x1080
+    res: 1680x1050
 
   - name: slide2
     ip: 192.168.1.55

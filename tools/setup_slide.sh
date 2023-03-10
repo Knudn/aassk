@@ -61,7 +61,7 @@ for inst in $(echo "${screens}" | jq -c '.'); do
   sudo -u postgres ./db.sh $name
 
   # Add IP address to ens33 interface
-  sudo ip address add $ip/255.255.255.0 dev wlan0
+  sudo ip address add $ip/255.255.255.0 dev eth0
 
   # Change to /tmp/$name directory and run Flask app in background
   cd /tmp/$name
