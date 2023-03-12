@@ -8,7 +8,6 @@ def get_event():
     cur = con.cursor()
     # The result of a "cursor.execute" can be iterated over by row
     for row in cur.execute('SELECT C_VALUE FROM TPARAMETERS WHERE C_PARAM="EVENT";'):
-        print(row[0])
         con.commit()
 
         if int(row[0]) < 9:
@@ -52,18 +51,28 @@ def get_start_list(eventfile):
         finish_times[row[0]] = row[1]
 
     paired_startlist = [(x[0], y[0]) for x, y in zip(startlist[0::2], startlist[1::2])]
-    print(paired_startlist)
+
     return paired_startlist, finish_times
 
-def get_start_list_dict(startlist,con_per):
+def get_start_list_dict(startlist,con_per,time_data):
     riders = {}
+    
     for v,a in enumerate(startlist):
         riders_tmp = []
         for g in a:
             other_data = ""
             for n in con_per:
                 if g == n[0]:
-                    riders_tmp.append((n[1],n[2],n[4],n[3]))
-        
+                    found = False
+                    for k in time_data:
+                        if k == n[0]:
+                            riders_tmp.append((n[0],n[1],n[2],n[4],n[3],time_data[k],True,))
+                            found = True
+                    if found == False:
+                        riders_tmp.append((n[0],n[1],n[2],n[4],n[3],0,False,))
+
+        if len(riders_tmp) < 2:
+            riders_tmp.append((0,"Filler", "Filler","Filler","Filler",0,False,))
         riders[v] = riders_tmp
+
     return riders

@@ -46,6 +46,8 @@ def get_start_list(eventfile):
     cur = con.cursor()
     for row in cur.execute('SELECT C_NUM FROM TSTARTLIST_PARQ2_HEAT1;'):
         startlist.append(row)
+    print(startlist)
+
 
     paired_startlist = [(x[0], y[0]) for x, y in zip(startlist[0::2], startlist[1::2])]
     return paired_startlist
@@ -59,14 +61,15 @@ startlist = get_start_list(eventex)
 riders = {}
 
 for v,a in enumerate(startlist):
+
     riders_tmp = []
     for g in a:
         other_data = ""
         for n in con_per:
             if g == n[0]:
                 riders_tmp.append((n[1],n[2],n[4],n[3]))
+
     
     riders[v] = riders_tmp
 
-print(riders)
 
