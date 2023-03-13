@@ -1,0 +1,2 @@
+sudo mount -t cifs //192.168.1.104/Events -o vers=3.11, /mnt/events
+sudo mount -t cifs //192.168.20.10/Events /mnt/test --verbose -o vers=3.0,domain=ServerName,username=guest,guest,file_mode=0666,dir_mode=0777

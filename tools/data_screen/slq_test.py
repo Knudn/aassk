@@ -28,3 +28,5 @@ SET c_num = CASE
 
 for row in cur.execute("SELECT * FROM active_drivers"):
     print(row)
+
+cur.execute("CREATE TABLE start_list(c_num, first_name, last_name, snowmobile, club, time, finished,pair)")

@@ -61,10 +61,9 @@ def data_clean(data):
     bid_1 = re.search(pattern_bid_1, data)
     bid_2 = re.search(pattern_bid_2, data)
    
-
-    if "<mode>new_time<mode>" in data:
+    if "update_event" in data:
         x = requests.get('http://192.168.1.50:4433/new_event')
-    
+        
 
     if name_1:
         extracted_name_1 = name_1.group(1).strip().replace('  ', ' ')
@@ -90,6 +89,7 @@ def data_clean(data):
                 END;
         """.format(bid1,bid2))
         con.commit()
+        x = requests.get('http://192.168.1.50:4433/new_event')
 
 
     elif bid_1: 
@@ -102,6 +102,7 @@ def data_clean(data):
                 END;
         """.format(bid1,"0"))
         con.commit()
+        x = requests.get('http://192.168.1.50:4433/new_event')
 
     elif bid_2:
         bid2 = bid_2.group(1)
@@ -114,6 +115,7 @@ def data_clean(data):
         """.format("0",bid2))
 
         con.commit()
+        x = requests.get('http://192.168.1.50:4433/new_event')
 
 
     if time_1 and time_2:

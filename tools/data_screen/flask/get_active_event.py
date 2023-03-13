@@ -47,8 +47,8 @@ def get_start_list(eventfile):
     cur = con.cursor()
     for row in cur.execute('SELECT C_NUM FROM TSTARTLIST_PARQ2_HEAT1;'):
         startlist.append(row)
-    for row in cur.execute('SELECT C_NUM, C_TIME FROM TTIMEINFOS_HEAT1;'):
-        finish_times[row[0]] = row[1]
+    for row in cur.execute('SELECT C_NUM, C_TIME, C_STATUS FROM TTIMEINFOS_HEAT1;'):
+        finish_times[row[0]] = [row[1], row[2]]
 
     paired_startlist = [(x[0], y[0]) for x, y in zip(startlist[0::2], startlist[1::2])]
 
@@ -66,13 +66,13 @@ def get_start_list_dict(startlist,con_per,time_data):
                     found = False
                     for k in time_data:
                         if k == n[0]:
-                            riders_tmp.append((n[0],n[1],n[2],n[4],n[3],time_data[k],True,))
+                            riders_tmp.append((n[0],n[1],n[2],n[4],n[3],time_data[k][0],True,time_data[k][1]))
                             found = True
                     if found == False:
-                        riders_tmp.append((n[0],n[1],n[2],n[4],n[3],0,False,))
+                        riders_tmp.append((n[0],n[1],n[2],n[4],n[3],0,False,"Not Started"))
 
         if len(riders_tmp) < 2:
-            riders_tmp.append((0,"Filler", "Filler","Filler","Filler",0,False,))
+            riders_tmp.append((0,"Filler", "Filler","Filler","Filler",0,False,"Not Started",))
         riders[v] = riders_tmp
 
     return riders
