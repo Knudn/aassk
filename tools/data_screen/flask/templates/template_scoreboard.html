@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
   <meta charset="UTF-8">
   <title>2023 Australian Grand Prix - Race Results</title>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -95,33 +96,40 @@
       }
 
   </style>
-<script>
-  $(document).ready(function() {
-    setInterval(function() {
-      $.ajax({
-        url: '/current_scoreboard',
-        type: 'GET',
-        success: function(data) {
-          $('.main').html(data);
-        },
-        error: function() {
-          console.log('Error fetching data');
-        }
-      });
-    }, 3000);
-  });
-  </script>
+  <script>
+$(document).ready(function() {
+  function updateScoreboard() {
+    $.ajax({
+      url: '/current_scoreboard',
+      type: 'GET',
+      success: function(data) {
+        $('.main').html(data);
+      },
+      error: function() {
+        console.log('Error fetching data');
+      }
+    });
+  }
+
+  // call the updateScoreboard function initially on page load
+  updateScoreboard();
+
+  // call the updateScoreboard function every 3 seconds
+  setInterval(updateScoreboard, 3000);
+});
+    </script>
 </head>
 </ul>
 <body>
 <div class="main">
 <div class="center_content">
-  <h1>2023 Australian Grand Prix</h1>
-
+  <h1>Resultatliste  {{ con_title }}</h1>
+  <hr>
   <table>
     <thead>
       <tr>
         <th>Pos</th>
+        <th>Num</th>
         <th>Driver</th>
         <th>Snowmobile</th>
         <th>Club</th>
@@ -132,42 +140,46 @@
       
       {% set count = namespace(value=0) %}
       {% for values in data %}
-
-      {% if "FILLER" not in values[2] and values[7] == 0 %}
+      
+      {% if "FILLER" not in values[2] and values[6] == "0"  %}
         {% set count.value = count.value + 1 %}
 
         {% if count.value == 1 %}
 
           <tr>
             <td class="gold">1</td>
+            <td class="ID">[{{ values[0] }}]</td>
             <td class="driver">{{ values[1] }} {{ values[2] }}</td>
-            <td class="Snowmobile">{{ values[3] }}</td>
-            <td class="Club">{{ values[4] }}</td>
+            <td class="Snowmobile">{{ values[4] }}</td>
+            <td class="Club">{{ values[3] }}</td>
             <td>{{ values[5] }}</td>
           </tr>
 
       {% elif count.value == 2 %}
       <tr>
         <td class="siver">2</td>
+        <td class="ID">[{{ values[0] }}]</td>
         <td class="driver">{{ values[1] }} {{ values[2] }}</td>
-        <td class="Snowmobile">{{ values[3] }}</td>
-        <td class="Club">{{ values[4] }}</td>
+        <td class="Snowmobile">{{ values[4] }}</td>
+        <td class="Club">{{ values[3] }}</td>
         <td>{{ values[5] }}</td>
       </tr>
       {% elif count.value == 3 %}
       <tr>
         <td class="bronze">3</td>
+        <td class="ID">[{{ values[0] }}]</td>
         <td class="driver">{{ values[1] }} {{ values[2] }}</td>
-        <td class="Snowmobile">{{ values[3] }}</td>
-        <td class="Club">{{ values[4] }}</td>
+        <td class="Snowmobile">{{ values[4] }}</td>
+        <td class="Club">{{ values[3] }}</td>
         <td>{{ values[5] }}</td>
       </tr>
       {% else %}
       <tr>
         <td>{{ count.value }}</td>
+        <td class="ID">[{{ values[6] }}]</td>
         <td class="driver">{{ values[1] }} {{ values[2] }}</td>
-        <td class="Snowmobile">{{ values[3] }}</td>
-        <td class="Club">{{ values[4] }}</td>
+        <td class="Snowmobile">{{ values[4] }}</td>
+        <td class="Club">{{ values[3] }}</td>
         <td>{{ values[5] }}</td>
       </tr>
       {% endif %}
@@ -176,8 +188,6 @@
       {% endfor %}
 
   </table>
-
-  
   <table class="dnf-table">
     <thead>
       <tr>
@@ -190,17 +200,17 @@
     <tbody>
       {% for values in data %}
       <tr>
-        {% if values[7] == 1 %}
+        {% if values[6] == "1" %}
         <td>{{ values[0] }}</td>
         <td class="driver">{{ values[1] }} {{ values[2] }}</td>
         <td class="team">{{ values[4] }}</td>
         <td class="reason">Did not start</td>
-        {% elif values[7] == 2 %}
+        {% elif values[6] == "2" %}
         <td>{{ values[0] }}</td>
         <td class="driver">{{ values[1] }} {{ values[2] }}</td>
         <td class="team">{{ values[4] }}</td>
         <td class="reason">Did not finish</td>
-        {% elif values[7] == 3 %}
+        {% elif values[6] == "3" %}
         <td>{{ values[0] }}</td>
         <td class="driver">{{ values[1] }} {{ values[2] }}</td>
         <td class="team">{{ values[4] }}</td>
