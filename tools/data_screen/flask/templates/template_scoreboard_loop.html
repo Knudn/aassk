@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="UTF-8">
+  <title>2023 Australian Grand Prix - Race Results</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+		$(document).ready(function() {
+			var intervalId; // variable to store the ID of the interval
+
+			function updateScoreboard() {
+				$.ajax({
+					url: '/scoreboard-loop',
+					type: 'GET',
+					success: function(data) {
+						$('html').html(data);
+					},
+					error: function() {
+						console.log('Error fetching data');
+					}
+				});
+			}
+
+			// call updateScoreboard every 10 seconds
+			intervalId = setInterval(updateScoreboard, 10000);
+		});
+    
+  </script>
+  <style>
+    body {
+      font-family: 'Roboto', sans-serif;
+      color: #333;
+      background-color: #fff;
+      margin: 0;
+      padding: 0;
+    }
+
+    h1 {
+      font-family: 'Formula1-Bold', sans-serif;
+      color: #f00;
+      text-align: center;
+      margin: 0;
+      padding: 20px 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 20px 0;
+    }
+
+    th, td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+
+    th {
+      font-family: 'Formula1-Regular', sans-serif;
+      font-size: 18px;
+      color: #fff;
+      background-color: #f00;
+      border-top: 2px solid #fff;
+      border-bottom: 2px solid #fff;
+      text-transform: uppercase;
+    }
+
+    td.driver {
+      font-weight: bold;
+    }
+
+    td.gold {
+      color: #FFD700;
+    }
+
+    td.silver {
+      color: #C0C0C0;
+    }
+
+    td.bronze {
+      color: #CD7F32;
+    }
+
+    tbody tr:nth-child(even) {
+      background-color: #f2f2f2;
+    }
+
+    .dnf-table {
+      margin-top: 40px;
+    }
+
+    .dnf-table th {
+      background-color: #333;
+      color: #fff;
+      font-size: 16px;
+      font-weight: normal;
+    }
+
+    .dnf-table td {
+      border: 1px solid #ddd;
+      padding: 10px;
+      font-size: 14px;
+    }
+
+    .dnf-table td.driver {
+      font-weight: bold;
+    }
+
+    .dnf-table td.reason {
+      font-style: italic;
+    }
+    .center_content {
+      margin: auto;
+      padding: 20px;
+      font-style: italic;
+      width: 80%;
+      font-family: 'Roboto', sans-serif;
+      }
+
+  </style>
+</head>
+</ul>
+<body>
+<div class="main">
+
+<div class="center_content">
+  <h1>Resultatliste  {{ con_title }}</h1>
+  <hr>
+  <table>
+    <thead>
+      <tr>
+        <th>Pos</th>
+        <th>Num</th>
+        <th>Driver</th>
+        <th>Snowmobile</th>
+        <th>Club</th>
+        <th>Time</th>
+      </tr>
+    </thead>
+    <tbody>
+      
+      {% set count = namespace(value=0) %}
+      {% for values in data %}
+      
+      {% if "FILLER" not in values[2] and values[6] == "0"  %}
+        {% set count.value = count.value + 1 %}
+
+        {% if count.value == 1 %}
+
+          <tr>
+            <td class="gold">1</td>
+            <td class="ID">[{{ values[0] }}]</td>
+            <td class="driver">{{ values[1] }} {{ values[2] }}</td>
+            <td class="Snowmobile">{{ values[4] }}</td>
+            <td class="Club">{{ values[3] }}</td>
+            <td>{{ values[5] }}</td>
+          </tr>
+
+      {% elif count.value == 2 %}
+      <tr>
+        <td class="siver">2</td>
+        <td class="ID">[{{ values[0] }}]</td>
+        <td class="driver">{{ values[1] }} {{ values[2] }}</td>
+        <td class="Snowmobile">{{ values[4] }}</td>
+        <td class="Club">{{ values[3] }}</td>
+        <td>{{ values[5] }}</td>
+      </tr>
+      {% elif count.value == 3 %}
+      <tr>
+        <td class="bronze">3</td>
+        <td class="ID">[{{ values[0] }}]</td>
+        <td class="driver">{{ values[1] }} {{ values[2] }}</td>
+        <td class="Snowmobile">{{ values[4] }}</td>
+        <td class="Club">{{ values[3] }}</td>
+        <td>{{ values[5] }}</td>
+      </tr>
+      {% else %}
+      <tr>
+        <td>{{ count.value }}</td>
+        <td class="ID">[{{ values[6] }}]</td>
+        <td class="driver">{{ values[1] }} {{ values[2] }}</td>
+        <td class="Snowmobile">{{ values[4] }}</td>
+        <td class="Club">{{ values[3] }}</td>
+        <td>{{ values[5] }}</td>
+      </tr>
+      {% endif %}
+    </tbody>
+      {% endif %}
+      {% endfor %}
+
+  </table>
+  <table class="dnf-table">
+    <thead>
+      <tr>
+        <th>DNF</th>
+        <th>Driver</th>
+        <th>Team</th>
+        <th>Reason</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for values in data %}
+      <tr>
+        {% if values[6] == "1" %}
+        <td>{{ values[0] }}</td>
+        <td class="driver">{{ values[1] }} {{ values[2] }}</td>
+        <td class="team">{{ values[4] }}</td>
+        <td class="reason">Did not start</td>
+        {% elif values[6] == "2" %}
+        <td>{{ values[0] }}</td>
+        <td class="driver">{{ values[1] }} {{ values[2] }}</td>
+        <td class="team">{{ values[4] }}</td>
+        <td class="reason">Did not finish</td>
+        {% elif values[6] == "3" %}
+        <td>{{ values[0] }}</td>
+        <td class="driver">{{ values[1] }} {{ values[2] }}</td>
+        <td class="team">{{ values[4] }}</td>
+        <td class="reason">Disqualified</td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+	</tbody>
+</div>
+</div>
+</body>
