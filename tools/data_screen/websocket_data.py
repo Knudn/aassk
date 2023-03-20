@@ -63,6 +63,7 @@ def data_clean(data):
    
     if "update_event" in data:
         x = requests.get('http://192.168.1.50:4433/new_event')
+
         
 
     if name_1:
@@ -82,6 +83,7 @@ def data_clean(data):
         bid1 = bid_1.group(1)
         bid2 = bid_2.group(1)
         print(bid1,bid2)
+
         cur.execute(""" UPDATE active_drivers
         SET c_num = CASE
                 WHEN driver = 'Driver_1' THEN {0}
@@ -94,7 +96,6 @@ def data_clean(data):
 
     elif bid_1: 
         bid1 = bid_1.group(1)
-        print(bid1)
         cur.execute(""" UPDATE active_drivers
         SET c_num = CASE
                 WHEN driver = 'Driver_1' THEN {0}
@@ -106,7 +107,6 @@ def data_clean(data):
 
     elif bid_2:
         bid2 = bid_2.group(1)
-        print(bid2)
         cur.execute(""" UPDATE active_drivers
         SET c_num = CASE
                 WHEN driver = 'Driver_1' THEN {0}

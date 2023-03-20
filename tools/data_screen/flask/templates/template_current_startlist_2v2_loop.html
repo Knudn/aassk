@@ -1,12 +1,13 @@
 <html>
    <head>
       <title>Competitor Matchups</title>
+
       <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script>
     $(document).ready(function() {
       function updateScoreboard() {
         $.ajax({
-          url: '/startlist',
+          url: '/startlist-loop',
           type: 'GET',
           success: function(data) {
             $('html').html(data);
@@ -24,7 +25,6 @@
       setInterval(updateScoreboard, 3000);
     });
     </script>
-  
       <style>
          * {
          margin: 0;
@@ -150,9 +150,8 @@
          text-align: center;
          }
       </style>
-      
-
    </head>
+   
    <body>
       <div class="container">
       <h1 class="main_manue">Startliste</h1>
@@ -200,7 +199,7 @@
           {% if loop.index == 1 %}
           <div class="rows">
             <div class="cell">
-              <p style="font-size: 20px;"> {{ value[1] }}  {{ value[2] }} [{{ value[0] }}  ] </p>
+              <p style="font-size: 20px;">{{ value[1] }}  {{ value[2] }} [{{ value[0] }}] </p>
               <p>{{ value[4] }} </p>
             </div>
             <div class="matchup">

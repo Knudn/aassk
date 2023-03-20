@@ -1,11 +1,35 @@
 <html>
    <head>
       <title>Competitor Matchups</title>
+      <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+    $(document).ready(function() {
+      function updateScoreboard() {
+        $.ajax({
+          url: '/startlist-single',
+          type: 'GET',
+          success: function(data) {
+            $('html').html(data);
+          },
+          error: function() {
+            console.log('Error fetching data');
+          }
+        });
+      }
+    
+      // call the updateScoreboard function initially on page load
+      updateScoreboard();
+    
+      // call the updateScoreboard function every 3 seconds
+      setInterval(updateScoreboard, 3000);
+    });
+    </script>
       <style>
          * {
          margin: 0;
          padding: 0;
          box-sizing: border-box;
+         font-family: 'Poppins', sans-serif
          }
          body {
          background-color: #f2f2f2;
@@ -125,31 +149,10 @@
          }
       </style>
    </head>
-   <script>
-    $(document).ready(function() {
-      function updateScoreboard() {
-        $.ajax({
-          url: '/startlist',
-          type: 'GET',
-          success: function(data) {
-            $('.main').html(data);
-          },
-          error: function() {
-            console.log('Error fetching data');
-          }
-        });
-      }
-    
-      // call the updateScoreboard function initially on page load
-      updateScoreboard();
-    
-      // call the updateScoreboard function every 3 seconds
-      setInterval(updateScoreboard, 3000);
-    });
-        </script>
    <body>
       <div class="container">
-      <h1 class="main_manue">Competitor Matchups</h1>
+        <h1 class="main_manue">Startliste</h1>
+        <h3 class="main_manue" style="font-size: 30px;">{{ con_title }}</h3>
         <div class="txt_split">Upcoming</div>
         <div class="table-wrapper_none_active">
         {% for key, values in data.items() %}

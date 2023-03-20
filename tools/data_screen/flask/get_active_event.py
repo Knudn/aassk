@@ -1,7 +1,7 @@
 import sqlite3
 from pathlib import Path
 
-event_files = Path("/mnt/test/")
+event_files = Path("/mnt/events/")
 
 def get_event():
     print(event_files)
@@ -13,6 +13,7 @@ def get_event():
             cur = con.cursor()
             cur.execute('SELECT C_VALUE FROM TPARAMETERS WHERE C_PARAM IN ("EVENT", "HEAT");')
             event_values = [row[0] for row in cur.fetchall()]
+            print(event_values)
             cur.close()
 
         num = f"{int(event_values[0]):03}"
@@ -47,7 +48,7 @@ def get_start_list(eventfile, heat, mode):
     with sqlite3.connect(str(db_path)) as con:
         cur = con.cursor()
         print(mode)
-        if mode == "SINGLE":
+        if mode == "FINALE":
             query_startlist = f"SELECT C_NUM FROM TSTARTLIST_HEAT1;"
             query_timedata = f"SELECT C_NUM, C_TIME, C_STATUS FROM TTIMEINFOS_HEAT{heat};"
         else:
@@ -62,7 +63,6 @@ def get_start_list(eventfile, heat, mode):
         cur.close()
     if mode == "SINGLE":
         paired_startlist = []
-        print(startlist)
         
         for a in startlist:
             paired_startlist.append(a[0])
@@ -89,8 +89,10 @@ def get_start_list_dict(startlist, competitors, time_data, mode):
                     if rider_num == comp[0]:
                         if rider_num in time_data:
                             riders_tmp.append((*comp, *time_data[rider_num], True))
+                            print((*comp, *time_data[rider_num], True))
                         else:
                             riders_tmp.append((*comp, 0, False, "Not Started"))
+                            print((*comp, 0, False, "Not Started"))
 
         if len(riders_tmp) < 2:
             riders_tmp.append((0, "Filler", "Filler", "Filler", "Filler", 0, False, "Not Started"))

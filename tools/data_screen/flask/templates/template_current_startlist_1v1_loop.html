@@ -1,36 +1,11 @@
 <html>
    <head>
       <title>Competitor Matchups</title>
-      <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script>
-    $(document).ready(function() {
-      function updateScoreboard() {
-        $.ajax({
-          url: '/startlist',
-          type: 'GET',
-          success: function(data) {
-            $('html').html(data);
-          },
-          error: function() {
-            console.log('Error fetching data');
-          }
-        });
-      }
-    
-      // call the updateScoreboard function initially on page load
-      updateScoreboard();
-    
-      // call the updateScoreboard function every 3 seconds
-      setInterval(updateScoreboard, 3000);
-    });
-    </script>
-  
       <style>
          * {
          margin: 0;
          padding: 0;
          box-sizing: border-box;
-         font-family: 'Poppins', sans-serif
          }
          body {
          background-color: #f2f2f2;
@@ -66,7 +41,6 @@
          }
          .rows {
          display: flex;
-         border-bottom: 1px solid;
          }
          .cell_r {
          font-size: 20px;
@@ -126,8 +100,8 @@
          font-size: 2rem;
          font-weight: bold;
          padding: 10px;
-
-
+         border-left: 1px solid;
+         border-right: 1px solid;
          }
          .other {
          color: #333;
@@ -150,116 +124,65 @@
          text-align: center;
          }
       </style>
-      
-
    </head>
+   <script>
+    $(document).ready(function() {
+      function updateScoreboard() {
+        $.ajax({
+          url: '/startlist',
+          type: 'GET',
+          success: function(data) {
+            $('.main').html(data);
+          },
+          error: function() {
+            console.log('Error fetching data');
+          }
+        });
+      }
+    
+      // call the updateScoreboard function initially on page load
+      updateScoreboard();
+    
+      // call the updateScoreboard function every 3 seconds
+      setInterval(updateScoreboard, 3000);
+    });
+        </script>
    <body>
       <div class="container">
-      <h1 class="main_manue">Startliste</h1>
-      <h3 class="main_manue" style="font-size: 30px;">{{ con_title }}</h3>
-        <hr>
-
-          {% for key, values in data.items() %}
-          {% for value in values %}
-
-            {% if value[0] in active_drivers and value[5] == 0 %}
-            {% if loop.index == 1 %}
-            <div class="table-wrapper_active">
-              <div class="rows">
-            <div class="cell_r">
-              <h1> {{ value[1] }} {{ value[2] }} [{{ value[0] }}] </h1>
-              <p>{{ value[4] }}</p>
-           </div> 
-
-           <div class="matchup"><p> 🏁 </p></div>
-
-            {% elif loop.index == 2 and value[5] == 0 %}
-
-            <div class="cell_v">
-              <h1>[{{ value[0] }}]  {{ value[1] }} {{ value[2] }}</h1>
-              <p>{{ value[4] }}</p>
-           </div>
-          </div>
-        </div>
-        {% endif %}
-        {% endif %}
-        {% if value[0] in active_drivers %}
-        {% if loop.index == 1 %}
-
-        {% endif %}
-        {% endif %}
-
-        {% endfor %}
-        {% endfor %}
+      <h1 class="main_manue">Competitor Matchups</h1>
         <div class="txt_split">Upcoming</div>
         <div class="table-wrapper_none_active">
         {% for key, values in data.items() %}
           {% for value in values %}
-
-          {% if value[5] == 0 and value[0] not in active_drivers %}
-          {% if loop.index == 1 %}
+          {% if value[5] == 0 and value[0]%}
           <div class="rows">
             <div class="cell">
-              <p style="font-size: 20px;"> {{ value[1] }}  {{ value[2] }} [{{ value[0] }}  ] </p>
-              <p>{{ value[4] }} </p>
+              <h2> {{ value[1] }}  {{ value[2] }} [{{ value[0] }}]</h2>
+              <p>{{ value[4] }} | {{ value[3] }} </p>
             </div>
-            <div class="matchup">
-               <span class="vs_other"> {{ key | int + 1 | int }} </span>
-            </div>
-
-         
-         {% elif loop.index == 2 %}
-            <div class="cell">
-              <p style="font-size: 20px;"> [{{ value[0] }}] {{ value[1] }}  {{ value[2] }}  </p>
-              <p>{{ value[4] }} </p>
-          </div>
         </div>
-
-
-
       {% endif %}
-      {% endif %}
-
       {% endfor %}
       {% endfor %}
+      
     </div>
     
       <div class="txt_split">Finished </div> 
       
       <div class="table-wrapper_none_active">
         {% for key, values in data.items() %}
-
-        {% set sec = 0 %}
-        
         {% for value in values %}
-        
-        {% if value[5] > sec %}
-        {% set border_state = "#76ff76;" %}
-        {% else %}
-        {% set border_state = "#ff3838;" %}
-        {% endif %}
-        {% if value[5] != 0 and value[0] %}
-        
 
-        {% if loop.index == 1 %}
+        {% if value[5] != 0 and value[0] %}
 
          <div class="rows">
-
             <div class="cell">
-              <p> [{{ value[0] }}] {{ value[1] }} {{ value[2] }} | {{ value[4] }} | {{ value[7] }} sec </p>
-            </div>
-            <div class="matchup">
-               <span class="vs_other"></span>
-            </div>
-            {% elif loop.index == 2 %}
-            <div class="cell">
-              <p> [{{ value[0] }}] {{ value[1] }} {{ value[2] }} | {{ value[4] }} | {{ value[7] }} sec </p>
-              
+              <h3> {{ value[1] }}  {{ value[2] }} [{{ value[0] }}]</h3>
+              <p>{{ value[4] }} | {{ value[3] }} </p>
             </div>
          </div>
+
          {% endif %}
-         {% endif %}
- 
          {% endfor %}
          {% endfor %}
       </div>
