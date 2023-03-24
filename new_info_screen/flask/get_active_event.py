@@ -1,7 +1,7 @@
 import sqlite3
 from pathlib import Path
 
-event_files = Path("/mnt/events/")
+event_files = Path("/mnt/test/")
 
 def get_event():
     print(event_files)

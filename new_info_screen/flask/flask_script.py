@@ -6,7 +6,7 @@ import os
 
 all_evnets = []
 
-con = sqlite3.connect("../test.db", check_same_thread=False)
+con = sqlite3.connect("../active_data.sql", check_same_thread=False)
 cur = con.cursor()
 
 normal_whitelist = ['Event018', 'Event026', 'Event020', 'Event014', 'Event012', 'Event016', 'Event024', 'Event010', 'Event028', 'Event022']

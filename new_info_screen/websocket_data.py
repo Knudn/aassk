@@ -5,7 +5,7 @@ import json
 import re
 import requests
 import sqlite3
-con = sqlite3.connect("test.db")
+con = sqlite3.connect("active_data.sql")
 cur = con.cursor()
 
 for row in cur.execute("SELECT * FROM active_drivers"):
