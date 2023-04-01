@@ -162,7 +162,7 @@
           {% for key, values in data.items() %}
           {% for value in values %}
 
-            {% if value[0] in active_drivers and value[5] == 0 %}
+            {% if value[0] in active_drivers and value[5] == 0 and value[6] == 0 %}
             {% if loop.index == 1 %}
             <div class="table-wrapper_active">
               <div class="rows">
@@ -173,7 +173,7 @@
 
            <div class="matchup"><p> 🏁 </p></div>
 
-            {% elif loop.index == 2 and value[5] == 0 %}
+            {% elif loop.index == 2 and value[5] == 0 and value[6] == 0 %}
 
             <div class="cell_v">
               <h1>[{{ value[0] }}]  {{ value[1] }} {{ value[2] }}</h1>
@@ -196,11 +196,11 @@
         {% for key, values in data.items() %}
           {% for value in values %}
 
-          {% if value[5] == 0 and value[0] not in active_drivers %}
+          {% if value[5] == 0 and value[0] not in active_drivers and value[6] == 0  %}
           {% if loop.index == 1 %}
           <div class="rows">
             <div class="cell">
-              <p style="font-size: 20px;"> {{ value[1] }}  {{ value[2] }} [{{ value[0] }}  ] </p>
+              <p style="font-size: 20px;"> {{ value[1] }}  {{ value[2] }} [{{ value[0] }}   ] </p>
               <p>{{ value[4] }} </p>
             </div>
             <div class="matchup">
@@ -238,7 +238,7 @@
         {% else %}
         {% set border_state = "#ff3838;" %}
         {% endif %}
-        {% if value[5] != 0 and value[0] %}
+        {% if value[5] != 0 and value[0] or value[6] != 0 %}
         
 
         {% if loop.index == 1 %}

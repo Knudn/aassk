@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Tournament Brackets</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="dist/img/icons/favicon.ico" rel="icon" type="image/x-icon" />
+  <link rel="apple-touch-icon" sizes="180x180" href="dist/img/icons/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="dist/img/icons/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="dist/img/icons/favicon-16x16.png">
+  <link rel="manifest" href="dist/img/icons/site.webmanifest">
+  <link rel="mask-icon" href="dist/img/icons/safari-pinned-tab.svg" color="#494949">
+  <meta name="msapplication-TileColor" content="#00aba9">
+  <meta name="msapplication-TileImage" content="dist/img/icons/mstile-144x144.png">
+  <meta name="theme-color" content="#ffffff">
+
+  <script type="text/javascript" src="{{ url_for('static', filename = '/js/jquery.min.js') }}"></script>
+  <script type="text/javascript" src="{{ url_for('static', filename = '/js/vendor.js') }}"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-json/2.6.0/jquery.json.min.js"></script>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/custom.css') }}">
+
+  <script type="text/javascript">
+    $(function () {
+      removeAnimation();
+
+      setInterval(function () {
+        updateContent();
+      }, 5000);
+    });
+
+    function removeAnimation() {
+      var demo = $('div#doubleElimination');
+      demo.removeClass('animated fadeIn slow');
+    }
+
+    function updateContent() {
+  $.getJSON("http://192.168.1.50:4433/api-ladder/0", function (data) {
+    var bracketContainer = $('div#doubleElimination');
+    bracketContainer.empty();
+    $('<div class="demo"></div>').appendTo(bracketContainer);
+    $('div#doubleElimination .demo').bracket({
+      dir: 'lr',
+      teamWidth: 400,
+      scoreWidth: 45,
+      matchMargin: 60,
+      roundMargin: 32,
+      centerConnectors: true,
+      init: data,
+      decorator: {
+        edit: edit_fn,
+        render: render_fn
+      }
+    });
+
+    // Add the "active-match" class to the appropriate match container elements
+    $(document).ready(function() {
+  $('.match').each(function() {
+    if ($(this).hasClass('active')) {
+      console.log("True");
+      $(this).addClass('active-match');
+    } else {
+      console.log("False");
+      $(this).removeClass('active-match');
+    }
+  });
+});
+
+
+    var r, m, matches;
+    var rounds = $('.round');
+    for (r = 0; r < rounds.length; r++) {
+      matches = rounds.eq(r).find('.match');
+      if (data.results[r]) {
+        for (m = 0; m < matches.length; m++) {
+          matches.eq(m).find('.teamContainer').prepend('<div class="match-label"><div class="match-location"></div><div class="match-id">' + data.results[r][m][4] + '</div></div>');
+        }
+      }
+    }
+    addClassForRoundsNumber(rounds.length);
+  });
+}
+
+
+    function edit_fn(container, data, place, time, doneCb) {
+      var input = $('<input type="text">')
+      input.val(data ? data.flag + ':' + data.name : '')
+      container.html(input)
+      input.focus()
+      input.blur(function () {
+        var inputValue = input.val()
+        if (inputValue.length === 0) {
+          doneCb(null); // Drop the team and replace with BYE
+        } else {
+          var flagAndName = inputValue.split(':') // Expects correct input
+          doneCb({ flag: flagAndName[0], name: flagAndName[1] })
+        }
+      })
+    }
+
+    function render_fn(container, data, score, state) {
+  switch (state) {
+    case "empty-bye":
+      container.append("No team");
+      return;
+    case "empty-tbd":
+      container.append("Upcoming");
+      return;
+    case "entry-no-score":
+    case "entry-default-win":
+    case "entry-complete":
+      container.append('').append(data.name).append();
+      return;
+    case "active":
+      console.log("True")
+      container.addClass("active");
+      container.append('').append(data.name).append();
+      return;
+    default:
+      return;
+  }
+}
+
+
+    function addClassForRoundsNumber(roundsNumber) {
+      var body = $('body');
+      body.removeClass('three-rounds four-rounds five-rounds six-rounds seven-rounds');
+      switch (roundsNumber) {
+        case 3:
+          body.addClass('three-rounds');
+          break;
+        case 4:
+          body.addClass('four-rounds');
+          break;
+        case 5:
+          body.addClass('five-rounds');
+          break;
+        case 6:
+          body.addClass('six-rounds');
+          break;
+        case 7:
+          body.addClass('seven-rounds');
+          break;
+      }
+    }
+  </script>
+</head>
+
+<body class="render">
+
+  <div class="turnament-bracket">
+    <div id="doubleElimination" class="graph-block"></div>
+  </div>
+</body>
+
+</html>

@@ -141,7 +141,7 @@ $(document).ready(function() {
       {% set count = namespace(value=0) %}
       {% for values in data %}
       
-      {% if "FILLER" not in values[2] and values[6] == "0"  %}
+      {% if "FILLER" not in values[2] and values[6] == "0" and values[5] != 0.0 %}
         {% set count.value = count.value + 1 %}
 
         {% if count.value == 1 %}
@@ -176,7 +176,7 @@ $(document).ready(function() {
       {% else %}
       <tr>
         <td>{{ count.value }}</td>
-        <td class="ID">[{{ values[6] }}]</td>
+        <td class="ID">[{{ values[0] }}]</td>
         <td class="driver">{{ values[1] }} {{ values[2] }}</td>
         <td class="Snowmobile">{{ values[4] }}</td>
         <td class="Club">{{ values[3] }}</td>

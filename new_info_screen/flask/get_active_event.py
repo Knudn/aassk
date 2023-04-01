@@ -1,7 +1,26 @@
 import sqlite3
 from pathlib import Path
+import json
 
 event_files = Path("/mnt/test/")
+
+def get_white_list():
+    print("Current whitelist")
+    all_evnets = []
+    normal_whitelist = ['Event018', 'Event026', 'Event020', 'Event014', 'Event012', 'Event016', 'Event024', 'Event010', 'Event028', 'Event022']
+    single_whitelist = ['Event019', 'Event029', 'Event025', 'Event023', 'Event011', 'Event027', 'Event015', 'Event021', 'Event013', 'Event017']
+    stige_whitelist = ['Event088','Event098']
+
+    all_evnets.extend(normal_whitelist)
+    all_evnets.extend(single_whitelist)
+    all_evnets.extend(stige_whitelist)
+
+
+    with open("whitelist.txt","r") as outfile:
+        data = json.load(outfile)
+        
+    return data["stige_whitelist"], data["normal_whitelist"], data["single_whitelist"]
+
 
 def get_event():
     print(event_files)
@@ -31,36 +50,46 @@ def get_driver_data(eventfile, heat):
             cur = con.cursor()
             cur.execute('SELECT C_NUM, C_FIRST_NAME, C_LAST_NAME, C_CLUB, C_TEAM FROM TCOMPETITORS;')
             competitors = cur.fetchall()
-            cur.execute('SELECT C_VALUE FROM TPARAMETERS WHERE C_PARAM="TITLE2";')
-            title = f"{cur.fetchone()[0]} - Run {heat}"
+            cur.execute('SELECT C_VALUE FROM TPARAMETERS WHERE C_PARAM="TITLE2" OR C_PARAM="HEAT_NUMBER";')
+            data = cur.fetchall()
             cur.close()
+            heats = f"{data[0][0]}"
+            title = f"{data[1][0]} - Run {heat}"
 
-        return title, competitors
+
+        return title, competitors, heats
     except:
         print("Could not get event")
         return "Error"
 
-def get_start_list(eventfile, heat, mode):
+def get_start_list(eventfile, heat, mode, heats):
     db_path = event_files / eventfile
     startlist = []
     finish_times = {}
 
     with sqlite3.connect(str(db_path)) as con:
         cur = con.cursor()
-        print(mode)
+
         if mode == "FINALE":
             query_startlist = f"SELECT C_NUM FROM TSTARTLIST_HEAT1;"
             query_timedata = f"SELECT C_NUM, C_TIME, C_STATUS FROM TTIMEINFOS_HEAT{heat};"
+
+        elif mode == "STIGE":
+            heat_num = str((int(heats) + 1) - int(heat))
+            query_startlist = f"SELECT C_NUM FROM TSTARTLIST_PARF_HEAT{heat_num};"
+            query_timedata = f"SELECT C_NUM, C_TIME, C_STATUS FROM TTIMEINFOS_PARF_HEAT{heat_num}_RUN1;"
+            
         else:
             query_startlist = f"SELECT C_NUM FROM TSTARTLIST_PARQ2_HEAT{heat};"
             query_timedata = f"SELECT C_NUM, C_TIME, C_STATUS FROM TTIMEINFOS_HEAT{heat};"
 
         cur.execute(query_startlist)
         startlist = [row for row in cur.fetchall()]
+
         cur.execute(query_timedata)
         finish_times = {row[0]: [row[1], row[2]] for row in cur.fetchall()}
-
         cur.close()
+
     if mode == "SINGLE":
         paired_startlist = []
         
@@ -90,9 +119,11 @@ def get_start_list_dict(startlist, competitors, time_data, mode):
                         if rider_num in time_data:
                             riders_tmp.append((*comp, *time_data[rider_num], True))
                             print((*comp, *time_data[rider_num], True))
+                            print(comp)
                         else:
-                            riders_tmp.append((*comp, 0, False, "Not Started"))
-                            print((*comp, 0, False, "Not Started"))
+                            riders_tmp.append((*comp, 0, int(0), "Not Started"))
+                            print((*comp, 0, 0, "Not Started"))
+                            print(comp,"asd")
 
         if len(riders_tmp) < 2:
             riders_tmp.append((0, "Filler", "Filler", "Filler", "Filler", 0, False, "Not Started"))
