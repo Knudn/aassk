@@ -1,0 +1,266 @@
+<html>
+   <head>
+      <title>Competitor Matchups</title>
+      <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+    $(document).ready(function() {
+      function updateScoreboard() {
+        $.ajax({
+          url: '/startlist_obs',
+          type: 'GET',
+          success: function(data) {
+            $('html').html(data);
+          },
+          error: function() {
+            console.log('Error fetching data');
+          }
+        });
+      }
+    
+      // call the updateScoreboard function initially on page load
+      updateScoreboard();
+    
+      // call the updateScoreboard function every 3 seconds
+      setInterval(updateScoreboard, 3000);
+    });
+    </script>
+  
+      <style>
+         * {
+         margin: 0;
+         padding: 0;
+         box-sizing: border-box;
+         font-family: 'Poppins', sans-serif
+         }
+         body {
+         background-color: #f2f2f2;
+         color: #333;
+         font-family: 'Poppins', sans-serif;
+         }
+         h1 {
+         text-align: center;
+         font-size: 3rem;
+         }
+         .main_manue {
+         text-align: center;
+         font-size: 40px;
+         padding-bottom: 20px;
+         }
+         .container {
+         max-width: 70%;
+         margin: 0 auto;
+         padding: 20px;
+         }
+         .table-wrapper_active {
+         margin: 0 auto;
+         border-radius: 10px;
+         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+         overflow: hidden;
+         position: relative;
+         border: 1px solid green;
+         }
+         .vs.table-wrapper_active {
+         color: #c0392b;
+         font-size: 22rem;
+         font-weight: bold;
+         }
+         .rows {
+         display: flex;
+         border-bottom: 1px solid;
+         }
+         .cell_r {
+         font-size: 20px;
+         width: 45%;
+         }
+         .cell_v {
+         font-size: 20px;
+         width: 45%;
+         }
+         .cell_r h1 {
+         font-size: 30px;
+         margin: 1%;
+         }
+         .cell_v h1 {
+         font-size: 30px;
+         margin: 1%;
+         }
+         .cell_v p {
+         font-size: 20px;
+         margin: 1%;
+         text-align: center;
+         }
+         .cell_r p {
+         font-size: 20px;
+         margin: 1%;
+         text-align: center;
+         }
+         .cell p {
+         font-size: 15px;
+         text-align: center;
+         }
+         .table-wrapper_none_active {
+         margin: 0 auto;
+         border-radius: 4px;
+		     border: 1px solid;
+         box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+         overflow: hidden;
+         position: relative;
+         background-color: white;
+         }
+         .rows {
+         display: flex;
+         justify-content: center;
+         }
+         .rows:nth-child(even) {
+         background-color: #e3e3e3;
+         }
+         .cell {
+         display: table-cell;
+         padding: 10px 20px;
+         text-align: center;
+         font-weight: bold;
+         color: #333;
+         width: 45%;
+         }
+         .matchup {
+         color: #333;
+         font-size: 2rem;
+         font-weight: bold;
+         padding: 10px;
+
+
+         }
+         .other {
+         color: #333;
+         font-size: 0.8rem;
+         font-weight: bold;
+         }
+         .vs {
+         color: #c0392b;
+         font-size: 2rem;
+         font-weight: bold;
+         }
+         .vs_other {
+         color: #c0392b;
+         font-size: 20px;
+         font-weight: bold;
+         }
+         .txt_split {
+         padding: 15px;
+         font-size: 30px;
+         text-align: center;
+         }
+      </style>
+      
+
+   </head>
+   <body>
+      <div class="container">
+
+        <hr>
+
+          {% for key, values in data.items() %}
+          {% for value in values %}
+
+            {% if value[0] in active_drivers and value[5] == 0 and value[6] == 0 %}
+            {% if loop.index == 1 %}
+            <div class="table-wrapper_active">
+              <div class="rows">
+            <div class="cell_r">
+              <h1> {{ value[1] }} {{ value[2] }} [{{ value[0] }}] </h1>
+              <p>{{ value[4] }}</p>
+           </div> 
+
+           <div class="matchup"><p> 🏁 </p></div>
+
+            {% elif loop.index == 2 and value[5] == 0 and value[6] == 0 %}
+
+            <div class="cell_v">
+              <h1>[{{ value[0] }}]  {{ value[1] }} {{ value[2] }}</h1>
+              <p>{{ value[4] }}</p>
+           </div>
+          </div>
+        </div>
+        {% endif %}
+        {% endif %}
+        {% if value[0] in active_drivers %}
+        {% if loop.index == 1 %}
+
+        {% endif %}
+        {% endif %}
+
+        {% endfor %}
+        {% endfor %}
+        <div class="txt_split">Upcoming</div>
+        <div class="table-wrapper_none_active">
+        {% for key, values in data.items() %}
+          {% for value in values %}
+
+          {% if value[5] == 0 and value[0] not in active_drivers and value[6] == 0  %}
+          {% if loop.index == 1 %}
+          <div class="rows">
+            <div class="cell">
+              <p style="font-size: 20px;"> {{ value[1] }}  {{ value[2] }} [{{ value[0] }}   ] </p>
+              <p>{{ value[4] }} </p>
+            </div>
+            <div class="matchup">
+               <span class="vs_other"> {{ key | int + 1 | int }} </span>
+            </div>
+
+         
+         {% elif loop.index == 2 %}
+            <div class="cell">
+              <p style="font-size: 20px;"> [{{ value[0] }}] {{ value[1] }}  {{ value[2] }}  </p>
+              <p>{{ value[4] }} </p>
+          </div>
+        </div>
+
+
+
+      {% endif %}
+      {% endif %}
+
+      {% endfor %}
+      {% endfor %}
+    </div>
+    
+      <div class="txt_split">Finished </div> 
+      
+      <div class="table-wrapper_none_active">
+        {% for key, values in data.items() %}
+
+        {% set sec = 0 %}
+        
+        {% for value in values %}
+        
+        {% if value[5] > sec %}
+        {% set border_state = "#76ff76;" %}
+        {% else %}
+        {% set border_state = "#ff3838;" %}
+        {% endif %}
+        {% if value[5] != 0 and value[0] or value[6] != 0 %}
+        
+
+        {% if loop.index == 1 %}
+
+         <div class="rows">
+
+            <div class="cell">
+              <p> [{{ value[0] }}] {{ value[1] }} {{ value[2] }} | {{ value[4] }} | {{ value[7] }} sec </p>
+            </div>
+            <div class="matchup">
+               <span class="vs_other"></span>
+            </div>
+            {% elif loop.index == 2 %}
+            <div class="cell">
+              <p> [{{ value[0] }}] {{ value[1] }} {{ value[2] }} | {{ value[4] }} | {{ value[7] }} sec </p>
+              
+            </div>
+         </div>
+         {% endif %}
+         {% endif %}
+ 
+         {% endfor %}
+         {% endfor %}
+      </div>
+</html>

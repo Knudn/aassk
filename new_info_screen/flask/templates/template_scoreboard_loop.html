@@ -3,7 +3,7 @@
 <head>
 
   <meta charset="UTF-8">
-  <title>2023 Australian Grand Prix - Race Results</title>
+  <title>ScoreBoard loop</title>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
   <script>
 		$(document).ready(function() {
@@ -31,9 +31,8 @@
     body {
       font-family: 'Roboto', sans-serif;
       color: #333;
-      background-color: #fff;
       margin: 0;
-      padding: 0;
+
     }
 
     h1 {
@@ -48,6 +47,7 @@
       width: 100%;
       border-collapse: collapse;
       margin: 20px 0;
+      background-color: white;
     }
 
     th, td {
@@ -114,16 +114,25 @@
       margin: auto;
       padding: 20px;
       font-style: italic;
-      width: 80%;
       font-family: 'Roboto', sans-serif;
+      padding-left: 10%;
+      padding-right: 10%;
       }
+.content {
+
+  border-radius: 8px;
+  margin-left: 5%;
+  margin-right: 5%;
+  background-color: rgb(255, 255, 255);
+
+}
 
   </style>
 </head>
 </ul>
 <body>
 <div class="main">
-
+<div class="content">
 <div class="center_content">
   <h1>Resultatliste  {{ con_title }}</h1>
   <hr>
@@ -143,7 +152,7 @@
       {% set count = namespace(value=0) %}
       {% for values in data %}
       
-      {% if "FILLER" not in values[2] and values[6] == "0"  %}
+      {% if "FILLER" not in values[2] and values[6] == "0" and values[5] != 0.0 %}
         {% set count.value = count.value + 1 %}
 
         {% if count.value == 1 %}
@@ -178,7 +187,7 @@
       {% else %}
       <tr>
         <td>{{ count.value }}</td>
-        <td class="ID">[{{ values[6] }}]</td>
+        <td class="ID">[{{ values[0] }}]</td>
         <td class="driver">{{ values[1] }} {{ values[2] }}</td>
         <td class="Snowmobile">{{ values[4] }}</td>
         <td class="Club">{{ values[3] }}</td>
@@ -223,4 +232,6 @@
 	</tbody>
 </div>
 </div>
+</div>
 </body>
+</html>

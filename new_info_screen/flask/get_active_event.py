@@ -1,26 +1,38 @@
 import sqlite3
 from pathlib import Path
 import json
+import os
 
 event_files = Path("/mnt/test/")
+startlist_dir = "startlist/"
 
 def get_white_list():
     print("Current whitelist")
     all_evnets = []
-    normal_whitelist = ['Event018', 'Event026', 'Event020', 'Event014', 'Event012', 'Event016', 'Event024', 'Event010', 'Event028', 'Event022']
-    single_whitelist = ['Event019', 'Event029', 'Event025', 'Event023', 'Event011', 'Event027', 'Event015', 'Event021', 'Event013', 'Event017']
-    stige_whitelist = ['Event088','Event098']
-
-    all_evnets.extend(normal_whitelist)
-    all_evnets.extend(single_whitelist)
-    all_evnets.extend(stige_whitelist)
-
 
     with open("whitelist.txt","r") as outfile:
         data = json.load(outfile)
-        
-    return data["stige_whitelist"], data["normal_whitelist"], data["single_whitelist"]
+    print(data)
+    all_evnets.extend(data["normal_whitelist"])
+    all_evnets.extend( data["single_whitelist"])
+    all_evnets.extend(data["stige_whitelist"])
 
+    return data["stige_whitelist"], data["normal_whitelist"], data["single_whitelist"], all_evnets
+
+
+def loop_sites(whitelist, index):
+
+    active_dirlist = {}
+    dir_list = os.listdir(startlist_dir)
+    data = whitelist[(index - 1)]
+    print(data) 
+    matching_files_event = [file for file in dir_list if file.startswith(data+".")]
+    matching_files_title = [file for file in dir_list if file.startswith(data+"Ex")]
+    matching_files_title.sort(reverse=True)
+    matching_files_event.sort(reverse=True)
+    return matching_files_event[0], matching_files_title[0]
+
+        
 
 def get_event():
     print(event_files)
@@ -28,7 +40,7 @@ def get_event():
     event_values = []
     print(db_path)
     try:
-        with sqlite3.connect(str(db_path)) as con:
+        with sqlite3.connect(str(db_path), isolation_level='EXCLUSIVE') as con:
             cur = con.cursor()
             cur.execute('SELECT C_VALUE FROM TPARAMETERS WHERE C_PARAM IN ("EVENT", "HEAT");')
             event_values = [row[0] for row in cur.fetchall()]
@@ -46,7 +58,7 @@ def get_driver_data(eventfile, heat):
     competitors = []
     title = "None"
     try: 
-        with sqlite3.connect(str(db_path)) as con:
+        with sqlite3.connect(str(db_path), isolation_level='EXCLUSIVE') as con:
             cur = con.cursor()
             cur.execute('SELECT C_NUM, C_FIRST_NAME, C_LAST_NAME, C_CLUB, C_TEAM FROM TCOMPETITORS;')
             competitors = cur.fetchall()
@@ -67,7 +79,7 @@ def get_start_list(eventfile, heat, mode, heats):
     startlist = []
     finish_times = {}
 
-    with sqlite3.connect(str(db_path)) as con:
+    with sqlite3.connect(str(db_path), isolation_level='EXCLUSIVE') as con:
         cur = con.cursor()
 
         if mode == "FINALE":
@@ -118,12 +130,9 @@ def get_start_list_dict(startlist, competitors, time_data, mode):
                     if rider_num == comp[0]:
                         if rider_num in time_data:
                             riders_tmp.append((*comp, *time_data[rider_num], True))
-                            print((*comp, *time_data[rider_num], True))
-                            print(comp)
+
                         else:
                             riders_tmp.append((*comp, 0, int(0), "Not Started"))
-                            print((*comp, 0, 0, "Not Started"))
-                            print(comp,"asd")
 
         if len(riders_tmp) < 2:
             riders_tmp.append((0, "Filler", "Filler", "Filler", "Filler", 0, False, "Not Started"))

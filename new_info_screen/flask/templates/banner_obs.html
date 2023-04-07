@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+    
+<head>
+<script>
+    
+
+    var timeDelay = {{ time_delay |safe }}
+    
+    const ws = new WebSocket("ws://192.168.1.50:4444/");
+    var x;
+    var arr = [];
+    
+    function updateContent(newData) {
+        document.getElementsByClassName("D1")[0].innerHTML = newData.Driver1.name;
+        document.getElementsByClassName("D2")[0].innerHTML = newData.Driver2.name;
+        document.getElementsByClassName("T1")[0].innerHTML = newData.Driver1.time;
+        document.getElementsByClassName("T2")[0].innerHTML = newData.Driver2.time;
+        document.getElementsByClassName("S1")[0].innerHTML = newData.Driver1.snowmobile;
+        document.getElementsByClassName("S2")[0].innerHTML = newData.Driver2.snowmobile;
+    }
+    
+    ws.onmessage = function(event){
+        var arr = JSON.parse(event.data);
+        setTimeout(() => {
+            updateContent(arr);
+        }, timeDelay);
+    };
+</script>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Arial', sans-serif;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+.title-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.title-box {
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 20px;
+  border: 1px solid #000;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  font-size: 15px;
+  font-weight: bold;
+  text-align: center;
+  color: #dc143c;
+  margin-bottom: 5px;
+}
+
+.banner {
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 20px 30px;
+  border-radius: 10px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.racers {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: rgba(255, 255, 255, 0.8);
+  padding: 10px;
+  margin-bottom: 20px;
+  border: 2px solid #000;
+  transform: scale(1.3);
+}
+
+.racer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 20px;
+}
+
+.racer .name,
+.racer .vehicle,
+.racer .time {
+  color: #fff;
+}
+
+.racer .name {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+}
+
+.racer .vehicle {
+  font-size: 18px;
+  margin-bottom: 5px;
+  text-transform: uppercase;
+}
+
+.racer .time {
+  font-size: 24px;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
+.vs {
+  font-size: 24px;
+  font-weight: bold;
+  letter-spacing: 2px;
+}
+
+.timer1 {
+  font-size: 28px;
+  font-weight: bold;
+  padding-left: 10px;
+  border-left: 2px solid #000;
+  margin-right: 20px;
+}
+
+.timer2 {
+  font-size: 28px;
+  font-weight: bold;
+  padding-right: 10px;
+  border-right: 2px solid #000;
+  margin-left: 20px;
+}
+
+.D1 {
+  font-weight: bold;
+}
+
+.D2 {
+  font-weight: bold;
+}
+
+
+</style>
+<body>
+
+<div class="title-wrapper">
+    <div class="racers">
+        <div class="racer">
+            <span class="D1">None</span>
+            <span class="S1">None</span>
+        </div>
+        <div class=timer1>
+            <span class="T1">0</span>
+        </div>
+        <span class="vs">vs</span>
+        <div class=timer2>
+            <span class="T2">0</span>
+        </div>
+	<div class="racer">
+		<span class="D2">None</span>
+		<span class="S2">None</span>
+	</div>
+</div>
+
+</body>
+</html>

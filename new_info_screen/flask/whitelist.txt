@@ -1,1 +1,1 @@
-{"normal_whitelist": ["Event018", "Event026", "Event020", "Event014", "Event012", "Event016", "Event024", "Event010", "Event028", "Event022"], "single_whitelist": ["Event019", "Event029", "Event025", "Event023", "Event011", "Event027", "Event015", "Event021", "Event013", "Event017"], "stige_whitelist": ["Event088", "Event098"]}
+{"stige_whitelist": ["Event003", "Event004", "Event005"], "single_whitelist": [], "normal_whitelist": ["Event018", "Event019", "Event022"]}
