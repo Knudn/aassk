@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta http-equiv="refresh" content="10">
+  <meta charset="UTF-8">
+  <title>2023 Australian Grand Prix - Race Results</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: sans-serif;
+  
+}
+
+table {
+  border-collapse: collapse;
+  width: 1800px;
+  margin: 0 auto;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #fff;
+  background-color: rgba(24, 24, 24, 0.9); /* Updated with transparency */
+  border-radius: 5px;
+}
+
+th,
+td {
+  padding: 10px;
+  text-align: left;
+}
+
+th {
+  background-color: rgba(255, 255, 255, 0.2);
+  
+}
+
+td {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  
+}
+
+.driver {
+  text-align: left;
+  font-weight: normal;
+}
+
+.center_content {
+  display: table;
+  margin: 0 auto;
+  border-radius: 10px;
+}
+
+h1 {
+  text-align: center;
+  background-color: rgba(24, 24, 24, 0.9); /* Same background-color as table */
+  color: #fff;
+  font-size: 2rem;
+  font-weight: bold;
+  padding: 10px;
+  border-radius: 5px;
+  width: 500px;
+  margin: 20px auto;
+}
+
+  </style>
+
+</head>
+
+<body>
+  <div class="main">
+    <div class="center_content">
+      <h1>{{ con_title }}</h1>
+      <table>
+        <thead>
+          <tr>
+            <th>Pos</th>
+            <th>ID</th>
+            <th>Driver</th>
+            <th>Snøskuter</th>
+            <th>Klubb</th>
+            <th>Tid</th>
+          </tr>
+        </thead>
+        <tbody>
+          
+          {% set count = namespace(value=0) %}
+          {% for values in data %}
+          
+          {% if "FILLER" not in values[2] and values[6] == "0" and values[5] != 0.0 %}
+            {% set count.value = count.value + 1 %}
+          <tr>
+            <td>{{ count.value }}</td>
+            <td>{{ values[0] }}</td>
+            <td class="driver">{{ values[1] }} {{ values[2] }}</td>
+            <td class="driver">{{ values[4] }}</td>
+            <td class="driver">{{ values[3] }}</td>
+            <td>{{ values[5] }}</td>
+          </tr>
+          {% endif %}
+          {% endfor %}
+      
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>

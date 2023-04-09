@@ -3,6 +3,43 @@ from pathlib import Path
 import json
 import os
 
+def clean_whitelist(session, whitelist, valid=False):
+ 
+    clean_list = []
+    true_list = []
+    dir_list = os.listdir(startlist_dir)
+    for b in whitelist:
+        for a in dir_list:
+            if "Ex" in a:
+                pass
+            elif a[:8] == b:
+                clean_list.append(b[:8])
+    if valid == True:
+        for b in clean_list:
+            with open('startlist/'+b[:8]+".scdb_1_.json", "r") as json_file:
+                data = json.load(json_file)
+                for a in data:
+                    if data[a][0][7] != "Not Started" and  data[a][1][7] != "Not Started":
+                        true_list.append(b)
+                    else:
+                        pass
+        clean_list = true_list
+
+    if 'position' not in session:
+        session['position'] = 1
+    elif session['position'] >= len(clean_list):
+        session['position'] = 1
+    else:
+        session['position'] = (session['position'] + 1)
+    
+    data = clean_list[(session['position'] -1)]
+
+    matching_files_event = [file for file in dir_list if file.startswith(data+".")]
+    matching_files_title = [file for file in dir_list if file.startswith(data+"Ex")]
+    matching_files_title.sort(reverse=True)
+    matching_files_event.sort(reverse=True)
+    return matching_files_event[0], matching_files_title[0]
+
 event_files = Path("/mnt/test/")
 startlist_dir = "startlist/"
 
@@ -12,6 +49,7 @@ def get_white_list():
 
     with open("whitelist.txt","r") as outfile:
         data = json.load(outfile)
+
     print(data)
     all_evnets.extend(data["normal_whitelist"])
     all_evnets.extend( data["single_whitelist"])
@@ -20,22 +58,7 @@ def get_white_list():
     return data["stige_whitelist"], data["normal_whitelist"], data["single_whitelist"], all_evnets
 
 
-def loop_sites(whitelist, index):
-
-    active_dirlist = {}
-    dir_list = os.listdir(startlist_dir)
-    data = whitelist[(index - 1)]
-    print(data) 
-    matching_files_event = [file for file in dir_list if file.startswith(data+".")]
-    matching_files_title = [file for file in dir_list if file.startswith(data+"Ex")]
-    matching_files_title.sort(reverse=True)
-    matching_files_event.sort(reverse=True)
-    return matching_files_event[0], matching_files_title[0]
-
-        
-
 def get_event():
-    print(event_files)
     db_path = event_files / "Online.scdb"
     event_values = []
     print(db_path)

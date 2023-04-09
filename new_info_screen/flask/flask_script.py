@@ -18,11 +18,6 @@ CORS(app)
 stige_whitelist, normal_whitelist, single_whitelist, all_whitelist = get_white_list()
 
 
-test = ["1","2","3"]
-
-    
-
-
 def get_event_data():
 
     eventfile, eventex, heat = get_event()
@@ -167,21 +162,11 @@ def startlist_obs():
 
 @app.route("/startlist-loop")
 def startlist_loop():
-    con_title = "asd"
-    active_drivers = []
-    start_list = {}
-    current = []
+
     tmp_driver = []
+    index = session.get('index', 0)
 
-    if 'position' not in session:
-        session['position'] = 1
-    elif session['position'] >= len(normal_whitelist):
-        session['position'] = 1
-    else:
-        session['position'] = (session['position'] + 1)
-    
-
-    event, title = loop_sites(normal_whitelist, session['position'])
+    event, title = clean_whitelist(session, normal_whitelist)
     
     with open('startlist/'+event, "r") as json_file:
         data = json.load(json_file)
@@ -344,18 +329,13 @@ def hello():
 
 @app.route('/scoreboard-loop')
 def scoreboard_loop():
+
+    #Will only display runs that has previous active drivers
+    valid_runs = True
+    
     tmp_driver = []
-
-    index = session.get('index', 0)
-
-    if 'position' not in session:
-        session['position'] = 1
-    elif session['position'] >= len(all_whitelist):
-        session['position'] = 1
-    else:
-        session['position'] = (session['position'] + 1)
-
-    event, title = loop_sites(all_whitelist,session['position'])
+    
+    event, title = clean_whitelist(session, normal_whitelist, True)
 
     with open('startlist/'+event, "r") as json_file:
         data = json.load(json_file)
@@ -425,7 +405,6 @@ def stige():
 
     title = title[:-7]
         
-    final_json = generate_json_ladder_current()
     if len(data) == 1:
         variables = {'team_width': 400,'score_width': 45,'match_margin': 60,'round_margin': 32,'scale':2}
     elif len(data) == 2:
@@ -438,7 +417,39 @@ def stige():
         variables = {'team_width': 400,'score_width': 45,'match_margin': 60,'round_margin': 32,'scale':1.0}
     else:
         variables = {'team_width': 400,'score_width': 45,'match_margin': 60,'round_margin': 32,'scale':1.0}
+    final_json = generate_json_ladder_current()
     return render_template('ladders/teams-8.html', data=final_json, con_title=title, **variables)
+
+@app.route("/stige-loop")
+def stige_loop():
+    event, title = clean_whitelist(session, stige_whitelist)
+    eventex = title
+
+    print(event, eventex)
+
+    with open('startlist/' + event, "r") as json_file:
+        data = json.load(json_file)
+
+    with open("startlist/" + eventex, "r") as json_file:
+        title = json_file.readline()
+
+    title = title[:-7]
+        
+    final_json = generate_json_ladder_current()
+    print(final_json)
+    if len(data) == 1:
+        variables = {'team_width': 400,'score_width': 45,'match_margin': 60,'round_margin': 32,'scale':2}
+    elif len(data) == 2:
+        variables = {'team_width': 400,'score_width': 45,'match_margin': 60,'round_margin': 100,'scale':1.5}
+    elif len(data) == 4:
+        variables = {'team_width': 400,'score_width': 45,'match_margin': 90,'round_margin': 60,'scale':1.5}
+    elif len(data) == 8:
+        variables = {'team_width': 400,'score_width': 45,'match_margin': 60,'round_margin': 32,'scale':1.0}
+    elif len(data) == 16:
+        variables = {'team_width': 400,'score_width': 45,'match_margin': 60,'round_margin': 32,'scale':1.0}
+    else:
+        variables = {'team_width': 400,'score_width': 45,'match_margin': 60,'round_margin': 32,'scale':1.0}
+    return render_template('ladders/teams-8_loop.html', data=final_json, con_title=title, **variables)
 
 @app.route('/api-ladder/<int:data_id>')
 def get_data(data_id):
@@ -463,6 +474,17 @@ def get_data(data_id):
             title = json_file.readline()
             title = title[:-7]
             response = "{},{}".format(title,("Run "+str(heat)))
+
+    if data_id == 2:
+
+        data = generate_json_ladder_current(session)
+        response = app.response_class(
+        response=json.dumps(data),
+        status=200,
+        mimetype='application/json'
+    )
+        return response
+
 
     return response
 
@@ -573,6 +595,167 @@ def current_scoreboard_top():
         fix_sorted_lst=data
         return render_template('template_scoreboard_empty.html', con_title=title, data=fix_sorted_lst)
 
+@app.route("/scoreboard_top_all")
+def return_all():
+    data = []
+    with open('event_index.txt', "r") as json_file:
+        event_index = json.load(json_file)
+
+    for v, a in enumerate(event_index):
+        data.append(str(v)+": "+ str(a)+" http://192.168.1.50:4433/scoreboard_top_all/"+str(v))
+
+    return data
+
+
+@app.route("/scoreboard_top_all_loop")
+def scoreboard_top_all_loop():
+
+    tmp_driver = []
+    index = session.get('index', 0)
+    
+    event, title = clean_whitelist(session, normal_whitelist,True)
+    event = event[:13]
+    print(event)
+    tmp_driver = []
+    print(title)
+    heat = [1,2]
+
+    for t in heat:
+        try:
+            with open('startlist/' + event + "_" + str(t) + '_.json', "r") as json_file:
+                data = json.load(json_file)
+
+            with open("startlist/" + title, "r") as json_file:
+                
+                title = json_file.readline()
+            for a in data:
+                for b in data[a]:
+                    b[5] = round(int(b[5]) / 1000, 3)
+                    b[6] = str(b[6])
+                    tmp_driver.append(b)
+        except:
+            pass
+    
+    sorted_lst = sorted(tmp_driver, key=lambda x: float('inf') if x[5] == 0.0 else x[5])
+
+    fix_sorted_lst = [x for x in sorted_lst if x[5] != '0.0'] + [x for x in sorted_lst if x[5] == '0.0']
+
+    name_time_dict = {}
+
+    for entry in fix_sorted_lst:
+        name = entry[1] + ' ' + entry[2]
+        time = entry[5]
+        penalty = entry[6]
+
+        if penalty == "0":
+            if name not in name_time_dict or time < name_time_dict[name][5] and time != 0.0:
+                name_time_dict[name] = entry
+
+
+    result = list(name_time_dict.values())
+
+    return render_template('template_scoreboard_top_index_loop.html', con_title=title[:-8], data=result)
+
+
+@app.route("/scoreboard_top_all/<int:data_id>")
+def scoreboard_top_all(data_id):
+
+    tmp_driver = []
+    
+    with open('event_index.txt', "r") as json_file:
+        event_index = json.load(json_file)
+
+    if data_id > len(event_index):
+        data = []
+        for v, a in enumerate(event_index):
+            data.append(str(v)+": "+ str(a)+" http://192.168.1.50:4433/scoreboard_top_all/"+str(v))
+        return data
+    
+    for v, a in enumerate(event_index):
+        if data_id == v:
+            event = a[0]+".scdb"
+            eventex = a[0]+"Ex.scdb"
+    heat = [1,2]
+
+    for t in heat:
+        try:
+            with open('startlist/' + event + "_" + str(t) + '_.json', "r") as json_file:
+                data = json.load(json_file)
+
+            with open("startlist/" + eventex + "_" + str(t) + "_title_.json", "r") as json_file:
+                
+                title = json_file.readline()
+            for a in data:
+                for b in data[a]:
+                    b[5] = round(int(b[5]) / 1000, 3)
+                    b[6] = str(b[6])
+                    tmp_driver.append(b)
+        except:
+            pass
+    
+    sorted_lst = sorted(tmp_driver, key=lambda x: float('inf') if x[5] == 0.0 else x[5])
+
+    fix_sorted_lst = [x for x in sorted_lst if x[5] != '0.0'] + [x for x in sorted_lst if x[5] == '0.0']
+
+    name_time_dict = {}
+
+    for entry in fix_sorted_lst:
+        name = entry[1] + ' ' + entry[2]
+        time = entry[5]
+        penalty = entry[6]
+        print(entry)
+        if penalty == "0":
+            if name not in name_time_dict or time < name_time_dict[name][5] and time != 0.0:
+                name_time_dict[name] = entry
+
+
+    result = list(name_time_dict.values())
+    print(result)
+    return render_template('template_scoreboard_top_index.html', con_title=title[:-8], data=result)
+
+@app.route("/startlist_obs_new")
+def startlist_obs_new():
+    active_drivers = []
+    current = []
+
+    with open('startlist/current.json', "r") as json_file:
+        current = json.load(json_file)
+
+    eventex = current[1]
+    event = current[0]
+    heat = current[2]
+
+    if eventex != False or heat != False or event != False:
+
+        try:
+
+            # Load the start list dictionary from the file
+            with open('startlist/' + current[0] + "_" + current[2] + '_.json',"r") as json_file:
+                data = json.load(json_file)
+            
+            # Load the driver list from the file
+            with open("startlist/" + eventex + "_" + current[2] + "_title_.json", "r") as json_file:
+                title = json_file.readline()
+            
+            # Load the active drivers from the database
+            for row in cur.execute("SELECT c_num FROM active_drivers"):
+                for b in row:
+                    active_drivers.append(int(b))
+            for a in data:
+                for b in data[a]:
+                    b[7] = round(int(b[5]) / 1000, 3)
+
+            return render_template('template_current_startlist_2v2_obs_new.html', data=data, con_title=title, active_drivers=active_drivers)
+
+        except Exception as e:
+            print("Error occurred while rendering startlist:", e)
+            return render_template('template_current_startlist_2v2_obs_new.html', data=data, con_title=title, active_drivers=active_drivers)
+    else:
+        data = {}
+        title = ""
+        active_drivers = []
+        return render_template('template_current_startlist_2v2_obs_new.html', data=data, con_title=title, active_drivers=active_drivers)
+    
 if __name__ == '__main__':
-    app.secret_key = 'your_secret_key' # Set a secret key for session encryption
+    app.secret_key = 'your_secret_key'
     app.run(debug=True, host="0.0.0.0", port=4433)

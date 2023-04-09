@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+  <meta charset="UTF-8">
+  <title>2023 Australian Grand Prix - Race Results</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style>
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: sans-serif;
+  
+}
+
+table {
+  border-collapse: collapse;
+  width: 1800px;
+  margin: 0 auto;
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #fff;
+  background-color: rgba(24, 24, 24, 0.9); /* Updated with transparency */
+  border-radius: 5px;
+}
+
+th,
+td {
+  padding: 10px;
+  text-align: left;
+}
+
+th {
+  background-color: rgba(255, 255, 255, 0.2);
+  
+}
+
+td {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  
+}
+
+.driver_left {
+  text-align: center;
+  font-weight: normal;
+}
+
+.driver_right {
+  text-align: center;
+  font-weight: normal;
+}
+
+.center_content {
+  display: table;
+  margin: 0 auto;
+  border-radius: 10px;
+}
+
+h1 {
+  text-align: center;
+  background-color: rgba(24, 24, 24, 0.9); /* Same background-color as table */
+  color: #fff;
+  font-size: 2rem;
+  font-weight: bold;
+  padding: 10px;
+  border-radius: 5px;
+  width: 500px;
+  margin: 20px auto;
+}
+
+  </style>
+
+</head>
+
+<body>
+  <div class="main">
+    <div class="center_content">
+      <h1>{{ con_title }}</h1>
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Snowmobile</th>
+            <th>Name</th>
+            <th>Snowmobile</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for key, values in data.items() %}
+            
+            {% for value in values %}
+            {% if value[5] == 0 and value[6] == 0 %}
+            {% if loop.index == 1 %}
+            <tr>
+              
+              <td class="driver_left">{{ values[0][4] }}</td>
+              <td class="driver_left">{{ values[0][1] }} {{ values[0][2] }}</td>
+            {% else %}
+                <td class="driver_right">{{ values[1][1] }} {{ values[1][2] }}</td>
+                <td class="driver_left">{{ values[0][1] }} {{ values[0][2] }}</td>
+              </tr>
+            {% endif %}
+          
+            {% endif %}
+            {% endfor %}
+            {% endfor %}
+
+      
+        </tbody>
+      </table>
+
+      <table>
+        <thead>
+          <tr>
+            <th>asd</th>
+            <th>asd</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for key, values in data.items() %}
+          {% for value in values %}
+          {% if loop.index == 1 %}
+          {% if value[5] != 0 or value[6] != 0 %}
+          <tr>
+            <td class="driver">{{ values[0][1] }} {{ values[0][2] }}</td>
+            <td class="driver">{{ values[1][1] }} {{ values[1][2] }}</td>
+          </tr>
+      {% endif %}
+      {% endif %}
+      {% endfor %}
+      {% endfor %}
+
+    </tbody>
+  </table>
+    </div>
+  </div>
+</body>
+</html>

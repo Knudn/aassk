@@ -1,8 +1,9 @@
 import json
 import os
+from get_active_event import *
+stige_whitelist, normal_whitelist, single_whitelist, all_whitelist = get_white_list()
 
-
-def generate_json_ladder_current():
+def generate_json_ladder_current(session=False):
 
     current = []
     heats = []
@@ -10,10 +11,14 @@ def generate_json_ladder_current():
     drivers_set = []
     result_all = []
     full_json = {}
-
-    with open('startlist/current.json', "r") as json_file:
-        current = json.load(json_file)
-    
+    if session != False:
+          event, title = clean_whitelist(session, stige_whitelist)
+          current.append(event[:13])
+    else:
+        with open('startlist/current.json', "r") as json_file:
+            current = json.load(json_file)
+            print(current[0])
+        
     for a in range(1,10):
 
         if os.path.isfile('startlist/' + current[0] + "_" + str(a) + '_.json'):
