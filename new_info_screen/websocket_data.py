@@ -5,6 +5,9 @@ import json
 import re
 import requests
 import sqlite3
+
+url = 'http://localhost:5000/entry'
+
 con = sqlite3.connect("active_data.sql")
 cur = con.cursor()
 
@@ -62,14 +65,27 @@ def data_clean(data):
     if "update_event" in data:
         x = requests.get('http://192.168.1.50:4433/new_event')
 
-    
+    if name_1 and name_2:
+        extracted_name_1 = name_1.group(1).strip().replace('  ', ' ')
+        extracted_name_1 = ' '.join(extracted_name_1.split())
+        data_sock["Driver1"]["name"] = extracted_name_1
+        data_sock["Driver1"]["time"] = 0
+
+        extracted_name_2 = name_2.group(1).strip().replace('  ', ' ')
+        extracted_name_2 = ' '.join(extracted_name_2.split())
+        data_sock["Driver2"]["name"] = extracted_name_2
+        data_sock["Driver2"]["time"] = 0
+
+        data_msg = json.dumps({"Driver1":extracted_name_1, "Driver2":extracted_name_2})
+        response = requests.post(url, data=data_msg)
+        print(response)
     if name_1:
 
         extracted_name_1 = name_1.group(1).strip().replace('  ', ' ')
         extracted_name_1 = ' '.join(extracted_name_1.split())
         data_sock["Driver1"]["name"] = extracted_name_1
         data_sock["Driver1"]["time"] = 0
-
+        print("asd")
 
     if name_2:
         
@@ -77,6 +93,7 @@ def data_clean(data):
         extracted_name_2 = ' '.join(extracted_name_2.split())
         data_sock["Driver2"]["name"] = extracted_name_2
         data_sock["Driver2"]["time"] = 0
+        print("asd")
 
     if bid_1 and bid_2:
 

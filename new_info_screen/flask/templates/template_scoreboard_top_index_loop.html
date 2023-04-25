@@ -1,10 +1,32 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta http-equiv="refresh" content="10">
   <meta charset="UTF-8">
   <title>2023 Australian Grand Prix - Race Results</title>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script>
+    $(document).ready(function() {
+      function updateScoreboard() {
+        $.ajax({
+          url: '/scoreboard_top_all_loop',
+          type: 'GET',
+          success: function(data) {
+            var newContent = $(data).find('#scoreboard').html();
+            $('#scoreboard').html(newContent);
+          },
+          error: function() {
+            console.log('Error fetching data');
+          }
+        });
+      }
+    
+      // call the updateScoreboard function initially on page load
+      updateScoreboard();
+    
+      // call the updateScoreboard function every 3 seconds
+      setInterval(updateScoreboard, 3000);
+    });
+        </script>
   <style>
 * {
   box-sizing: border-box;
@@ -73,7 +95,7 @@ h1 {
 
 <body>
   <div class="main">
-    <div class="center_content">
+    <div class="center_content" id="scoreboard">
       <h1>{{ con_title }}</h1>
       <table>
         <thead>
@@ -83,6 +105,7 @@ h1 {
             <th>Driver</th>
             <th>Snøskuter</th>
             <th>Klubb</th>
+            <th>Hastiget (km/t)</th>
             <th>Tid</th>
           </tr>
         </thead>
@@ -99,6 +122,7 @@ h1 {
             <td class="driver">{{ values[1] }} {{ values[2] }}</td>
             <td class="driver">{{ values[4] }}</td>
             <td class="driver">{{ values[3] }}</td>
+            <td class="driver">{{ values[7] }}</td>
             <td>{{ values[5] }}</td>
           </tr>
           {% endif %}

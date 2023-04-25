@@ -23,7 +23,7 @@
 			}
 
 			// call updateScoreboard every 10 seconds
-			intervalId = setInterval(updateScoreboard, 10000);
+			intervalId = setInterval(updateScoreboard, 5000);
 		});
     
   </script>
@@ -132,7 +132,6 @@
 </ul>
 <body>
 <div class="main">
-<div class="content">
 <div class="center_content">
   <h1>Resultatliste  {{ con_title }}</h1>
   <hr>
@@ -144,6 +143,7 @@
         <th>Driver</th>
         <th>Snowmobile</th>
         <th>Club</th>
+        <th>Speed (km/t)</th>
         <th>Time</th>
       </tr>
     </thead>
@@ -163,6 +163,7 @@
             <td class="driver">{{ values[1] }} {{ values[2] }}</td>
             <td class="Snowmobile">{{ values[4] }}</td>
             <td class="Club">{{ values[3] }}</td>
+            <td>{{ values[7] }}</td>
             <td>{{ values[5] }}</td>
           </tr>
 
@@ -173,6 +174,7 @@
         <td class="driver">{{ values[1] }} {{ values[2] }}</td>
         <td class="Snowmobile">{{ values[4] }}</td>
         <td class="Club">{{ values[3] }}</td>
+        <td>{{ values[7] }}</td>
         <td>{{ values[5] }}</td>
       </tr>
       {% elif count.value == 3 %}
@@ -182,6 +184,7 @@
         <td class="driver">{{ values[1] }} {{ values[2] }}</td>
         <td class="Snowmobile">{{ values[4] }}</td>
         <td class="Club">{{ values[3] }}</td>
+        <td>{{ values[7] }}</td>
         <td>{{ values[5] }}</td>
       </tr>
       {% else %}
@@ -191,6 +194,7 @@
         <td class="driver">{{ values[1] }} {{ values[2] }}</td>
         <td class="Snowmobile">{{ values[4] }}</td>
         <td class="Club">{{ values[3] }}</td>
+        <td>{{ values[7] }}</td>
         <td>{{ values[5] }}</td>
       </tr>
       {% endif %}
@@ -232,6 +236,4 @@
 	</tbody>
 </div>
 </div>
-</div>
 </body>
-</html>

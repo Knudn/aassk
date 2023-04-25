@@ -96,7 +96,7 @@ $(document).ready(function() {
           
           {% set count = namespace(value=0) %}
           {% for values in data %}
-          
+          {% if count.value < 10 %}
           {% if "FILLER" not in values[2] and values[6] == "0" and values[5] != 0.0 %}
             {% set count.value = count.value + 1 %}
           <tr>
@@ -104,6 +104,7 @@ $(document).ready(function() {
             <td class="driver">{{ values[1] }} {{ values[2] }}</td>
             <td>{{ values[5] }}</td>
           </tr>
+          {% endif %}
           {% endif %}
           {% endfor %}
       

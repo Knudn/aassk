@@ -48,7 +48,7 @@ def generate_json_ladder_current(session=False):
             json_dict = json.loads(json_str)
 
         for key, value in json_dict.items():
-            
+
             if a[-7:] == "2_.json":
                 pass
                 
@@ -63,18 +63,21 @@ def generate_json_ladder_current(session=False):
                 value[0][7] = 0
 
 
+
             if a[-7:] == "1_.json":
+                if value[0][6] != 0 and value[1][7] == 0.0:
+                    value[1][7] = 1
+                elif value[1][6] != 0 and value[0][7] == 0.0:
+                    value[0][7] = 1
                 result_pair = [value[0][7], value[1][7], "asd", "key", value[0][1] + " " + value[1][1], "not_active"]
                 result_set.append(result_pair)
-
-
             else:
+
                 for g in last_data:
                     if g == value[0][1]:
                         result_pair = [value[0][7], value[1][7], "asd", "key", value[0][1] + " " + value[1][1], "not_active"]
                         result_set.append(result_pair)
                         break
-
                     elif g == value[1][1]:
                         result_pair = [value[1][7], value[0][7], "asd", "key", value[1][1] + " " + value[0][1], "not_active"]
                         result_set.append(result_pair)

@@ -133,6 +133,7 @@ $(document).ready(function() {
         <th>Driver</th>
         <th>Snowmobile</th>
         <th>Club</th>
+        <th>Speed (km/t)</th>
         <th>Time</th>
       </tr>
     </thead>
@@ -152,6 +153,7 @@ $(document).ready(function() {
             <td class="driver">{{ values[1] }} {{ values[2] }}</td>
             <td class="Snowmobile">{{ values[4] }}</td>
             <td class="Club">{{ values[3] }}</td>
+            <td>{{ values[7] }}</td>
             <td>{{ values[5] }}</td>
           </tr>
 
@@ -162,6 +164,7 @@ $(document).ready(function() {
         <td class="driver">{{ values[1] }} {{ values[2] }}</td>
         <td class="Snowmobile">{{ values[4] }}</td>
         <td class="Club">{{ values[3] }}</td>
+        <td>{{ values[7] }}</td>
         <td>{{ values[5] }}</td>
       </tr>
       {% elif count.value == 3 %}
@@ -171,6 +174,7 @@ $(document).ready(function() {
         <td class="driver">{{ values[1] }} {{ values[2] }}</td>
         <td class="Snowmobile">{{ values[4] }}</td>
         <td class="Club">{{ values[3] }}</td>
+        <td>{{ values[7] }}</td>
         <td>{{ values[5] }}</td>
       </tr>
       {% else %}
@@ -180,6 +184,7 @@ $(document).ready(function() {
         <td class="driver">{{ values[1] }} {{ values[2] }}</td>
         <td class="Snowmobile">{{ values[4] }}</td>
         <td class="Club">{{ values[3] }}</td>
+        <td>{{ values[7] }}</td>
         <td>{{ values[5] }}</td>
       </tr>
       {% endif %}

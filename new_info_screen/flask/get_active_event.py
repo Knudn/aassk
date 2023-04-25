@@ -3,11 +3,12 @@ from pathlib import Path
 import json
 import os
 
-def clean_whitelist(session, whitelist, valid=False):
- 
+def clean_whitelist(session, whitelist, valid=False, startlist_valid=False):
     clean_list = []
     true_list = []
     dir_list = os.listdir(startlist_dir)
+    empty_startlist = []
+
     for b in whitelist:
         for a in dir_list:
             if "Ex" in a:
@@ -19,21 +20,50 @@ def clean_whitelist(session, whitelist, valid=False):
             with open('startlist/'+b[:8]+".scdb_1_.json", "r") as json_file:
                 data = json.load(json_file)
                 for a in data:
-                    if data[a][0][7] != "Not Started" and  data[a][1][7] != "Not Started":
+                    if data[a][0][8] != "Not Started" and  data[a][1][8] != "Not Started":
                         true_list.append(b)
+                        break
                     else:
                         pass
-        clean_list = true_list
+        if 'position' not in session:
+            session['position'] = 1
+        elif session['position'] >= len(true_list):
+            session['position'] = 1
+        else:
+            session['position'] = (session['position'] + 1)
+        data = true_list[(session['position'] -1)]
 
-    if 'position' not in session:
-        session['position'] = 1
-    elif session['position'] >= len(clean_list):
-        session['position'] = 1
+    elif startlist_valid == True:
+        for b in clean_list:
+            with open('startlist/'+b[:8]+".scdb_1_.json", "r") as json_file:
+                data = json.load(json_file)
+                for a in data:
+                    if data[a][0][8] == "Not Started" or  data[a][1][8] == "Not Started":
+                        empty_startlist.append(b)
+                        break
+                    else:
+                        pass
+                    
+        if 'position' not in session:
+            session['position'] = 1
+        elif session['position'] >= len(empty_startlist):
+            session['position'] = 1
+        else:
+            session['position'] = (session['position'] + 1)
+        data = empty_startlist[(session['position'] -1)]
+
+
     else:
-        session['position'] = (session['position'] + 1)
-    
-    data = clean_list[(session['position'] -1)]
+        if 'position' not in session:
+            session['position'] = 1
+        elif session['position'] >= len(clean_list):
+            session['position'] = 1
+        else:
+            session['position'] = (session['position'] + 1)
+        
+        data = clean_list[(session['position'] -1)]
 
+    
     matching_files_event = [file for file in dir_list if file.startswith(data+".")]
     matching_files_title = [file for file in dir_list if file.startswith(data+"Ex")]
     matching_files_title.sort(reverse=True)
@@ -50,7 +80,6 @@ def get_white_list():
     with open("whitelist.txt","r") as outfile:
         data = json.load(outfile)
 
-    print(data)
     all_evnets.extend(data["normal_whitelist"])
     all_evnets.extend( data["single_whitelist"])
     all_evnets.extend(data["stige_whitelist"])
@@ -61,7 +90,6 @@ def get_white_list():
 def get_event():
     db_path = event_files / "Online.scdb"
     event_values = []
-    print(db_path)
     try:
         with sqlite3.connect(str(db_path), isolation_level='EXCLUSIVE') as con:
             cur = con.cursor()
@@ -107,22 +135,22 @@ def get_start_list(eventfile, heat, mode, heats):
 
         if mode == "FINALE":
             query_startlist = f"SELECT C_NUM FROM TSTARTLIST_HEAT1;"
-            query_timedata = f"SELECT C_NUM, C_TIME, C_STATUS FROM TTIMEINFOS_HEAT{heat};"
+            query_timedata = f"SELECT C_NUM, C_TIME, C_STATUS, C_SPEED1 FROM TTIMEINFOS_HEAT{heat};"
 
         elif mode == "STIGE":
             heat_num = str((int(heats) + 1) - int(heat))
             query_startlist = f"SELECT C_NUM FROM TSTARTLIST_PARF_HEAT{heat_num};"
-            query_timedata = f"SELECT C_NUM, C_TIME, C_STATUS FROM TTIMEINFOS_PARF_HEAT{heat_num}_RUN1;"
+            query_timedata = f"SELECT C_NUM, C_TIME, C_STATUS, C_SPEED1 FROM TTIMEINFOS_PARF_HEAT{heat_num}_RUN1;"
             
         else:
             query_startlist = f"SELECT C_NUM FROM TSTARTLIST_PARQ2_HEAT{heat};"
-            query_timedata = f"SELECT C_NUM, C_TIME, C_STATUS FROM TTIMEINFOS_HEAT{heat};"
+            query_timedata = f"SELECT C_NUM, C_TIME, C_STATUS, C_SPEED1 FROM TTIMEINFOS_HEAT{heat};"
 
         cur.execute(query_startlist)
         startlist = [row for row in cur.fetchall()]
 
         cur.execute(query_timedata)
-        finish_times = {row[0]: [row[1], row[2]] for row in cur.fetchall()}
+        finish_times = {row[0]: [row[1], row[2], row[3]] for row in cur.fetchall()}
         cur.close()
 
     if mode == "SINGLE":
@@ -146,7 +174,7 @@ def get_start_list_dict(startlist, competitors, time_data, mode):
                             riders_tmp.append((*comp, *time_data[rider_num], True))
                             
                         else:
-                            riders_tmp.append((*comp, 0, False, "Not Started"))
+                            riders_tmp.append((*comp, 0, False, 0,"Not Started"))
         else:         
             for rider_num in pair:
                 for comp in competitors:
@@ -154,8 +182,9 @@ def get_start_list_dict(startlist, competitors, time_data, mode):
                         if rider_num in time_data:
                             riders_tmp.append((*comp, *time_data[rider_num], True))
 
+
                         else:
-                            riders_tmp.append((*comp, 0, int(0), "Not Started"))
+                            riders_tmp.append((*comp, 0, int(0), 0, "Not Started"))
 
         if len(riders_tmp) < 2:
             riders_tmp.append((0, "Filler", "Filler", "Filler", "Filler", 0, False, "Not Started"))

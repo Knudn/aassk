@@ -43,12 +43,14 @@ def get_event_data():
 
     start_list_dict = get_start_list_dict(startlist, con_per, time_data,mode)
 
+    print(start_list_dict)
+
     # Save start list dictionary to a file
     with open("startlist/" + eventfile + "_" + heat + "_" + ".json", "w") as outfile:
 
         json.dump(start_list_dict, outfile)
 
-    # Save driver list to a file 
+    # Save driver list to a file
     with open("startlist/" + eventex + "_" + heat + "_title_.json", "w") as outfile:
         outfile.write(con_title)
         
@@ -166,7 +168,7 @@ def startlist_loop():
     tmp_driver = []
     index = session.get('index', 0)
 
-    event, title = clean_whitelist(session, normal_whitelist)
+    event, title = clean_whitelist(session, normal_whitelist,startlist_valid=True)
     
     with open('startlist/'+event, "r") as json_file:
         data = json.load(json_file)
@@ -182,8 +184,8 @@ def startlist_loop():
         for b in data[a]:
             #b[5] = str(seconds) + "." + str(milliseconds)
             b[5] = round(int(b[5]) / 1000, 3)
-            b[6] = str(b[6])
-            tmp_driver.append(b)
+            b[6] = int(b[6])
+            #tmp_driver.append(b)
 
     return render_template('template_current_startlist_2v2_loop.html', data=data, con_title=title)
     
@@ -289,6 +291,7 @@ def current_scoreboard():
                 #b[5] = str(seconds) + "." + str(milliseconds)
                 b[5] = round(int(b[5]) / 1000, 3)
                 b[6] = str(b[6])
+                b[7] = round(int(b[7]) / 1000, 3)
                 tmp_driver.append(b)
         
         sorted_lst = sorted(tmp_driver, key=lambda x: float('inf') if x[5] == 0.0 else x[5])
@@ -347,44 +350,13 @@ def scoreboard_loop():
                 #b[5] = str(seconds) + "." + str(milliseconds)
                 b[5] = round(int(b[5]) / 1000, 3)
                 b[6] = str(b[6])
+                b[7] = round(int(b[7]) / 1000, 3)
                 tmp_driver.append(b)
         
         sorted_lst = sorted(tmp_driver, key=lambda x: float('inf') if x[5] == 0.0 else x[5])
         fix_sorted_lst = [x for x in sorted_lst if x[5] != '0.0'] + [x for x in sorted_lst if x[5] == '0.0']
         #reversed_lst = sorted_lst[::-1]
         return render_template('template_scoreboard_loop.html', con_title=title, data=fix_sorted_lst)
-    
-@app.route('/scoreboard-loop-obs')
-def scoreboard_loop_obs():
-    tmp_driver = []
-
-    index = session.get('index', 0)
-
-    if 'position' not in session:
-        session['position'] = 1
-    elif session['position'] >= len(all_whitelist):
-        session['position'] = 1
-    else:
-        session['position'] = (session['position'] + 1)
-
-    event, title = loop_sites(all_whitelist,session['position'])
-
-    with open('startlist/'+event, "r") as json_file:
-        data = json.load(json_file)
-    with open("startlist/"+title, "r") as json_file:
-        title = json_file.readline()
-        
-        for a in data:
-            for b in data[a]:
-                #b[5] = str(seconds) + "." + str(milliseconds)
-                b[5] = round(int(b[5]) / 1000, 3)
-                b[6] = str(b[6])
-                tmp_driver.append(b)
-        
-        sorted_lst = sorted(tmp_driver, key=lambda x: float('inf') if x[5] == 0.0 else x[5])
-        fix_sorted_lst = [x for x in sorted_lst if x[5] != '0.0'] + [x for x in sorted_lst if x[5] == '0.0']
-        #reversed_lst = sorted_lst[::-1]
-        return render_template('template_scoreboard_loop_obs.html', con_title=title, data=fix_sorted_lst)
     
 @app.route("/stige")
 def stige():
@@ -553,7 +525,7 @@ def stige_obs():
     elif len(data) == 8:
         variables = {'team_width': 400,'score_width': 45,'match_margin': 60,'round_margin': 40,'scale':0.9,'padding_top':0}
     elif len(data) == 16:
-        variables = {'team_width': 400,'score_width': 45,'match_margin': 60,'round_margin': 32,'scale':1.0,'padding_top':0}
+        variables = {'team_width': 400,'score_width': 45,'match_margin': 60,'round_margin': 32,'scale':0.5,'padding_top':0}
     else:
         variables = {'team_width': 400,'score_width': 45,'match_margin': 60,'round_margin': 32,'scale':1.0,'padding_top':0}
     return render_template('ladders/teams-8_obs.html', data=final_json, con_title=title, **variables)
@@ -632,6 +604,7 @@ def scoreboard_top_all_loop():
                 for b in data[a]:
                     b[5] = round(int(b[5]) / 1000, 3)
                     b[6] = str(b[6])
+                    b[7] = round(int(b[7]) / 1000, 3)
                     tmp_driver.append(b)
         except:
             pass
@@ -689,6 +662,7 @@ def scoreboard_top_all(data_id):
                 for b in data[a]:
                     b[5] = round(int(b[5]) / 1000, 3)
                     b[6] = str(b[6])
+                    b[7] = round(int(b[7]) / 1000, 3)
                     tmp_driver.append(b)
         except:
             pass
@@ -703,14 +677,12 @@ def scoreboard_top_all(data_id):
         name = entry[1] + ' ' + entry[2]
         time = entry[5]
         penalty = entry[6]
-        print(entry)
         if penalty == "0":
             if name not in name_time_dict or time < name_time_dict[name][5] and time != 0.0:
                 name_time_dict[name] = entry
 
 
     result = list(name_time_dict.values())
-    print(result)
     return render_template('template_scoreboard_top_index.html', con_title=title[:-8], data=result)
 
 @app.route("/startlist_obs_new")

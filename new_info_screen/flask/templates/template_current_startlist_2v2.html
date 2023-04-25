@@ -72,15 +72,35 @@
          font-size: 20px;
          width: 45%;
          }
+         .cell_r_dsq {
+         font-size: 20px;
+         width: 45%;
+         text-decoration: line-through;
+         color: rgb(104, 104, 104);
+         }
          .cell_v {
          font-size: 20px;
          width: 45%;
+         }
+         .cell_v_dsq {
+         font-size: 20px;
+         width: 45%;
+         text-decoration: line-through;
+         color: rgb(104, 104, 104);
          }
          .cell_r h1 {
          font-size: 30px;
          margin: 1%;
          }
          .cell_v h1 {
+         font-size: 30px;
+         margin: 1%;
+         }
+         .cell_v_dsq h1 {
+         font-size: 30px;
+         margin: 1%;
+         }
+         .cell_r_dsq h1 {
          font-size: 30px;
          margin: 1%;
          }
@@ -93,6 +113,18 @@
          font-size: 20px;
          margin: 1%;
          text-align: center;
+
+         }
+         .cell_v_dsq p {
+         font-size: 20px;
+         margin: 1%;
+         text-align: center;
+         }
+         .cell_r_dsq p {
+         font-size: 20px;
+         margin: 1%;
+         text-align: center;
+
          }
          .cell p {
          font-size: 15px;
@@ -101,7 +133,7 @@
          .table-wrapper_none_active {
          margin: 0 auto;
          border-radius: 4px;
-		 border: 1px solid;
+		     border: 1px solid;
          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
          overflow: hidden;
          position: relative;
@@ -158,109 +190,79 @@
       <h1 class="main_manue">Startliste</h1>
       <h3 class="main_manue" style="font-size: 30px;">{{ con_title }}</h3>
         <hr>
-
+        <div class="table-wrapper_active">
+          <div class="table-wrapper_active">
           {% for key, values in data.items() %}
-          {% for value in values %}
 
-            {% if value[0] in active_drivers and value[5] == 0 and value[6] == 0 %}
-            {% if loop.index == 1 %}
-            <div class="table-wrapper_active">
-              <div class="rows">
-            <div class="cell_r">
-              <h1> {{ value[1] }} {{ value[2] }} [{{ value[0] }}] </h1>
-              <p>{{ value[4] }}</p>
+            {% if values[0][0] in active_drivers and values[1][0] in active_drivers and values[0][5] == 0 and values[1][5] == 0 %}
+            <div class="rows">
+            {% if values[0][6] != 0 %}
+            
+            <div class="cell_r_dsq">
+              <h1> {{ values[0][1] }} {{ values[0][2] }} [{{ values[0][0] }}] </h1>
+              <p>{{ values[0][4] }}</p>
            </div> 
-
+           {% else %}
+           <div class="cell_r">
+            <h1> {{ values[0][1] }} {{ values[0][2] }} [{{ values[0][0] }}] </h1>
+            <p>{{ values[0][4] }}</p>
+         </div> 
+           {% endif %}
            <div class="matchup"><p> 🏁 </p></div>
+           {% if values[1][6] != 0 %}
+           <div class="cell_v_dsq">
+            <h1>[{{ values[1][0] }}]  {{ values[1][1] }} {{ values[1][2] }}</h1>
+            <p>{{ values[1][4] }}</p>
+            </div>
+           {% else %}
+           <div class="cell_v">
+            <h1>[{{ values[1][0] }}]  {{ values[1][1] }} {{ values[1][2] }}</h1>
+            <p>{{ values[1][4] }}</p>
+         </div>
+           {% endif %}
 
-            {% elif loop.index == 2 and value[5] == 0 and value[6] == 0 %}
-
-            <div class="cell_v">
-              <h1>[{{ value[0] }}]  {{ value[1] }} {{ value[2] }}</h1>
-              <p>{{ value[4] }}</p>
-           </div>
           </div>
-        </div>
         {% endif %}
-        {% endif %}
-        {% if value[0] in active_drivers %}
-        {% if loop.index == 1 %}
-
-        {% endif %}
-        {% endif %}
-
         {% endfor %}
-        {% endfor %}
-        <div class="txt_split">Upcoming</div>
+      </div>
+      </div>
+        <div class="txt_split">Kommende</div>
         <div class="table-wrapper_none_active">
         {% for key, values in data.items() %}
-          {% for value in values %}
-
-          {% if value[5] == 0 and value[0] not in active_drivers and value[6] == 0  %}
-          {% if loop.index == 1 %}
-          <div class="rows">
-            <div class="cell">
-              <p style="font-size: 20px;"> {{ value[1] }}  {{ value[2] }} [{{ value[0] }}   ] </p>
-              <p>{{ value[4] }} </p>
+        <div class="rows">
+          {% if values[0][5] == 0 and values[1][5] == 0 and values[1][0] not in active_drivers and values[0][0] not in active_drivers and values[1][5] == 0  %}
+          
+          {% if values[0][6] != 0 %}
+            <div class="cell" style="text-decoration: line-through;color: rgb(104, 104, 104);">
+              <p style="font-size: 20px;"> {{ values[0][1] }}  {{ values[0][2] }} [{{ values[0][0] }}] </p>
+              <p>{{ values[0][4] }} </p>
             </div>
-            <div class="matchup">
-               <span class="vs_other"> {{ key | int + 1 | int }} </span>
-            </div>
-
-         
-         {% elif loop.index == 2 %}
+          {% else %}
             <div class="cell">
-              <p style="font-size: 20px;"> [{{ value[0] }}] {{ value[1] }}  {{ value[2] }}  </p>
-              <p>{{ value[4] }} </p>
+              <p style="font-size: 20px;"> {{ values[0][1] }}  {{ values[0][2] }} [{{ values[0][0] }}] </p>
+              <p>{{ values[0][4] }} </p>
+            </div>
+          {% endif %}
+          <div class="matchup">
+            <span class="vs_other"> {{ key | int + 1 | int }} </span>
+         </div>
+          {% if values[1][6] != 0 %}
+          <div class="cell" style="text-decoration: line-through;color: rgb(104, 104, 104);">
+            <p style="font-size: 20px; "> [{{ values[1][0] }}] {{ values[1][1] }}  {{ values[1][2] }}  </p>
+            <p>{{ values[1][4] }} </p>
           </div>
-        </div>
 
-
-
+            {% else %}
+            <div class="cell">
+              <p style="font-size: 20px;"> {{ values[1][1] }}  {{ values[1][2] }} [{{ values[1][0] }}] </p>
+              <p>{{ values[1][4] }} </p>
+            </div>
+        {% endif %}
       {% endif %}
-      {% endif %}
-
-      {% endfor %}
+    </div>
       {% endfor %}
     </div>
-    
-      <div class="txt_split">Finished </div> 
+  
       
-      <div class="table-wrapper_none_active">
-        {% for key, values in data.items() %}
-
-        {% set sec = 0 %}
-        
-        {% for value in values %}
-        
-        {% if value[5] > sec %}
-        {% set border_state = "#76ff76;" %}
-        {% else %}
-        {% set border_state = "#ff3838;" %}
-        {% endif %}
-        {% if value[5] != 0 and value[0] or value[6] != 0 %}
-        
-
-        {% if loop.index == 1 %}
-
-         <div class="rows">
-
-            <div class="cell">
-              <p> [{{ value[0] }}] {{ value[1] }} {{ value[2] }} | {{ value[4] }} | {{ value[7] }} sec </p>
-            </div>
-            <div class="matchup">
-               <span class="vs_other"></span>
-            </div>
-            {% elif loop.index == 2 %}
-            <div class="cell">
-              <p> [{{ value[0] }}] {{ value[1] }} {{ value[2] }} | {{ value[4] }} | {{ value[7] }} sec </p>
-              
-            </div>
-         </div>
-         {% endif %}
-         {% endif %}
- 
-         {% endfor %}
-         {% endfor %}
       </div>
 </html>
