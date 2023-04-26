@@ -8,6 +8,8 @@
 	* Code refactoring
 	* Archiving and Retrieval of Historical Leaderboard Data with Search Capabilities
 	* Real-time Tracking System Using Motion-Based Object Detection
+	* Webplatform for manual timekeeping
+	* Webplatform to manage leaderboard monitors
 
 
 # AASSK (Åseral snøscooterklubb) Digital signage ++
