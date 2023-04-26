@@ -1,3 +1,15 @@
+## TODO
+
+	* Write documentation
+	* Transitioning to a NoSQL Database for Event Data
+	* Enhancing Software Suite Flexibility: Adapting to Various Environments for Improved Compatibility
+	* Simplifying System Architecture
+	* Improving visual Consistency across overlays and components
+	* Code refactoring
+	* Archiving and Retrieval of Historical Leaderboard Data with Search Capabilities
+	* Real-time Tracking System Using Motion-Based Object Detection
+
+
 # AASSK (Åseral snøscooterklubb) Digital signage ++
 
 ### Context
