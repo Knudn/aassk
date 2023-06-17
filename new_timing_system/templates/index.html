@@ -1,0 +1,11 @@
+<!DOCTYPE html>
+<html>
+  <body>
+    {% for person in people %}
+      <form action="/click" method="post">
+        <input type="hidden" name="id" value="{{person[0]}}">
+        <button type="submit">{{person[1]}}</button>
+      </form>
+    {% endfor %}
+  </body>
+</html>
