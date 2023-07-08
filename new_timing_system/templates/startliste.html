@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Startliste</title>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+        <style>
+    body {
+        background-color: #f4f6f9;
+        font-family: Arial, sans-serif;
+    }
+
+    .container {
+        margin-top: 50px;
+    }
+
+    h1 {
+        color: #343a40;
+    }
+
+    h2 {
+        color: #495057;
+        margin-top: 30px;
+    }
+
+    table {
+        margin-bottom: 50px;
+        background-color: #ffffff;
+        box-shadow: 0px 0px 15px rgba(0,0,0,0.1);
+    }
+
+    th {
+        background-color: #343a40;
+        color: #ffffff;
+    }
+
+    td, th {
+        padding: 15px;
+        text-align: center;
+        border-bottom: 1px solid #dee2e6;
+    }
+
+    tr:nth-child(even) {
+        background-color: #f2f2f2;
+    }
+        </style>
+<script>
+// Get data from API
+fetch('http://192.168.1.50:8080/api/driver_data/current')
+    .then(response => response.json())
+    .then(data => {
+        const container = document.querySelector('.container');
+        for(let entry in data) {
+            let title = document.createElement('h2');
+            title.textContent = "Neste event: " + entry;
+            container.appendChild(title);
+
+            let table = document.createElement('table');
+            table.className = "table";
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Navn</th>
+                        <th>Klubb</th>
+                        <th>Skuter</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            `;
+            container.appendChild(table);
+
+            for(let key in data[entry]) {
+                let row = document.createElement('tr');
+                let rowData = data[entry][key];
+
+                row.innerHTML = `<td>${rowData[0]}</td><td>${rowData[1]} ${rowData[2]}</td><td>${rowData[3]}</td><td>${rowData[4]}</td><td>${rowData[6]}</td>`;
+                table.querySelector('tbody').appendChild(row);
+            }
+        }
+    })
+    .catch(error => console.error('Error:', error));
+
+fetch('http://192.168.1.50:8080/api/driver_data/next_event')
+    .then(response => response.json())
+    .then(data => {
+        const container = document.querySelector('.container');
+        for(let entry in data) {
+            let title = document.createElement('h2');
+            title.textContent = "Neste event: " + entry;
+            container.appendChild(title);
+
+            let table = document.createElement('table');
+            table.className = "table";
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Navn</th>
+                        <th>Klubb</th>
+                        <th>Skuter</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            `;
+            container.appendChild(table);
+
+            for(let key in data[entry]) {
+                let row = document.createElement('tr');
+                let rowData = data[entry][key];
+
+                row.innerHTML = `<td>${rowData[0]}</td><td>${rowData[1]} ${rowData[2]}</td><td>${rowData[3]}</td><td>${rowData[4]}</td><td>${rowData[6]}</td>`;
+                table.querySelector('tbody').appendChild(row);
+            }
+        }
+    })
+    .catch(error => console.error('Error:', error));
+
+
+
+</script>    
+</head>
+    <body>
+        <div class="container">
+        </div>
+    </body>
+</html>

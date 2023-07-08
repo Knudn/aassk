@@ -6,7 +6,7 @@ import re
 import requests
 import sqlite3
 
-url = 'http://localhost:5000/entry'
+url = 'http://localhost:10000/entry'
 
 con = sqlite3.connect("active_data.sql")
 cur = con.cursor()

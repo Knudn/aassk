@@ -54,36 +54,53 @@ td {
   border-radius: 10px;
 }
 
-
-
+#top-ten-title {
+      font-size: 1rem; 
+      padding: 5px; 
+      background-color: rgba(24, 24, 24, 0.9); 
+      color: #fff; 
+      width: 100%;
+      font-size: 1.3rem;
+      text-align: center;
+      border-radius: 5px; 
+      margin-bottom: 10px; 
+      display: inline-block;
+    }
   </style>
-  <script>
-$(document).ready(function() {
-  function updateScoreboard() {
-    $.ajax({
-      url: '/current_scoreboard_top',
-      type: 'GET',
-      success: function(data) {
-        $('.main').html(data);
-      },
-      error: function() {
-        console.log('Error fetching data');
-      }
-    });
-  }
+<script>
+  $(document).ready(function() {
+    function updateScoreboard() {
+      $.ajax({
+        url: '/current_scoreboard_top',
+        type: 'GET',
+        success: function(data) {
+          $('.main').html(data);
+          // Check if the table has more than 10 rows
+          if ($('table tbody tr').length > 10 ) {
+            $('#top-ten-title').show();
+          } else {
+            $('#top-ten-title').hide();
+          }
+        },
+        error: function() {
+          console.log('Error fetching data');
+        }
+      });
+    }
 
-  // call the updateScoreboard function initially on page load
-  updateScoreboard();
+    // call the updateScoreboard function initially on page load
+    updateScoreboard();
 
-  // call the updateScoreboard function every 3 seconds
-  setInterval(updateScoreboard, 3000);
-});
-    </script>
+    // call the updateScoreboard function every 3 seconds
+    setInterval(updateScoreboard, 3000);
+  });
+</script>
 </head>
 
 <body>
   <div class="main">
     <div class="center_content">
+      <h2 id="top-ten-title" style="display:none;">Top 10</h2>
       <table>
         <thead>
           <tr>

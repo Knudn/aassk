@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<head>
+    <script>
+
+function convertTimeToMicroseconds(timeString) {
+  if (typeof timeString !== 'string') {
+        console.error('timeString must be a string');
+        return;
+    }
+    // Split the time string into hours, minutes, seconds and milliseconds
+    let parts = timeString.split(':');
+    let hours = parseInt(parts[0].split('h')[0]);
+    let minutes = parseInt(parts[0].split('h')[1]);
+    let secondsMilliseconds = parts[1].split(".");
+    let seconds = parseInt(secondsMilliseconds[0]);
+    let milliseconds = parseInt(secondsMilliseconds[1]);
+
+    // Convert hours, minutes, seconds and milliseconds to microseconds
+    let microseconds = ((hours * 60 * 60 + minutes * 60 + seconds) * 1000 + milliseconds/1000) * 1000;
+    return Math.round(microseconds); 
+
+}
+
+function fetchAndFormatTime() {
+    return fetch('http://worldtimeapi.org/api/ip')
+    .then(response => response.json())
+    .then(data => {
+        let datetime = data.datetime; // datetime in the format 2023-06-24T18:11:12.212053+02:00
+
+        // parse the datetime string
+        let time_parts = datetime.split('T')[1].split('.')[0].split(':');
+        let milliseconds = datetime.split('.')[1].substring(0, 6); // extracts 212053 from 212053+02:00
+
+        // format the time to the desired format (17h35:58.189663)
+        let hours = "0" + time_parts[0];
+        let minutes = "0" + time_parts[1];
+        let seconds = "0" + time_parts[2];
+
+        // construct the formatted string
+        let formatted_time = hours.slice(-2) + 'h' + minutes.slice(-2) + ':' + seconds.slice(-2) + '.' + milliseconds;
+
+        return formatted_time;
+    })
+    .catch(error => {
+        console.log('Error:', error);
+        throw error;
+    });
+}
+
+let data
+console.log(convertTimeToMicroseconds("17h35:58.189663"))
+
+fetchAndFormatTime()
+  .then(formattedTime => {
+    const myVariable = formattedTime;
+    console.log(myVariable); // Optional: Log the variable if needed
+    // Continue working with the variable here
+  });
+
+</script>
+</head>
+</html>
