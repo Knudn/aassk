@@ -70,7 +70,7 @@ def clean_whitelist(session, whitelist, valid=False, startlist_valid=False):
     matching_files_event.sort(reverse=True)
     return matching_files_event[0], matching_files_title[0]
 
-event_files = Path("/mnt/test/")
+event_files = Path("/mnt/events/")
 startlist_dir = "startlist/"
 
 def get_white_list():

@@ -141,6 +141,7 @@
     .rows {
     display: flex;
     justify-content: center;
+    background-color: white;
     }
     .rows:nth-child(even) {
     background-color: #e3e3e3;
@@ -187,8 +188,6 @@
 </head>
 <body>
  <div class="container">
- <h1 class="main_manue">Startliste</h1>
- <h3 class="main_manue" style="font-size: 30px;">{{ con_title }}</h3>
    <div class="table-wrapper_none_active">
    {% for key, values in data.items() %}
    <div class="rows">

@@ -1,33 +1,57 @@
-import asyncio
-import aioconsole
+import http.server
+import socketserver
+import socket
+import threading
+import urllib.parse
 
-class EchoServerProtocol(asyncio.DatagramProtocol):
-    def __init__(self):
-        super().__init__()
-        self.transport = None
+SERVER_IP = "0.0.0.0"
+UDP_PORT = 2008
+HTTP_PORT = 7777
 
-    def connection_made(self, transport):
-        self.transport = transport
+class MyUDPHandler(socketserver.BaseRequestHandler):
+    def handle(self):
+        data = self.request[0].strip()
+        socket = self.request[1]
+        print(f"Message from {self.client_address}: {data.decode()}")
+        self.server.client_addresses.add(self.client_address)
 
-    def datagram_received(self, data, addr):
-        message = data.decode()
-        print(f"Received {data} from {addr}")
+class MyHTTPRequestHandler(http.server.SimpleHTTPRequestHandler):
+    def do_POST(self):
+        content_length = int(self.headers['Content-Length'])
+        post_data = self.rfile.read(content_length)
+        params = urllib.parse.parse_qs(post_data.decode())
+        message = params.get('message', [''])[0]
+        message += "\n"
+        self.server.udp_server.send_message_to_all_clients(message)
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"Message sent")
 
-async def run_udp_server():
-    print("Starting UDP server")
-    loop = asyncio.get_running_loop()
+class MyUDPServer(socketserver.UDPServer):
+    allow_reuse_address = True
+    client_addresses = set()
 
-    transport, protocol = await loop.create_datagram_endpoint(
-        lambda: EchoServerProtocol(),
-        local_addr=("192.168.1.50", 2008),
-    )
+    def send_message_to_all_clients(self, message):
+        for client_address in self.client_addresses:
+            self.socket.sendto(message.encode("UTF-8"), client_address)
 
-    try:
-        while True:
-            user_input = await aioconsole.ainput("Enter your input: ")
-            print(f"User input: {user_input}")
-            protocol.transport.sendto(user_input.encode(), ('192.168.1.33', 2008))
-    finally:
-        transport.close()
+class MyHTTPServer(socketserver.TCPServer):
+    allow_reuse_address = True
 
-asyncio.run(run_udp_server())
+def run_udp_server(server_class, handler_class):
+    server = server_class((SERVER_IP, UDP_PORT), handler_class)
+    print(f"UDP server started at {SERVER_IP}:{UDP_PORT}")
+    return server
+
+def run_http_server(server_class, handler_class, udp_server):
+    httpd = server_class((SERVER_IP, HTTP_PORT), handler_class)
+    httpd.udp_server = udp_server
+    print(f"HTTP server started at {SERVER_IP}:{HTTP_PORT}")
+    httpd.serve_forever()
+
+if __name__ == "__main__":
+    udp_server = run_udp_server(MyUDPServer, MyUDPHandler)
+    udp_thread = threading.Thread(target=udp_server.serve_forever)
+    udp_thread.start()
+
+    run_http_server(MyHTTPServer, MyHTTPRequestHandler, udp_server)

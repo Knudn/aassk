@@ -1,11 +1,364 @@
 <!DOCTYPE html>
 <html>
-  <body>
-    {% for person in people %}
-      <form action="/click" method="post">
-        <input type="hidden" name="id" value="{{person[0]}}">
-        <button type="submit">{{person[1]}}</button>
-      </form>
-    {% endfor %}
-  </body>
+<head>
+    <title>Driver Status</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/nosleep/0.11.0/NoSleep.min.js"></script>
+
+    <style>
+        .driver-div {
+            margin-bottom: 10px;
+            width: 100%;
+            background-color: #007bff;
+            color: white;
+            display: flex;
+            justify-content: flex-start;
+            cursor: pointer;
+            align-content: center;
+            flex-wrap: nowrap;
+            align-items: center;
+            flex-direction: column;
+        }
+
+        .selected {
+            background-color: #007bff;
+            color: white;
+        }
+    </style>
+    
+    <script>
+
+const use_NTP = new Boolean(false);
+
+$(document).ready(function() {
+    let prevTitle = null;
+    setInterval(function() {
+        $.ajax({
+            url: 'http://192.168.1.50:8080/api/driver_data/title',
+            type: 'GET',
+            dataType: 'json',
+            success: function(data) {
+                if (prevTitle !== null && data[0] !== prevTitle) {
+                    location.reload();
+                }
+                prevTitle = data[0];
+            },
+            error: function(error) {
+                console.log('Error:', error);
+            }
+        });
+    }, 2000);
+});
+
+function timestampToMicroseconds(timestamp) {
+  console.log(timestamp)
+  // Split the timestamp by 'h', ':', and '.'
+  const [hourStr, minuteStr, secondStr, microStr] = timestamp.split(/h|:|\./);
+  
+  // Convert the time parts to numbers
+  const hours = parseInt(hourStr, 10);
+  const minutes = parseInt(minuteStr, 10);
+  const seconds = parseInt(secondStr, 10);
+  
+  // Pad the microseconds part with zeros to the right, making it 6 digits
+  const paddedMicroStr = microStr.padEnd(6, '0');
+  const microseconds = parseInt(paddedMicroStr, 10);
+
+  // Convert everything to microseconds
+  const microsecondsPerSecond = 1e6;
+  const microsecondsPerMinute = 60 * microsecondsPerSecond;
+  const microsecondsPerHour = 60 * microsecondsPerMinute;
+
+  const totalMicroseconds = hours * microsecondsPerHour
+    + minutes * microsecondsPerMinute
+    + seconds * microsecondsPerSecond
+    + microseconds;
+
+  return totalMicroseconds;
+}
+
+//    function fetchAndFormatTime_ntp() {
+//        return fetch('http://worldtimeapi.org/api/ip')
+//        .then(response => response.json())
+//        .then(data => {
+//            let datetime = data.datetime; // datetime in the format 2023-06-24T18:11:12.212053+02:00
+//            // parse the datetime string
+//            let time_parts = datetime.split('T')[1].split('.')[0].split(':');
+//            let milliseconds = datetime.split('.')[1].substring(0, 6); // extracts 212053 from 212053+02//:00
+
+//            // format the time to the desired format (17h35:58.189663)
+//            let hours = "0" + time_parts[0];
+//            let minutes = "0" + time_parts[1];
+//            let seconds = "0" + time_parts[//2];
+
+//            // construct the formatted string
+//            let formatted_time = hours.slice(-2) + 'h' + minutes.slice(-2) + ':' + seconds.slice(-2) + '.' + milliseconds;
+//            
+//            return formatted_time;
+//        })
+//        .catch(error => {
+//            console.log('Error:', error);
+//            throw error;
+//        });
+//    }
+
+function fetchAndFormatTime() {
+    try {
+        // create new Date object from current time
+        let now = new Date();
+
+        console.log(Date(), "date now")
+
+        // get hours, minutes, seconds, and milliseconds
+        let hours = "0" + now.getHours();
+        let minutes = "0" + now.getMinutes();
+        let seconds = "0" + now.getSeconds();
+        let milliseconds = now.getMilliseconds();
+
+        // if milliseconds is less than 100, pad with leading zeros
+        while (milliseconds.toString().length < 6) {
+            milliseconds = "0" + milliseconds;
+        }
+        
+        // construct the formatted string
+        let formatted_time = hours.slice(-2) + 'h' + minutes.slice(-2) + ':' + seconds.slice(-2) + '.' + milliseconds;
+        console.log(formatted_time,"Formated time")
+        return formatted_time;
+    } catch (error) {
+        console.log('Error:', error);
+        throw error;
+    }
+}
+
+    function convertMicrosecondsToTime(microseconds) {
+        console.log(microseconds, "Microseconds")
+
+        let totalMilliseconds = microseconds / 1000;
+
+        // convert milliseconds to seconds
+        let totalSeconds = totalMilliseconds / 1000;
+
+        // convert seconds to minutes
+        let totalMinutes = totalSeconds / 60;
+
+        // convert minutes to hours
+        let totalHours = totalMinutes / 60;
+
+        // calculate each unit and the remainder
+        let hours = Math.floor(totalHours);
+        let minutes = Math.floor((totalHours - hours) * 60);
+        let seconds = Math.floor((totalMinutes - hours * 60 - minutes) * 60);
+        let milliseconds = ((totalSeconds - hours * 60 * 60 - minutes * 60 - seconds) * 1000);
+        let milliseconds2 = String(milliseconds).split(".")[0]
+
+        // pad values with leading zeros where necessary, convert to string
+        let hoursStr = hours.toString().padStart(2, '0');
+        let minutesStr = minutes.toString().padStart(2, '0');
+        let secondsStr = seconds.toString().padStart(2, '0');
+        
+    // return in the format "hours:minutes:seconds.milliseconds"
+    return [hours,minutes,seconds,milliseconds2];
+}
+
+$(document).ready(function() {
+    // Update div contents every second
+    setInterval(function() {
+        $.ajax({
+            url: 'http://192.168.1.50:8080/api/driver_status',
+            type: 'GET',
+            dataType: 'json',
+            success: function(data) {
+                let times = [];
+                for (let id in data) {
+                    let driver = data[id];
+                    let div = $(`.driver-div[data-id="${id}"]`);
+
+                    div.css('background-color', driver.color);
+                    div.find('.driver-state').text(driver.state);
+                    // convert time
+                    let totalSeconds = parseFloat(driver.time);
+                    let minutes = Math.floor(totalSeconds / 60);
+                    let seconds = Math.floor(totalSeconds % 60);
+                    let milliseconds = Math.round((totalSeconds % 1) * 1000);
+                    // format time to MM:SS.mmm
+                    let timeString = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}.${milliseconds.toString().padStart(3, '0')}`;
+
+                    div.find('.driver-time').text(timeString);
+                    div.data('base-time', driver.base_time);
+                    
+                    // store driver times in an array to calculate points
+                    times.push({
+                        id,
+                        time: parseFloat(driver.time),
+                        timeString
+                    });
+                }
+
+                // sort the times array from fastest to slowest
+                times.sort((a, b) => a.time - b.time);
+
+                // update the scoreboard
+                $("#scoreboard > tbody").empty();
+                for (let i = 0; i < times.length; i++) {
+                    let driverId = times[i].id;
+
+                    // Skip if timeString is "00:00.000"
+                    if (times[i].timeString === "00:00.000") continue;
+
+                    // create table row for scoreboard
+                    let tableRow = $(`<tr></tr>`)
+                        .data('id', driverId)
+                        .appendTo($("#scoreboard > tbody"));
+
+                    // add cells to the row
+                    $("<td></td>").text(driverId).appendTo(tableRow);
+                    $("<td></td>").text(times[i].timeString).appendTo(tableRow); // add time string to the table
+                }
+
+            },
+            error: function(error) {
+                console.log('Error:', error);
+            }
+        });
+    }, 1000);
+
+
+
+
+
+$(".driver-div").on("click", function() {
+//fetchAndFormatTime()
+   // .then(formattedTime => {
+        let new_time = fetchAndFormatTime();
+        
+        let splitChars = ['h', ':', '.'];
+
+        for(let i = 0; i < splitChars.length; i++) {
+            new_time = new_time.split(splitChars[i]).join(' ');
+        }
+
+        
+        let timeList = new_time.split(' ').map(Number);
+        var [hours, minutes, seconds, milliseconds] = new_time.split(' ').map(Number);
+        let t_stamp = `${hours}h${minutes}:${seconds}.${milliseconds}`;
+        let clickedDivBaseTime = $(this).data('base-time');
+        console.log(t_stamp, "Date now after")
+        let current_timestamp = timestampToMicroseconds(t_stamp);
+        let final_timestamp = (current_timestamp-clickedDivBaseTime)
+        let g_data = convertMicrosecondsToTime(final_timestamp)
+        console.log(final_timestamp, "Final time")
+
+
+        
+        var id = $(this).data('id');
+        
+        var tableRow = $("<tr></tr>")
+            .data('id', id)
+            .appendTo($("#buffer_" + id))
+            .on("click", function() {
+                var id = $(this).data('id')
+
+                // Remove selection from other rows
+                $("#buffer_" + id).find(".selected").removeClass("selected");
+
+                // Highlight this row
+                $(this).addClass("selected");
+                // Insert timestamp into fields
+                $("#hours_" + id).val(g_data[0]);
+                $("#minutes_" + id).val(g_data[1]);
+                $("#seconds_" + id).val(g_data[2]);
+                $("#milliseconds_" + id).val(Math.floor(g_data[3]));
+
+                
+                let data_send = `${g_data[0]}h${g_data[1]}:${g_data[2]}.${g_data[3]}`;
+                $(this).data('finalTimestamp', data_send);
+                console.log(data_send,"aaa")
+            });
+        // Store final_timestamp on the clicked div
+        
+        
+        // Add cells to the row
+        console.log(timeList[1])
+        $("<td></td>").text(`${g_data[1]}:${g_data[2]}.${String(g_data[3]).slice(0, 3)}`).appendTo(tableRow);
+    //});
+});
+
+
+    // Enforce time limits
+    $(".timestamp-button").on("click", function() {
+    var id = $(this).data('id');
+
+    // Retrieve the values from the input boxes
+    var hours = $("#hours_" + id).val();
+    var minutes = $("#minutes_" + id).val();
+    var seconds = $("#seconds_" + id).val();
+    var milliseconds = $("#milliseconds_" + id).val();
+
+    // Construct the data_send variable
+    var data_send = `${hours}h${minutes}:${seconds}.${milliseconds}`;
+    bla = timestampToMicroseconds(data_send);
+    // Post the data_send to the endpoint
+    $.post('/api/submit_timestamp', {id: id, timestamp: bla}, function(data) {
+        /* Your code here... */
+    });
+});
+});
+
+</script>
+</head>
+<body>
+    <div class="container">
+        <div class="row">
+            {% for driver in drivers.items() %}
+            <div class="col-md-6">
+                <div class="driver-div" data-id="{{driver[1][0]}}" data-base-time="{{driver[1][5][3]}}">
+                    <h1>{{driver[1][0]}}</h1>
+                    <h5>{{driver[1][1]}} {{driver[1][2]}} | {{driver[1][4]}}</h5>
+                    <h5 class="driver-state">Not yet started</h5>
+                    <h5 class="driver-time">-:-:-</h5>
+                </div>
+                <table class="table" id="buffer_{{driver[1][0]}}">
+                    <thead>
+                        <tr>
+                            <th scope="col">Timestamps</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- timestamps will be added here -->
+                    </tbody>
+                </table>
+
+                <div class="time-input-group" data-id="{{driver[1][0]}}">
+                    <input class="time-input" id="hours_{{driver[1][0]}}" type="number" min="0" max="23" placeholder="00">
+                    <span class="time-separator">:</span>
+                    <input class="time-input" id="minutes_{{driver[1][0]}}" type="number" min="0" max="59" placeholder="00">
+                    <span class="time-separator">:</span>
+                    <input class="time-input" id="seconds_{{driver[1][0]}}" type="number" min="0" max="59" placeholder="00">
+                    <span class="time-separator">.</span>
+                    <input class="time-input" id="milliseconds_{{driver[1][0]}}" type="number" min="0" max="999" placeholder="000">
+                    <button class="btn btn-primary timestamp-button" data-id="{{driver[1][0]}}">Submit</button>
+                </div>
+            </div>
+            {% if loop.index is divisibleby 2 %}
+                </div><div class="row">
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    <div class="container">
+        <table class="table" id="scoreboard">
+            <thead>
+                <tr>
+                    <th scope="col">Driver ID</th>
+                    <th scope="col">Tid</th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Points will be added here -->
+            </tbody>
+        </table>
+    </div>
+    
+</body>
 </html>
