@@ -45,13 +45,20 @@
         </style>
 <script>
 // Get data from API
-fetch('http://192.168.1.50:8080/api/driver_data/current')
-    .then(response => response.json())
-    .then(data => {
+const fetchAndUpdate = () => {
+    Promise.all([
+        fetch('http://192.168.1.50:8080/api/driver_data/current').then(response => response.json()),
+        fetch('http://192.168.1.50:8080/api/driver_data/next_event').then(response => response.json()),
+        fetch('http://192.168.1.50:8080/api/driver_data/nextnext').then(response => response.json())
+    ])
+    .then(([data1, data2, data3]) => {
         const container = document.querySelector('.container');
-        for(let entry in data) {
+   
+        container.innerHTML = '';
+
+        function createTable(titleText, data) {
             let title = document.createElement('h2');
-            title.textContent = "Neste event: " + entry;
+            title.textContent = titleText;
             container.appendChild(title);
 
             let table = document.createElement('table');
@@ -71,55 +78,30 @@ fetch('http://192.168.1.50:8080/api/driver_data/current')
             `;
             container.appendChild(table);
 
-            for(let key in data[entry]) {
+            for(let key in data) {
                 let row = document.createElement('tr');
-                let rowData = data[entry][key];
+                let rowData = data[key];
 
                 row.innerHTML = `<td>${rowData[0]}</td><td>${rowData[1]} ${rowData[2]}</td><td>${rowData[3]}</td><td>${rowData[4]}</td><td>${rowData[6]}</td>`;
                 table.querySelector('tbody').appendChild(row);
             }
         }
-    })
-    .catch(error => console.error('Error:', error));
 
-fetch('http://192.168.1.50:8080/api/driver_data/next_event')
-    .then(response => response.json())
-    .then(data => {
-        const container = document.querySelector('.container');
-        for(let entry in data) {
-            let title = document.createElement('h2');
-            title.textContent = "Neste event: " + entry;
-            container.appendChild(title);
-
-            let table = document.createElement('table');
-            table.className = "table";
-            table.innerHTML = `
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Navn</th>
-                        <th>Klubb</th>
-                        <th>Skuter</th>
-                        <th>Status</th>
-                    </tr>
-                </thead>
-                <tbody>
-                </tbody>
-            `;
-            container.appendChild(table);
-
-            for(let key in data[entry]) {
-                let row = document.createElement('tr');
-                let rowData = data[entry][key];
-
-                row.innerHTML = `<td>${rowData[0]}</td><td>${rowData[1]} ${rowData[2]}</td><td>${rowData[3]}</td><td>${rowData[4]}</td><td>${rowData[6]}</td>`;
-                table.querySelector('tbody').appendChild(row);
-            }
+        for(let entry in data1) {
+            createTable("Pågående Event: " + entry, data1[entry]);
+        }
+        for(let entry in data2) {
+            createTable("Neste event: " + entry, data2[entry]);
+        }
+        for(let entry in data3) {
+            createTable("Påfølgende: " + entry, data3[entry]);
         }
     })
     .catch(error => console.error('Error:', error));
+}
 
-
+fetchAndUpdate();
+setInterval(fetchAndUpdate, 5000);
 
 </script>    
 </head>

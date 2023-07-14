@@ -27,7 +27,6 @@
       </a>
       <div class="collapse navbar-collapse" id="navbarNavDropdown">
         <ul class="navbar-nav">
-          <!-- All heats dropdown -->
           <li class="nav-item dropdown">
             <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
             All heats
@@ -45,10 +44,21 @@
                 {% for event in events %}
                 <button class="dropdown-item event-btn" data-event='{{ event | replace(" ", "") }}'>{{ event }}</button>
                 {% endfor %}
+                
             </div>
           </li>
+  <li class="nav-item dropdown">
+  <a class="nav-link dropdown-toggle" href="#" id="navbarDropdownMenuLink" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+  Current event
+  </a>
+  <div class="dropdown-menu" aria-labelledby="navbarDropdownMenuLink">
+    <button class="dropdown-item current-event-btn">Show Current Event</button>
+  </div>
+</li>
         </ul>
+        
       </div>
+      
     </nav>
 
     <!-- Placeholder for event data -->
@@ -75,6 +85,45 @@
   <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"></script>
   <script>
+
+$('.current-event-btn').click(function() {
+    fetch(`http://192.168.1.50:8080/api/driver_data/current`)
+        .then(response => response.json())
+        .then(data => {
+
+            $('#event-data tbody').empty();
+            $('#event-data').prev('h4').remove();
+             for(let eventKey in data){
+                $('#event-data').before(`<h4>${eventKey}</h4>`)
+                }
+            Object.values(data).forEach(event => {
+                Object.values(event).forEach(driver => {
+                    const driverId = driver[0];
+                    const driverName = driver[1] + " " + driver[2];
+                    const driverClub = driver[3];
+                    const driverVehicle = driver[4];
+                    const driverPoints = driver[5][4];
+                    const driverStatus = driver[6];
+                    const driverBestTime = millisecondsToTime(driver[5][0]); // depending on where you have bestTime
+
+                    const row = `
+                      <tr>
+                        <td>${driverId}</td>
+                        <td>${driverName}</td>
+                        <td>${driverClub}</td>
+                        <td>${driverVehicle}</td>
+                        <td>${driverPoints}</td>
+                        <td>${driverBestTime}</td>
+                        <td>${driverStatus}</td>
+                      </tr>
+                    `;
+                    $('#event-data tbody').append(row);
+                });
+            });
+        })
+        .catch(error => console.error('Error:', error));
+});
+
     function millisecondsToTime(millis) {
         // Calculate minutes, seconds and milliseconds
         let minutes = Math.floor(millis / 60000);
@@ -89,14 +138,32 @@
         // Return formatted string
         return minutes + ":" + seconds + ":" + milliseconds;
     }
-$('.event-btn').click(function() {
+    $('.event-btn').click(function() {
     const eventName = $(this).data('event');
     fetch(`http://192.168.1.50:8080/event/${eventName}`)
         .then(response => response.json())
         .then(data => {
-            console.log(data)
             const summary = {};
+
+            // Remove existing H2 title
+            $('#event-data').prev('h4').remove();
+
+            let minRun = Number.MAX_SAFE_INTEGER;
+            let maxRun = Number.MIN_SAFE_INTEGER;
+            let runPrefix = "";
+
             for(let run in data){
+                console.log(run);
+
+                // Parse the run number and the run name prefix (assumes " - Run " separator)
+                let runParts = run.split(" - Run ");
+                if (runParts.length === 2) {
+                    runPrefix = runParts[0];
+                    let runNumber = parseInt(runParts[1]);
+                    if (runNumber < minRun) minRun = runNumber;
+                    if (runNumber > maxRun) maxRun = runNumber;
+                }
+
                 for(let participant in data[run]){
                     const driver = data[run][participant];
                     const driverId = driver[0];
@@ -122,26 +189,33 @@ $('.event-btn').click(function() {
                     summary[driverId].time.push(drivertime); // Push each timestamp
                 }
             }
+
+            // Add H2 title here
+            let title = `${runPrefix} - Run ${minRun}`;
+            if (maxRun > minRun) title += ` - ${maxRun}`;
+            $('#event-data').before(`<h4>${title}</h4>`);
+
             $('#event-data tbody').empty();
+
             const sortedSummary = Object.entries(summary).sort((a, b) => {
                 const pointDifference = b[1].totalPoints - a[1].totalPoints;
                 if (pointDifference === 0) {
                     // If points are the same, sort by the best timestamp
-                      const aTimes = a[1].time.filter(time => time !== 0);
-                      const bTimes = b[1].time.filter(time => time !== 0);
-                      const aBestTime = aTimes.length > 0 ? Math.min(...aTimes) : 0;
-                      const bBestTime = bTimes.length > 0 ? Math.min(...bTimes) : 0;
-                      return aBestTime - bBestTime;
-                  } else {
+                    const aTimes = a[1].time.filter(time => time !== 0);
+                    const bTimes = b[1].time.filter(time => time !== 0);
+                    const aBestTime = aTimes.length > 0 ? Math.min(...aTimes) : 0;
+                    const bBestTime = bTimes.length > 0 ? Math.min(...bTimes) : 0;
+                    return aBestTime - bBestTime;
+                } else {
                     return pointDifference;
                 }
             });
 
             for(let i = 0; i < sortedSummary.length; i++){
                 const driverId = sortedSummary[i][0];
-  const driver = sortedSummary[i][1];
-  const times = driver.time.filter(time => time !== 0);
-  const bestTime = times.length > 0 ? Math.min(...times) : 'N/A';
+                const driver = sortedSummary[i][1];
+                const times = driver.time.filter(time => time !== 0);
+                const bestTime = times.length > 0 ? Math.min(...times) : 'N/A';
                 const row = `
                   <tr>
                     <td>${driverId}</td>
@@ -149,7 +223,7 @@ $('.event-btn').click(function() {
                     <td>${driver.club}</td>
                     <td>${driver.vehicle}</td>
                     <td>${driver.totalPoints}</td>
-                    <td>${millisecondsToTime(bestTime)}</td> <!-- Display best time -->
+                    <td>${millisecondsToTime(bestTime)}</td> 
                     <td>${driver.status}</td>
                   </tr>
                 `;
@@ -158,6 +232,9 @@ $('.event-btn').click(function() {
         })
         .catch(error => console.error('Error:', error));
 });
+
+
+
 
 </script>
 </body>

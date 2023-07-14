@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Race Results</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <style>
+        body {
+            padding: 20px;
+        }
+        .col {
+            border: 1px solid #ddd;
+            padding: 20px;
+            margin: 0 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        h3 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        table {
+            width: 100%;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="row">
+        <div class="col">
+            <h3 id="left-title"></h3>
+            <table id="left-table" class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Vehicle</th>
+                        <th>Total Points</th>
+                        <th>Best Time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+        <div class="col">
+            <h3 id="right-title"></h3>
+            <table id="right-table" class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Position</th>
+                        <th>Name</th>
+                        <th>Vehicle</th>
+                        <th>Time</th>
+                        <th>Points</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script>
+        function millisecondsToTime(ms) {
+            let seconds = Math.floor((ms / 1000) % 60);
+            let minutes = Math.floor((ms / (1000 * 60)) % 60);
+            let hours = Math.floor((ms / (1000 * 60 * 60)) % 24);
+
+            hours = (hours < 10) ? "0" + hours : hours;
+            minutes = (minutes < 10) ? "0" + minutes : minutes;
+            seconds = (seconds < 10) ? "0" + seconds : seconds;
+
+            return hours + ":" + minutes + ":" + seconds;
+        }
+
+        $(document).ready(function() {
+            function fetchData() {
+                fetch('http://192.168.1.50:8080/event/test')
+                    .then(response => response.json())
+                    .then(data => {
+                        const summary = {};
+                        for(let run in data){
+                            $('#left-title').text(run.split(' - ')[0]);
+                            for(let participant in data[run]){
+                                const driver = data[run][participant];
+                                const driverId = driver[0];
+                                const driverName = driver[1] + ' ' + driver[2];
+                                const driverVehicle = driver[4];
+                                let drivertime = driver[5][0]
+                                let points = driver[5][4];
+
+                                // Ensure points is a number and not NaN, else default to 0
+                                points = isNaN(points) ? 0 : points;
+
+                                if(!summary[driverId]){
+                                    summary[driverId] = {
+                                        name: driverName,
+                                        vehicle: driverVehicle,
+                                        totalPoints: 0,
+                                        time: [] // Changed m_time to time and set as an array
+                                    }
+                                }
+                                summary[driverId].totalPoints += points;
+                                summary[driverId].time.push(drivertime); // Push each timestamp
+                            }
+                        }
+
+                        // Convert object to array and sort by totalPoints and time in descending order
+                        let sortedSummary = Object.entries(summary).sort((a, b) => {
+                            const pointDifference = b[1].totalPoints - a[1].totalPoints;
+                            if (pointDifference === 0) {
+                                // If points are the same, sort by the best timestamp
+                                const aTimes = a[1].time.filter(time => time !== 0);
+                                const bTimes = b[1].time.filter(time => time !== 0);
+                                const aBestTime = aTimes.length > 0 ? Math.min(...aTimes) : 0;
+                                const bBestTime = bTimes.length > 0 ? Math.min(...bTimes) : 0;
+                                return aBestTime - bBestTime;
+                            } else {
+                                return pointDifference;
+                            }
+                        });
+
+                        $('#left-table tbody').empty();
+                        sortedSummary.forEach(entry => {
+                            const times = entry[1].time.filter(time => time !== 0);
+                            const bestTime = times.length > 0 ? Math.min(...times) : 'N/A';
+                            $('#left-table tbody').append(`<tr>
+                                <td>${entry[0]}</td>
+                                <td>${entry[1].name}</td>
+                                <td>${entry[1].vehicle}</td>
+                                <td>${entry[1].totalPoints}</td>
+                                <td>${millisecondsToTime(bestTime)}</td>
+                            </tr>`);
+                        });
+                    });
+
+                fetch('http://192.168.1.50:8080/api/driver_data/current')
+                    .then(response => response.json())
+                    .then(data => {
+                        for(let title in data) {
+                            $('#right-title').text(title);
+                            let results = [];
+                            for(let position in data[title]) {
+                                results.push(data[title][position]);
+                            }
+                            results.sort((a, b) => {
+                                if (a[5][4] === b[5][4]) {
+                                    return a[5][0] - b[5][0];
+                                }
+                                return b[5][4] - a[5][4];
+                            });
+                            $('#right-table tbody').empty();
+                            results.forEach((result, index) => {
+                                $('#right-table tbody').append(`<tr>
+                                    <td>${index + 1}</td>
+                                    <td>${result[1]} ${result[2]}</td>
+                                    <td>${result[4]}</td>
+                                    <td>${millisecondsToTime(result[5][0])}</td>
+                                    <td>${result[5][4] === 0 ? "0" : result[5][4]}</td>
+                                </tr>`);
+                            });
+                        }
+                    });
+            }
+
+            fetchData();
+            setInterval(fetchData, 10000);
+        });
+    </script>
+</body>
+</html>

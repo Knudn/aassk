@@ -4,6 +4,22 @@
     <title>Scoreboard</title>
     <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
     <script>
+
+function millisecondsToTime(millis) {
+    // Calculate minutes, seconds and milliseconds
+    let minutes = Math.floor(millis / 60000);
+    let seconds = Math.floor((millis % 60000) / 1000);
+    let milliseconds = millis % 1000;
+    
+    // Format the minutes and seconds to always be two digits
+    minutes = minutes.toString().padStart(2, '0');
+    seconds = seconds.toString().padStart(2, '0');
+    milliseconds = milliseconds.toString().padStart(3, '0');
+
+    // Return formatted string
+    return minutes + ":" + seconds + ":" + milliseconds;
+}
+
 function totale_event() {
     fetch('http://192.168.1.50:8080/api/driver_data/current_event_points')
         .then(response => response.json())
@@ -17,8 +33,9 @@ function totale_event() {
                     const driverId = driver[0];
                     const driverName = driver[1] + ' ' + driver[2];
                     const driverVehicle = driver[4];
+                    let drivertime = driver[5][0]
                     let points = driver[5][4];
-
+                    console.log(driver[5][0])
                     // Ensure points is a number and not NaN, else default to 0
                     points = isNaN(points) ? 0 : points;
 
@@ -26,24 +43,40 @@ function totale_event() {
                         summary[driverId] = {
                             name: driverName,
                             vehicle: driverVehicle,
-                            totalPoints: 0
+                            totalPoints: 0,
+                            time: [] // Changed m_time to time and set as an array
                         }
                     }
                     summary[driverId].totalPoints += points;
+                    summary[driverId].time.push(drivertime); // Push each timestamp
                 }
             }
 
             const table = document.getElementById('score-table');
-            table.innerHTML = "<tr><th>ID</th><th>Navn</th><th>Skuter</th><th>Poeng</th></tr>";
+            table.innerHTML = "<tr><th>ID</th><th>Navn</th><th>Skuter</th><th>Poeng</th><th>Time</th></tr>";
 
-            // Convert object to array and sort by totalPoints in descending order
-            const sortedSummary = Object.entries(summary).sort((a, b) => b[1].totalPoints - a[1].totalPoints);
+            // Convert object to array and sort by totalPoints and time in descending order
+            const sortedSummary = Object.entries(summary).sort((a, b) => {
+                const pointDifference = b[1].totalPoints - a[1].totalPoints;
+                if (pointDifference === 0) {
+                    // If points are the same, sort by the best timestamp
+                    const aTimes = a[1].time.filter(time => time !== 0);
+                    const bTimes = b[1].time.filter(time => time !== 0);
+                    const aBestTime = aTimes.length > 0 ? Math.min(...aTimes) : 0;
+                    const bBestTime = bTimes.length > 0 ? Math.min(...bTimes) : 0;
+                    return aBestTime - bBestTime;
+                } else {
+                    return pointDifference;
+                }
+            });
 
             for(let i = 0; i < sortedSummary.length; i++){
                 const driverId = sortedSummary[i][0];
                 const driver = sortedSummary[i][1];
+                const times = driver.time.filter(time => time !== 0);
+                const bestTime = times.length > 0 ? Math.min(...times) : 'N/A';
                 const row = document.createElement('tr');
-                row.innerHTML = `<td>${driverId}</td><td>${driver.name}</td><td>${driver.vehicle}</td><td>${driver.totalPoints}</td>`;
+                row.innerHTML = `<td>${driverId}</td><td>${driver.name}</td><td>${driver.vehicle}</td><td>${driver.totalPoints}</td><td>${millisecondsToTime(bestTime)}</td>`; // Display best time
                 table.appendChild(row);
             }
         })
@@ -166,9 +199,9 @@ function totale_event() {
 
         window.onload = function() {
             totale_event();
-            setInterval(totale_event, 5000); // Call every 5 seconds
+            setInterval(totale_event, 2000); // Call every 5 seconds
             current_event();
-            setInterval(current_event, 5000); // Call every 5000 ms (5 seconds)
+            setInterval(current_event, 2000); // Call every 5000 ms (5 seconds)
             fetchDataAndDisplay("http://192.168.1.50:8080/api/driver_data/all");
         }
     </script>

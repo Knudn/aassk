@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>2023 Australian Grand Prix - Race Results</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: sans-serif;
+    }
+
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      max-width: 800px;
+      margin: 0 auto;
+      font-size: 1.2rem;
+      font-weight: bold;
+      color: #fff;
+      background-color: rgba(24, 24, 24, 0.9); /* Updated with transparency */
+      border-radius: 5px;
+    }
+
+    th,
+    td {
+      padding: 10px;
+      text-align: center;
+    }
+
+    th {
+      background-color: rgba(255, 255, 255, 0.2);
+    }
+
+    td {
+      background-color: rgba(255, 255, 255, 0.1);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .driver {
+      text-align: left;
+      font-weight: normal;
+    }
+
+    .center_content {
+      display: table;
+      margin: 0 auto;
+      border-radius: 10px;
+    }
+
+    #top-ten-title {
+      font-size: 1rem; 
+      padding: 5px; 
+      background-color: rgba(24, 24, 24, 0.9); 
+      color: #fff; 
+      width: 100%;
+      font-size: 1.3rem;
+      text-align: center;
+      border-radius: 5px; 
+      margin-bottom: 10px; 
+      display: inline-block;
+    }
+  </style>
+
+  <script>
+    $(document).ready(function() {
+      function updateScoreboard() {
+        $.ajax({
+          url: 'http://192.168.1.50:8080/api/driver_data/current',
+          type: 'GET',
+          success: function(data) {
+            let count = 0;
+            let html = '';
+            for (const key in data) {
+              for (const subKey in data[key]) {
+                let values = data[key][subKey];
+                if (count < 10) {
+                  if (!values[2].includes('FILLER') && values[6] === "Done" && values[5][0] !== 0.0) {
+                    count += 1;
+                    html += `<tr>
+                                <td>${count}</td>
+                                <td class="driver">${values[1]} ${values[2]}</td>
+                                <td>${values[5][0]}</td>
+                             </tr>`;
+                  }
+                }
+              }
+            }
+
+            $('table tbody').html(html);
+
+            // Check if the table has more than 10 rows
+            if ($('table tbody tr').length > 10 ) {
+              $('#top-ten-title').show();
+            } else {
+              $('#top-ten-title').hide();
+            }
+          },
+          error: function() {
+            console.log('Error fetching data');
+          }
+        });
+      }
+
+      // call the updateScoreboard function initially on page load
+      updateScoreboard();
+
+      // call the updateScoreboard function every 5 seconds
+      setInterval(updateScoreboard, 5000);
+    });
+  </script>
+</head>
+
+<body>
+  <div class="main">
+    <div class="center_content">
+      <h2 id="top-ten-title" style="display:none;">Top 10</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Pos</th>
+            <th>Driver</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- This content will be replaced by JavaScript -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</body>
+</html>

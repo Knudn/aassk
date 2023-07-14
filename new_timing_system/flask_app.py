@@ -1,33 +1,60 @@
-from flask import Flask, request, render_template, Response, jsonify
+from flask import Flask, request, render_template, Response, jsonify, session
 from datetime import datetime
 import json
 from get_active_event import *
 import time
-import jsonify
 import requests
+from flask_cors import CORS
+import subprocess
+import re
 
-event_order = ["SINGLE NOOB - Run 1","SINGLE NOOB - Run 2","SINGLE NOOB - Run 3","SINGLE NOOB - Run 4","SINGLE NOOB - Run 5","SINGLE NOOB - Run 6" \
-               ,"SINGLE PRO - Run 1","SINGLE PRO - Run 2","SINGLE PRO - Run 3","SINGLE PRO - Run 4","SINGLE PRO - Run 5","SINGLE PRO - Run 6"]
+event_order = ["Singelstart Rookie Kvalifisering - Run 1", "Singelstart Pro Kvalifisering - Run 1", "Singelstart Rookie Kvalifisering - Run 2", "Singelstart Pro Kvalifisering - Run 2",\
+        "Singelstart Rookie Finale - Run 1",
+        "Fellesstart Rookie Kvalifisering - Run 1", "Fellesstart Rookie Kvalifisering - Run 2", "Fellesstart Rookie Kvalifisering - Run 3", "Fellesstart Rookie Kvalifisering - Run 4",
+        "Fellesstart Pro Kvalifisering - Run 1",
+        "Fellesstart Rookie Kvalifisering - Run 5", "Fellesstart Rookie Kvalifisering - Run 6", "Fellesstart Rookie Kvalifisering - Run 7", "Fellesstart Rookie Kvalifisering - Run 8",
+        "Fellesstart Pro Kvalifisering - Run 2",
+        "Fellesstart Rookie Kvalifisering - Run 9", "Fellesstart Rookie Kvalifisering - Run 10", "Fellesstart Rookie Kvalifisering - Run 11", "Fellesstart Rookie Kvalifisering - Run 12",
+        "Fellesstart Pro Kvalifisering - Run 3",
+        "Fellesstart Rookie Finale - Run 1",
+        "Fellesstart Pro Finale - Run 1",
+        ]
+
+
+command = ['bash', '-c', 'source ./set_env.sh && env']
+proc = subprocess.Popen(command, stdout = subprocess.PIPE)
 
 app = Flask(__name__)
+CORS(app)
+
+app.config['SECRET_KEY'] = 'super secret key'
+
+felles_heat_pro={"H1":1,"H2":2,"H3":3}
+felles_heat_rookie={"H1":4,"H2":8,"H3":12}
+
+
+
 
 def get_event_data():
 
     eventfile, eventex, heat = get_event()
     event_heat = [eventfile, eventex, heat]
     # Save current event data to a file
-    
+
     con_title, con_per, heats = get_driver_data(eventfile, heat)
     app.config["current_title"] = [con_title]
     mode_title = con_title.upper()
-
+    print(mode_title)
     if "STIGE" in mode_title:
         mode = "STIGE"
 
-    elif "FINALE" in mode_title:
-        mode = "FINALE"
-
     elif "SINGLE" in mode_title:
+        mode = "FINALE"
+        
+    elif "SINGELSTART" in mode_title:
+        mode = "FINALE_SINGLE"
+
+    elif "FELLESSTART" in mode_title:
         mode = "FINALE"
     else:
         mode = "PARALLEL"
@@ -67,6 +94,7 @@ def get_time_stamp(id):
 
 @app.route('/', methods=['GET'])
 def home():
+    get_event_data()
     with open('startlist/current.json', "r") as json_file:
         current = json.load(json_file)
 
@@ -83,17 +111,20 @@ def home():
 def scoreboard():
     return render_template('scoreboard.html')
 
+@app.route('/scoreboard_infoscreen')
+def infoscreen():
+    return render_template('scoreboard_infoscreen.html')
+
 @app.route('/test')
 def test():
     events = []
     heats_unsorted = api_get_event_name()
     heats = sorted(heats_unsorted.items(), key=lambda x:x[1])
     for a in dict(heats).values():
-        if a[:-8] not in events:
-            events.append(a[:-8])
-
+        data = str(a).split("-")[0]
+        if data not in events:
+            events.append(data)
     heats_all = dict(heats)
-
     return render_template('test.html', heats=heats_all.values(),events=events)
 
 @app.route('/startlist')
@@ -103,20 +134,64 @@ def startlist():
 
 @app.route('/event/<param>', methods=['GET'])
 def event(param):
-    event = {}
-    data = get_all_events()
-    event = clean_event_data(data,param)
-    for a in data:
-        if str(a).replace(" ","") == param:
-            event[a] = data[a]
+    if param == "test":
+        tmp_list = []
+        if 'index' in session:
+            session['index'] += 1
+        else:
+            session['index'] = 1
+        data = get_all_events(False)
+        for a in data:
+            for b in event_order:
+                if str(a) == b:
+                    title_name = str(a).split("-")[0][:-1]
+                    if title_name not in tmp_list:
+                        tmp_list.append(title_name)
+        
+        if session['index'] >= len(tmp_list):
+            session['index'] = 0
+        event_get = tmp_list[session['index']]
+        drift = str(event_get).replace(" ","")
+        resp = clean_event_data(data, drift)
+        
+        event = resp
+        
+
+    else:
+        event = {}
+        data = get_all_events()
+        event = clean_event_data(data,param)
+        for a in data:
+            if str(a).replace(" ","") == param:
+                event[a] = data[a]
+                
 
     return event
 
+@app.route('/random_heat')
+def random_heat():
+    if 'index' in session:
+        session['index'] += 1
+    else:
+        session['index'] = 1
     
+    events = get_all_events(False)
+    index_heat_data = index_heat(events, felles_heat_pro, felles_heat_rookie)
+
+    if session['index'] >= len(index_heat_data.keys()):
+        session['index'] = 0
+        
+    keys = list(index_heat_data.keys())[session['index']]
+    data = inject_string_to_dict(index_heat_data[keys], keys)
+    return data
+
+@app.route('/scoreboard_vmix')
+def scoreboard_vmix():
+    return render_template('scoreboard_vmix.html')
 
 @app.route('/api/driver_status')
 def driver_status():
-    get_event_data()
+    #get_event_data()
     data = {}
     with open('startlist/current.json', "r") as json_file:
         current = json.load(json_file)
@@ -170,11 +245,23 @@ def driver_status_test():
 
 @app.route('/api/driver_data/<param>', methods=['GET'])
 def api_data(param):
+
     if param == "title":
         respone = app.config["current_title"]
+    elif param == "title_obs":
+        respone = app.config["current_title"][0]
+        respone = str(respone).split("-")
+    elif param == "current":
+        data = get_all_events()
+        dictlist = {}
+        for a in data:
+            if str(a) == app.config["current_title"][0]:
+                dictlist[a] = data[a]
+        return dictlist
     elif param == "current_event_points":
         title = [app.config["current_title"][0][:-8]]
         respone = api_get_data(param,title)
+        
     elif param == "next_event":
         current_event = app.config["current_title"][0]
         current_event = (event_order.index(current_event) + 1)
@@ -183,9 +270,24 @@ def api_data(param):
         next_event = clean_event_data(data, formated_event)
         
         return next_event 
-        pass
-    else:
-        respone = api_get_data(param)
+    elif param == "nextnext":
+        current_event = app.config["current_title"][0]
+        current_event = (event_order.index(current_event) + 2)
+        data = get_all_events()
+        formated_event = str(event_order[current_event]).replace(" ","")
+        next_event = clean_event_data(data, formated_event)
+
+        return next_event
+    elif param == "all_startlist":
+        data = get_all_events()
+        array_tmp = []
+        for a in event_order:
+            for b in data:
+                if a == str(b):
+                    array_tmp.append((a, data[b]))
+        for a in array_tmp:
+            print(a)
+        return jsonify(array_tmp)
     return respone           
 
 @app.route('/api/submit_timestamp',methods=['POST'])
@@ -212,6 +314,7 @@ def manual_timestamp():
     data += "\n"
     response = requests.post('http://192.168.1.50:7777', data={'message': data})
     start_list_dict, con_title, eventex = get_event_data()
+    time.sleep(1)
     return {'status': 'success'}
 
 @app.route('/api/button_click', methods=['POST'])

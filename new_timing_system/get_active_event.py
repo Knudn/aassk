@@ -77,28 +77,33 @@ def get_driver_data(eventfile, heat):
         return "Error"
 
 def get_start_list(eventfile, heat, mode, heats):
+    print("asd")
     db_path = event_files / eventfile
     startlist = []
     finish_times = {}
     with sqlite3.connect(str(db_path), isolation_level='EXCLUSIVE') as con:
         cur = con.cursor()
-
-        if mode == "FINALE":
+        print(mode)
+        if mode == "FINALE" or "FINALE_SINGLE":
             query_startlist = f"SELECT C_NUM FROM TSTARTLIST_HEAT{heat};"
             query_timedata = f"SELECT C_NUM, C_TIME, C_STATUS, C_SPEED1 FROM TTIMEINFOS_HEAT{heat};"
             query_baseline_data = f"SELECT C_NUM, C_HOUR2 FROM TTIMERECORDS_HEAT{heat}_START;"
-            cur.execute(query_baseline_data)
-            test = [row for row in cur.fetchall()]
+            try:
+                cur.execute(query_baseline_data)
+                test = [row for row in cur.fetchall()]
             
-            data_dict = {}
+                data_dict = {}
             
-            for row in test:
-                key = row[0]
-                value = int(row[1])
-                if key not in data_dict or value > data_dict[key]:
-                    data_dict[key] = value
+                for row in test:
+                    key = row[0]
+                    value = int(row[1])
+                    if key not in data_dict or value > data_dict[key]:
+                        data_dict[key] = value
                 
-            baseline_time = dict(sorted(data_dict.items()))         
+                baseline_time = dict(sorted(data_dict.items()))
+
+            except:
+                baseline_time = {}
         else:
             query_startlist = f"SELECT C_NUM FROM TSTARTLIST_PARQ2_HEAT{heat};"
             query_timedata = f"SELECT C_NUM, C_TIME, C_STATUS, C_SPEED1 FROM TTIMEINFOS_HEAT{heat};"
@@ -106,16 +111,81 @@ def get_start_list(eventfile, heat, mode, heats):
         cur.execute(query_startlist)
         startlist = [row for row in cur.fetchall()]
         
-
         cur.execute(query_timedata)
         finish_times = {row[0]: [row[1], row[2], row[3]] for row in cur.fetchall()}
         cur.close()
+        print(startlist)
+
+#    paired_startlist = [(x[0], y[0]) for x, y in zip(startlist[::2], startlist[1::2])]
+#    if len(startlist) % 2: 
+#        paired_startlist.append((startlist[-1][0],))  
+
+    return startlist, finish_times, baseline_time
+
+def index_event(events, index, event_order, current_event, finale=False):
+    pass
 
 
-    paired_startlist = [(x[0], y[0]) for x, y in zip(startlist[::2], startlist[1::2])]
-    if len(startlist) % 2: 
-        paired_startlist.append((startlist[-1][0],))  
-    return paired_startlist, finish_times, baseline_time
+def index_heat(events, pro, rookie):
+    res_list = {}
+    event_heats_dict = {}
+
+
+    for a in events:
+        match = re.search(r'Run (\d+)', a)
+        if "Fellesstart Pro Kvalifisering" in a:
+            match = re.search(r'Run (\d+)', a)
+            if int(match[1]) <= pro["H1"]:
+                name = str(a).replace(match[0],"") + "Heat 1"
+                if name in res_list:   
+                    res_list[name].append(events[a])
+                else:
+                    res_list[name]=[events[a]]
+            elif int(match[1]) <= pro["H2"]:
+                name = str(a).replace(match[0],"") + "Heat 2"
+                if name in res_list:   
+                    res_list[name].append(events[a])
+                else:
+                    res_list[name]=[events[a]]                
+            elif int(match[1]) <= pro["H3"]:
+                name = str(a).replace(match[0],"") + "Heat 3"
+                if name in res_list:   
+                    res_list[name].append(events[a])
+                else:
+                    res_list[name]=[events[a]]
+
+        elif "Fellesstart Rookie Kvalifisering" in a:
+            match = re.search(r'Run (\d+)', a)
+            if int(match[1]) <= rookie["H1"]:
+                name = str(a).replace(match[0],"") + "Heat 1"
+                if name in res_list:   
+                    res_list[name].append(events[a])
+                else:
+                    res_list[name]=[events[a]]
+            elif int(match[1]) <= rookie["H2"]:
+                name = str(a).replace(match[0],"") + "Heat 2"
+                if name in res_list:   
+                    res_list[name].append(events[a])
+                else:
+                    res_list[name]=[events[a]]                
+            elif int(match[1]) <= rookie["H3"]:
+                name = str(a).replace(match[0],"") + "Heat 3"
+                if name in res_list:   
+                    res_list[name].append(events[a])
+                else:
+                    res_list[name]=[events[a]]
+        else:
+            
+            name = str(a).replace(match[0],"") + "Heat {0}".format(match[1])
+            
+            if name not in res_list:   
+                res_list[name] = [events[a]]
+    for a in res_list:
+        event_heats_dict[a] = combine_entries(res_list[a])
+    return event_heats_dict
+    
+def inject_string_to_dict(original_dict: dict, string_to_inject: str) -> dict:
+    return {string_to_inject: original_dict}
 
 def get_start_list_dict(startlist, competitors, time_data, mode, baseline_time):
     riders = {}
@@ -130,11 +200,10 @@ def get_start_list_dict(startlist, competitors, time_data, mode, baseline_time):
     }
 
     for idx, pair in enumerate(startlist):
-        if mode == "FINALE":
+        if mode == "FINALE" or mode == "FINALE_SINGLE":
             for rider_num in [pair]:
                 for comp in competitors:
                     for t in rider_num:
-
                         if time_data.get(t) is None:
                             time_data[t] = [0,0,0]
                         
@@ -156,39 +225,53 @@ def get_start_list_dict(startlist, competitors, time_data, mode, baseline_time):
 
     # Sort riders by microseconds (ascending)
     sorted_riders = sorted(riders.items(), key=lambda item: item[1][5][0] if item[1][5][0] != 0 else float('inf'))
+    
 
     # Assign points to riders
-    for i, (key, value) in enumerate(sorted_riders):
-        if len(value[5]) > 0 and value[5][0] > 0:
-            points = scores[len(sorted_riders)][i]
-            riders[key][5].append(points)
+    #print(sorted_riders)
+    if mode == "FINALE_SINGLE":
+        pass
+    else:
+        for i, (key, value) in enumerate(sorted_riders):
+            print(value)
+            if value[5][0] > 0 and value[5][0] > 0:
+                points = scores[len(sorted_riders)][i]
+                print(points)
+                riders[key][5].append(points)
 
-        elif value[5][1] == 3 or value[5][1] == 2:
-            points = 1
-            riders[key][5].append(points)
+            elif value[5][1] == 3 or value[5][1] == 2:
+                points = 1
+                riders[key][5].append(points)
 
-        elif value[5][1] == 1:
-            points = 0
-            riders[key][5].append(points)
+            elif value[5][1] == 1:
+                points = 0
+                riders[key][5].append(points)
 
-        elif value[5][0] == 0 and value[5][3] == 0:
-            points = 0
-            riders[key][5].append(points)
+            elif value[5][0] == 0 and value[5][3] == 0:
+                points = 0
+                riders[key][5].append(points)
 
     return riders
 
 def clean_event_data(data,filter="none"):
     new_dict={}
     for a in data:
-        if filter in str(a).replace(" ",""):
-            new_dict[a]=data[a]
+        title_fixed = str(a).replace(" ","")
+        try:
+            int(filter[len(filter) - 1])
+            if filter == title_fixed:
+                new_dict[a]=data[a]
+                return new_dict
+        except:
+            if filter in title_fixed:
+                new_dict[a]=data[a]
             
     return new_dict
-def get_all_events():
+
+def get_all_events(empty = True):
     race_data = {}
     directory = 'startlist'
     event_names = api_get_event_name()
-    
     for a in event_names:
 
         match = re.search(r'Event(\d+)Ex.scdb_(\d+)', a)
@@ -200,7 +283,15 @@ def get_all_events():
         with open(directory+"/"+filename, 'r') as file:
             file_content = file.read()
             json_content = json.loads(file_content)
-            race_data[event_names[a]] = json_content
+
+            if empty == False:
+                for b in json_content:
+                    if json_content[b][5][0] != 0:
+                        race_data[event_names[a]] = json_content
+                        break
+            else:
+                race_data[event_names[a]] = json_content
+
     return race_data
 
 def api_get_data(param, current_event="none"):
@@ -289,3 +380,48 @@ def api_get_event_name():
                     events[filename] = file_content
     return events
     
+
+def inject_heat(data):
+    new_dict = {}
+    for key, value in data.items():
+        if value.startswith('Fellesstart'):
+            match = re.search(r'Run (\d+)', value)
+            if match:
+                num = int(match.group(1))
+                if num < 4:
+                    value = value + " | Heat 1"
+                elif num < 8:
+                    value = value + " | Heat 2"
+        new_dict[key] = value
+    return new_dict
+
+def inject_event(data):
+    new_dict = {}
+    tp = {}
+    for a in data:
+        pass
+
+    return new_dict
+
+def combine_entries(list_data):
+    combined = {}
+    for heat in list_data:
+        for driver_id, driver_data in heat.items():
+            if driver_id not in combined:
+                combined[driver_id] = driver_data
+            else:
+                # add the points together
+                combined[driver_id][5] = [x + y for x, y in zip(combined[driver_id][5], driver_data[5])]
+                
+                # update the time if it's not 0 and it's lower than the existing time
+                if driver_data[5][0] != 0 and (combined[driver_id][5][0] == 0 or driver_data[5][0] < combined[driver_id][5][0]):
+                    combined[driver_id][5][0] = driver_data[5][0]
+    return combined
+
+def combine_entries_new(dictionary):
+    combined_dict = {}
+
+    for a in dictionary:
+        print(a)
+    
+    return combined_dict
