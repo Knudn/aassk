@@ -6,11 +6,17 @@
     <script>
 
 function millisecondsToTime(millis) {
-    // Calculate minutes, seconds and milliseconds
+    // Calculate minutes, seconds, and milliseconds
     let minutes = Math.floor(millis / 60000);
-    let seconds = Math.floor((millis % 60000) / 1000);
+    let seconds = Math.floor((millis % 60000) / 1000); // Use Math.floor instead of Math.round
     let milliseconds = millis % 1000;
-    
+
+    // If seconds reach 60, increase minutes and reset seconds
+    if (seconds === 60) {
+        minutes += 1;
+        seconds = 0;
+    }
+
     // Format the minutes and seconds to always be two digits
     minutes = minutes.toString().padStart(2, '0');
     seconds = seconds.toString().padStart(2, '0');
@@ -76,6 +82,7 @@ function totale_event() {
                 const times = driver.time.filter(time => time !== 0);
                 const bestTime = times.length > 0 ? Math.min(...times) : 'N/A';
                 const row = document.createElement('tr');
+                
                 row.innerHTML = `<td>${driverId}</td><td>${driver.name}</td><td>${driver.vehicle}</td><td>${driver.totalPoints}</td><td>${millisecondsToTime(bestTime)}</td>`; // Display best time
                 table.appendChild(row);
             }

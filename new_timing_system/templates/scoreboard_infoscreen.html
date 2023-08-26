@@ -63,18 +63,26 @@
 
     <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
     <script>
-        function millisecondsToTime(ms) {
-            let seconds = Math.floor((ms / 1000) % 60);
-            let minutes = Math.floor((ms / (1000 * 60)) % 60);
-            let hours = Math.floor((ms / (1000 * 60 * 60)) % 24);
+function millisecondsToTime(millis) {
+    // Calculate minutes, seconds, and milliseconds
+    let minutes = Math.floor(millis / 60000);
+    let seconds = Math.floor((millis % 60000) / 1000); // Use Math.floor instead of Math.round
+    let milliseconds = millis % 1000;
 
-            hours = (hours < 10) ? "0" + hours : hours;
-            minutes = (minutes < 10) ? "0" + minutes : minutes;
-            seconds = (seconds < 10) ? "0" + seconds : seconds;
+    // If seconds reach 60, increase minutes and reset seconds
+    if (seconds === 60) {
+        minutes += 1;
+        seconds = 0;
+    }
 
-            return hours + ":" + minutes + ":" + seconds;
-        }
+    // Format the minutes and seconds to always be two digits
+    minutes = minutes.toString().padStart(2, '0');
+    seconds = seconds.toString().padStart(2, '0');
+    milliseconds = milliseconds.toString().padStart(3, '0');
 
+    // Return formatted string
+    return minutes + ":" + seconds + ":" + milliseconds;
+}
         $(document).ready(function() {
             function fetchData() {
                 fetch('http://192.168.1.50:8080/event/test')

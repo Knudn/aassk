@@ -17,6 +17,10 @@ CORS(app)
 #Getting the event whitelist
 stige_whitelist, normal_whitelist, single_whitelist, all_whitelist = get_white_list()
 
+def get_event_index(evnet_index, event_order, finale=False):
+    if finale == True:
+        pass
+
 
 def get_event_data():
 

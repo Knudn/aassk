@@ -44,6 +44,7 @@ def data_clean(data):
         data_sock["Driver1"]["name"] = extracted_name_1
         
         tmp_name = extracted_name_1
+        x = requests.get('http://127.0.0.1:8080/update')
 
     if match:
         x = requests.get('http://127.0.0.1:8080/update')

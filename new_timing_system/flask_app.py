@@ -8,15 +8,19 @@ from flask_cors import CORS
 import subprocess
 import re
 
-event_order = ["Singelstart Rookie Kvalifisering - Run 1", "Singelstart Pro Kvalifisering - Run 1", "Singelstart Rookie Kvalifisering - Run 2", "Singelstart Pro Kvalifisering - Run 2",\
+event_order = [
+        "Singelstart Rookie Kvalifisering - Run 1", 
+        "Singelstart Pro Kvalifisering - Run 1", 
+        "Singelstart Rookie Kvalifisering - Run 2", 
+        "Singelstart Pro Kvalifisering - Run 2",
         "Singelstart Rookie Finale - Run 1",
-        "Fellesstart Rookie Kvalifisering - Run 1", "Fellesstart Rookie Kvalifisering - Run 2", "Fellesstart Rookie Kvalifisering - Run 3", "Fellesstart Rookie Kvalifisering - Run 4",
         "Fellesstart Pro Kvalifisering - Run 1",
-        "Fellesstart Rookie Kvalifisering - Run 5", "Fellesstart Rookie Kvalifisering - Run 6", "Fellesstart Rookie Kvalifisering - Run 7", "Fellesstart Rookie Kvalifisering - Run 8",
         "Fellesstart Pro Kvalifisering - Run 2",
-        "Fellesstart Rookie Kvalifisering - Run 9", "Fellesstart Rookie Kvalifisering - Run 10", "Fellesstart Rookie Kvalifisering - Run 11", "Fellesstart Rookie Kvalifisering - Run 12",
         "Fellesstart Pro Kvalifisering - Run 3",
-        "Fellesstart Rookie Finale - Run 1",
+        "Fellesstart Pro Kvalifisering - Run 4",
+        "Fellesstart Pro Kvalifisering - Run 5",
+        "Fellesstart Pro Kvalifisering - Run 6",
+        "Fellesstart Pro Finale - Run 2",
         "Fellesstart Pro Finale - Run 1",
         ]
 
@@ -29,8 +33,8 @@ CORS(app)
 
 app.config['SECRET_KEY'] = 'super secret key'
 
-felles_heat_pro={"H1":1,"H2":2,"H3":3}
-felles_heat_rookie={"H1":4,"H2":8,"H3":12}
+felles_heat_rookie={"H1":1,"H2":2,"H3":3}
+felles_heat_pro={"H1":3,"H2":6,"H3":9}
 
 
 
@@ -115,7 +119,15 @@ def scoreboard():
 def infoscreen():
     return render_template('scoreboard_infoscreen.html')
 
-@app.route('/test')
+@app.route('/loop_scoreboard_vmix')
+def loop_vmix_scoreboard():
+    return render_template('loop_vmix.html')
+
+@app.route('/current_event_vmix')
+def current_event_vmix():
+    return render_template('current_run_vmix.html')
+
+@app.route('/resultat')
 def test():
     events = []
     heats_unsorted = api_get_event_name()

@@ -124,20 +124,29 @@ $('.current-event-btn').click(function() {
         .catch(error => console.error('Error:', error));
 });
 
-    function millisecondsToTime(millis) {
-        // Calculate minutes, seconds and milliseconds
-        let minutes = Math.floor(millis / 60000);
-        let seconds = ((millis % 60000) / 1000).toFixed(0);
-        let milliseconds = millis % 1000;
-        
-        // Format the minutes and seconds to always be two digits
-        minutes = minutes.toString().padStart(2, '0');
-        seconds = seconds.toString().padStart(2, '0');
-        milliseconds = milliseconds.toString().padStart(3, '0');
+function millisecondsToTime(millis) {
+    // Calculate minutes, seconds, and milliseconds
+    let minutes = Math.floor(millis / 60000);
+    let seconds = Math.floor((millis % 60000) / 1000); // Use Math.floor instead of Math.round
+    let milliseconds = millis % 1000;
 
-        // Return formatted string
-        return minutes + ":" + seconds + ":" + milliseconds;
+    // If seconds reach 60, increase minutes and reset seconds
+    if (seconds === 60) {
+        minutes += 1;
+        seconds = 0;
     }
+
+    // Format the minutes and seconds to always be two digits
+    minutes = minutes.toString().padStart(2, '0');
+    seconds = seconds.toString().padStart(2, '0');
+    milliseconds = milliseconds.toString().padStart(3, '0');
+
+    // Return formatted string
+    return minutes + ":" + seconds + ":" + milliseconds;
+}
+
+
+
     $('.event-btn').click(function() {
     const eventName = $(this).data('event');
     fetch(`http://192.168.1.50:8080/event/${eventName}`)
@@ -223,6 +232,7 @@ $('.current-event-btn').click(function() {
                     <td>${driver.club}</td>
                     <td>${driver.vehicle}</td>
                     <td>${driver.totalPoints}</td>
+                    
                     <td>${millisecondsToTime(bestTime)}</td> 
                     <td>${driver.status}</td>
                   </tr>

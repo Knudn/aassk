@@ -22,7 +22,7 @@ def convert_microseconds_to_time(microseconds):
     return "{:02d}:{:02d}:{:02d}.{:03d}".format(int(hours), int(minutes), int(seconds), int(milliseconds))
 
 
-event_files = Path("/mnt/test/")
+event_files = Path("/mnt/events/")
 startlist_dir = "startlist/"
 
 def get_white_list():
@@ -59,22 +59,20 @@ def get_driver_data(eventfile, heat):
     db_path = event_files / eventfile
     competitors = []
     title = "None"
-    try: 
-        with sqlite3.connect(str(db_path), isolation_level='EXCLUSIVE') as con:
-            cur = con.cursor()
-            cur.execute('SELECT C_NUM, C_FIRST_NAME, C_LAST_NAME, C_CLUB, C_TEAM FROM TCOMPETITORS;')
-            competitors = cur.fetchall()
-            cur.execute('SELECT C_VALUE FROM TPARAMETERS WHERE C_PARAM="TITLE2" OR C_PARAM="HEAT_NUMBER";')
-            data = cur.fetchall()
-            cur.close()
-            heats = f"{data[0][0]}"
-            title = f"{data[1][0]} - Run {heat}"
+    
+    with sqlite3.connect(str(db_path), isolation_level='EXCLUSIVE') as con:
+        cur = con.cursor()
+        cur.execute('SELECT C_NUM, C_FIRST_NAME, C_LAST_NAME, C_CLUB, C_TEAM FROM TCOMPETITORS;')
+        competitors = cur.fetchall()
+        cur.execute('SELECT C_VALUE FROM TPARAMETERS WHERE C_PARAM="TITLE2" OR C_PARAM="HEAT_NUMBER";')
+        data = cur.fetchall()
+        cur.close()
+        heats = f"{data[0][0]}"
+        title = f"{data[1][0]} - Run {heat}"
 
 
-        return title, competitors, heats
-    except:
-        print("Could not get event")
-        return "Error"
+    return title, competitors, heats
+
 
 def get_start_list(eventfile, heat, mode, heats):
     print("asd")
