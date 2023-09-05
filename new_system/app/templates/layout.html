@@ -1,0 +1,35 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Flask App</title>
+    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="container">
+    <div class="admin-dashboard">
+        <h1>Admin Dashboard</h1>
+        <ul class="nav nav-tabs" id="adminTabs">
+            <li class="nav-item">
+                <a class="nav-link {% if active_tab == 'home' %}active{% endif %}" href="{{ url_for('admin.admin', tab_name='home') }}">Home</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if active_tab == 'global-config' %}active{% endif %}" href="{{ url_for('admin.admin', tab_name='global-config') }}">Global Config</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if active_tab == 'test-service' %}active{% endif %}" href="{{ url_for('admin.admin', tab_name='microservices') }}">Microservices - state</a>
+            </li>
+        </ul>
+        <div class="tab-content">
+        {% block content %}
+        {% endblock %}
+        </div>
+    </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.9.3/dist/umd/popper.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+</body>
+</html>
