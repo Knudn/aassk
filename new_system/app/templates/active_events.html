@@ -1,0 +1,78 @@
+
+{% extends 'layout.html' %}
+{% block content %}
+
+<style>
+    .tabulator, .tabulator-header, .tabulator-tableHolder{
+    overflow:visible !important;
+}
+</style>
+
+
+    <h2>Event Setup</h2>
+
+    <div id="example-table"></div>
+    <link href="https://cdn.jsdelivr.net/npm/tabulator-tables@4.9.3/dist/css/tabulator.min.css" rel="stylesheet">
+    <script type="text/javascript" src="https://cdn.jsdelivr.net/npm/tabulator-tables@4.9.3/dist/js/tabulator.min.js"></script>
+    <script>
+
+document.addEventListener("DOMContentLoaded", function() {
+    var updateButton = document.getElementById("update-button");
+    if (updateButton) {
+        updateButton.addEventListener("click", function() {
+            var tableData = table.getData();
+            tableData.forEach((row, index) => {
+                row.sort_order = index;
+            });
+            document.getElementById("table-data").value = JSON.stringify(tableData);
+        });
+    } else {
+        console.error("Element with ID 'update-button' not found.");
+    }
+});
+
+        var tableData = [];
+        
+        {% for event in active_events %}
+            console.log({{ event.enabled }})
+            tableData.push({
+                id: {{ event.id }},
+                name: "{{ event.event_name }}",
+                run: {{ event.run }},
+                enable: {{ event.enabled }},
+                sort_order: {{ event.sort_order }}
+            });
+        {% endfor %}
+
+
+        var table = new Tabulator("#example-table", {
+            data: tableData,
+            layout: "fitColumns",
+            responsiveLayout: "hide",
+            tooltips: true,
+            addRowPos: "top",
+            history: true,
+            pagination: "local",
+            paginationSize: 99,
+            movableRows: true,
+            initialSort: [
+                {column: "sort_order", dir: "asc"}
+            ],
+            columns: [
+                {rowHandle: true, formatter: "handle", headerSort: false, frozen: true, width: 30, minWidth: 30},
+                {title: "ORDER", field: "sort_order"},
+                {title: "ID", field: "id"},
+                {title: "Name", field: "name"},
+                {title: "Run", field: "run"},
+                {title: "Enabled", field: "enable", width: 90, hozAlign: "center", formatter: "tickCross", sorter: "boolean", editor: true},
+            ],
+        });
+    </script>
+<form id="update-form" method="post">
+    <input type="hidden" id="table-data" name="table_data" value="">
+    <button type="submit" id="update-button">Update</button>
+</form>
+
+
+
+{% endblock %}

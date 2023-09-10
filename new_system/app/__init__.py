@@ -1,4 +1,4 @@
-from flask import Flask
+from flask import Flask, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from app.lib.db_func import map_database_files
 
@@ -14,8 +14,13 @@ def create_app():
 
     from app.views.index_view import index_bp
     from app.views.admin_view import admin_bp
+    from app.views.api_view import api_bp
     
     app.register_blueprint(index_bp)
     app.register_blueprint(admin_bp)
+    app.register_blueprint(api_bp)
+
+
+    app.jinja_env.filters['tojson'] = jsonify
     
     return app
