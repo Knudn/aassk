@@ -37,6 +37,9 @@ class LockedEntry(db.Model):
     event_name = db.Column(db.String(100))
     heat = db.Column(db.Integer)
 
-
+class ActiveMicroservices(db.Model):
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    cid = db.Column(db.String(40))
+    heat = db.Column(db.Boolean, default=True)
 
 
