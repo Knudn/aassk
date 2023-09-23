@@ -8,8 +8,17 @@ admin_bp = Blueprint('admin', __name__)
 
 @admin_bp.route('/admin/', methods=['GET'])
 def admin_home():
-    print("asdasdasd")
     return home_tab()
+
+@admin_bp.route('/admin/ms/<string:tab_name>', methods=['GET','POST'])
+def microservices(tab_name):
+
+    if tab_name == 'home':
+        return home_tab()
+    elif tab_name == 'smb_config':
+        return smb_config()
+    else:
+        return "Invalid tab", 404
 
 @admin_bp.route('/admin/<string:tab_name>', methods=['GET','POST'])
 def admin(tab_name):
@@ -23,6 +32,8 @@ def admin(tab_name):
         return active_events()
     elif tab_name == 'active_events_driver_data':
         return active_events_driver_data()
+    elif tab_name == 'msport_proxy':
+        return msport_proxy()
     else:
         return "Invalid tab", 404
 
@@ -142,9 +153,9 @@ def active_events_driver_data():
 
     return render_template('active_events_driver_data.html', unique_events=unique_events, sqldata="None", event_entry_file="None")
 
-
+def msport_proxy():
+    return render_template('pdfconverter.html')
 
 def microservices():
     # Logic for test service tab
     return render_template('microservices.html')
-

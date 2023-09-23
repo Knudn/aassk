@@ -15,12 +15,14 @@ def create_app():
     from app.views.index_view import index_bp
     from app.views.admin_view import admin_bp
     from app.views.api_view import api_bp
-    
+    from app.views.vmix_view import vmix_bp
+
     app.register_blueprint(index_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(api_bp)
-
+    app.register_blueprint(vmix_bp)
 
     app.jinja_env.filters['tojson'] = jsonify
     
     return app
+    

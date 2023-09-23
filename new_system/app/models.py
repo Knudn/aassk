@@ -1,5 +1,5 @@
 from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, BooleanField
+from wtforms import StringField, SubmitField, BooleanField, IntegerField
 from datetime import datetime
 from app import db
 
@@ -12,7 +12,6 @@ class ConfigForm(FlaskForm):
     wl_bool = BooleanField('Use Whitelist')
     submit = SubmitField('Save')
     reload = SubmitField('Reload local DB')
-
 
 class GlobalConfig(db.Model):
     id = db.Column(db.Integer, primary_key=True, default=1)
@@ -37,9 +36,7 @@ class LockedEntry(db.Model):
     event_name = db.Column(db.String(100))
     heat = db.Column(db.Integer)
 
-class ActiveMicroservices(db.Model):
+class ActiveDrivers(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    cid = db.Column(db.String(40))
-    heat = db.Column(db.Boolean, default=True)
-
-
+    D1 = db.Column(db.Integer)
+    D2 = db.Column(db.Integer) 
