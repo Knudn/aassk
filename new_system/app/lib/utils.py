@@ -1,3 +1,9 @@
+import os
+import subprocess
+import logging
+import signal
+import sys
+
 def GetEnv():
     from app.models import GlobalConfig
 
@@ -11,53 +17,42 @@ def GetEnv():
 
     return row_dict
 
-def SMBServer(smbdb):
+def manage_process(python_program_path: str, operation: str) -> None:
     from app.models import GlobalConfig
-    import os
-    import sys
-    import subprocess
 
     global_config = GlobalConfig.query.get(1)
+    python_program_path = global_config.project_dir+python_program_path
     python_executable = sys.executable
+    pid_file_path = f"{python_program_path}.pid"
 
-    if smbdb.state == True:
-        print(global_config.project_dir)
-        print(smbdb.name)
+    if operation == 'start':
+        if os.path.exists(pid_file_path):
+            logging.error(f"PID file {pid_file_path} already exists. Process may already be running.")
+            return
         
-        script_to_run = global_config.project_dir+"app/lib/smbserver.py"
-
-        smb_path = smbdb.smb_path
-        smb_name = smbdb.smb_name
-        smb_port = "-port " + str(smbdb.smb_port)
+        with open(pid_file_path, 'w') as pid_file:
+            process = subprocess.Popen([python_executable, python_program_path], preexec_fn=os.setpgrp)
+            pid_file.write(str(process.pid))
+            
+        logging.info(f"Process started with PID {process.pid}")
         
-        subprocess.run([python_executable, script_to_run, smb_port, smb_name, smb_path])
+    elif operation == 'stop':
+        if not os.path.exists(pid_file_path):
+            logging.error(f"PID file {pid_file_path} does not exist. Process may not be running.")
+            return
+        
+        with open(pid_file_path, 'r') as pid_file:
+            pid = int(pid_file.read())
+            os.killpg(pid, signal.SIGTERM)
+            os.remove(pid_file_path)
+        
+        logging.info(f"Process with PID {pid} stopped")
+        
+    elif operation == 'restart':
+        if os.path.exists(pid_file_path):
+            manage_process(python_program_path, 'stop')
+        manage_process(python_program_path, 'start')
+        
+    else:
+        logging.error(f"Unsupported operation: {operation}")
 
-def pdf_converter(pdfconfig):
-    from app.models import GlobalConfig
-    import os
-    import sys
-    import subprocess
-    import signal
-
-    global_config = GlobalConfig.query.get(1)
-    python_executable = sys.executable
-
-    process = None
-
-    if pdfconfig.state == True:
-        script_to_run = os.path.join(global_config.project_dir, "app/lib/pdf_converte.py")
-        pdf_path_dir = pdfconfig.path_dir
-        kill_process_by_command(script_to_run)
-        process = subprocess.Popen([python_executable, script_to_run, pdf_path_dir])
-
-    return process
-
-def kill_process_by_command(command_pattern):
-    import psutil
-    for proc in psutil.process_iter(attrs=['pid', 'cmdline']):
-        try:
-            cmdline = ' '.join(proc.info['cmdline'])
-            if command_pattern in cmdline:
-                psutil.Process(proc.info['pid']).terminate()
-        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-            pass

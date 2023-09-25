@@ -57,13 +57,25 @@ def map_database_files(g_conf, event_file=False):
 def update_db(db_data, driver_db_data, g_config, event_heat=False):
     
     if type(db_data) == list:
-        
-        for a in db_data: 
-            if a["db_file"] in driver_db_data:
-                init_database(a, driver_db_data[a["db_file"]], g_config)
-            else:
-                init_database(a, None)
+        try:
+            for a in db_data: 
+                if a["db_file"] in driver_db_data:
+                    init_database(a, driver_db_data[a["db_file"]], g_config)
+                else:
+                    init_database(a, None)
+        except:
+            pass
 
+def get_active_data(g_conf):
+
+    event_dir = g_conf["event_dir"]
+
+    with sqlite3.connect(event_dir+"Online.scdb") as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT C_VALUE FROM TPARAMETERS WHERE C_PARAM='EVENT' OR C_PARAM='HEAT';")
+        rows = cursor.fetchall()
+
+    return rows[0][0], rows[1][0]
 
 def init_database(entry, driver_db_data, g_config):
     db_location = g_config["db_location"]
@@ -144,7 +156,7 @@ def insert_start_list(db, heat, mode, g_config):
     #List used later down the line
     conn = sqlite3.connect(event_dir + db+"Ex.scdb")
     cursor = conn.cursor()
-
+    print(heat)
     try:
         if mode == "0":
             cursor.execute("SELECT C_NUM FROM TSTARTLIST_HEAT{0};".format(heat))
@@ -194,15 +206,24 @@ def insert_driver_stats(
     exclude_lst: bool = False, 
     init_mode: bool = True
 ) -> None:
+    from app.models import ActiveEvents
+    from app import db as my_db
+
+    mode = my_db.session.query(ActiveEvents.mode).filter(ActiveEvents.event_file == db).first()[0]
+    
     
     event_dir = g_config["event_dir"]
     db_location = g_config["db_location"]
     event_db_path = f"{event_dir}{db}Ex.scdb"
     main_db_path = f"{db_location}{db}.sqlite"
-
+    
+    if mode == 3:
+        query = f"SELECT C_NUM, C_INTER1, C_INTER2, C_INTER3, C_SPEED1, C_PENALTY, C_TIME FROM TTIMEINFOS_PARF_HEAT{heat}_RUN1"
+    else:
+        query = f"SELECT C_NUM, C_INTER1, C_INTER2, C_INTER3, C_SPEED1, C_PENALTY, C_TIME FROM TTIMEINFOS_HEAT{heat}"
     with sqlite3.connect(event_db_path) as conn:
         cursor = conn.cursor()
-        query = f"SELECT C_NUM, C_INTER1, C_INTER2, C_INTER3, C_SPEED1, C_PENALTY, C_TIME FROM TTIMEINFOS_HEAT{heat}"
+        print(query)
         cursor.execute(query)
         time_data = cursor.fetchall()
 
@@ -264,14 +285,15 @@ def full_db_reload():
     delete_events(g_config["db_location"])
     
     db_data, driver_db_data = map_database_files(g_config)
-
+    for a in db_data:
+        print(a)
     ActiveEvents.query.delete()
 
     count = 0
     for a in db_data:
         for b in range(1, (int(a['HEATS']) + 1)):
             count += 1
-            event_entry = ActiveEvents(event_name=(a["TITLE1"] + " " + a["TITLE2"]), run=b, sort_order=count, event_file=a["db_file"])
+            event_entry = ActiveEvents(event_name=(a["TITLE1"] + " " + a["TITLE2"]), run=b, sort_order=count, event_file=a["db_file"], mode=a["MODE"])
             db.session.add(event_entry)
 
     db.session.commit()
@@ -282,7 +304,32 @@ def reload_event(db, heat):
     g_config = GetEnv()
     insert_driver_stats(db, heat, g_config, init_mode=False, exclude_lst=False)
 
+def update_event(db, heat):
+    g_config = GetEnv()
+    insert_driver_stats(db, heat, g_config, init_mode=False, exclude_lst=True)
 
+def update_active_event_stats():
+    g_config = GetEnv()
+    event, heat = update_active_event()
+    event = "Event"+event
+    insert_driver_stats(event, heat, g_config, init_mode=False, exclude_lst=True)    
+    
+def update_active_event():
+    from app.models import ActiveDrivers
+    from app import db
 
+    g_config = GetEnv()
+
+    data = ActiveDrivers.query.get(1)
+    event, heat = get_active_data(g_config)
+    event = str(event).zfill(3)
+
+    if data:
+        data.Event = event
+        data.Heat = heat
+
+    db.session.commit()
+    return event, heat
+    
 
 

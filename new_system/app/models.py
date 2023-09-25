@@ -10,6 +10,7 @@ class ConfigForm(FlaskForm):
     event_dir = StringField('Event Directory')
     wl_title = StringField('Whitelist Title')
     wl_bool = BooleanField('Use Whitelist')
+    display_proxy = BooleanField('Use MSport display proxy')
     submit = SubmitField('Save')
     reload = SubmitField('Reload local DB')
 
@@ -21,6 +22,7 @@ class GlobalConfig(db.Model):
     event_dir = db.Column(db.String(100), nullable=True, default="/mnt/test/")
     wl_title = db.Column(db.String(100), nullable=True, default="Watercross")
     wl_bool = db.Column(db.Boolean, default=True)
+    display_proxy = db.Column(db.Boolean, default=True)
 
 class ActiveEvents(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -29,6 +31,7 @@ class ActiveEvents(db.Model):
     run = db.Column(db.Integer)
     enabled = db.Column(db.Integer, default=True)
     sort_order = db.Column(db.Integer)
+    mode = db.Column(db.Integer)
 
 class LockedEntry(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -38,5 +41,7 @@ class LockedEntry(db.Model):
 
 class ActiveDrivers(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    Event = db.Column(db.String(20))
+    Heat = db.Column(db.String(20))
     D1 = db.Column(db.Integer)
-    D2 = db.Column(db.Integer) 
+    D2 = db.Column(db.Integer)

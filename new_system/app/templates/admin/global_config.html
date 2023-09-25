@@ -1,4 +1,4 @@
-{% extends 'layout.html' %}
+{% extends 'admin/layout.html' %}
 {% block content %}
 
   <script>
@@ -45,7 +45,10 @@
                 <td>Use whitelist?</td>
                 <td><input type="checkbox" name="wl_bool" {% if config.wl_bool %}checked{% endif %}></td>
             </tr>
-
+            <tr>
+                <td>Enable MSport display proxy?</td>
+                <td><input type="checkbox" name="display_proxy" {% if config.display_proxy %}checked{% endif %}></td>
+            </tr>
             {% endfor %}
         </tbody>
     </table>

@@ -15,8 +15,6 @@ def microservices(tab_name):
 
     if tab_name == 'home':
         return home_tab()
-    elif tab_name == 'smb_config':
-        return smb_config()
     else:
         return "Invalid tab", 404
 
@@ -38,14 +36,23 @@ def admin(tab_name):
         return "Invalid tab", 404
 
 def home_tab():
-    # Logic for home tab
-    return render_template('index.html')
+    from app.models import ActiveDrivers
+    from app import db
+
+
+    return render_template('admin/index.html')
 
 def global_config_tab():
-    from app.models import GlobalConfig, ConfigForm
-    from app import db    
+    from app.models import GlobalConfig, ConfigForm, ActiveDrivers
+    from app import db
+    from app.lib.db_func import update_active_event, update_event, update_active_event_stats
+
     global_config = GlobalConfig.query.all()
     form = ConfigForm()
+    
+    active_events_data = ActiveDrivers.query.get(1)
+    #update_active_event_stats()
+    print(active_events_data.Event, active_events_data.Heat )
     
     if form.validate_on_submit():
         if 'submit' in request.form:
@@ -56,13 +63,14 @@ def global_config_tab():
                 config.event_dir = form.event_dir.data
                 config.wl_title = form.wl_title.data
                 config.wl_bool = bool(form.wl_bool.data)
+                config.display_proxy = bool(form.display_proxy.data)
                 db.session.commit()
         else:
             print(full_db_reload())
             
         return redirect(url_for('admin.admin', tab_name='global-config'))
 
-    return render_template('global_config.html', global_config=global_config, form=form)
+    return render_template('admin/global_config.html', global_config=global_config, form=form)
 
 def active_events():
     from app.models import ActiveEvents
@@ -87,7 +95,7 @@ def active_events():
 
     active_events = ActiveEvents.query.order_by(ActiveEvents.sort_order).all()
 
-    return render_template('active_events.html', active_events=active_events)
+    return render_template('admin/active_events.html', active_events=active_events)
 
 def active_events_driver_data():
     from app.models import ActiveEvents, GlobalConfig, LockedEntry
@@ -120,7 +128,7 @@ def active_events_driver_data():
 
                 data = [dict((cur.description[i][0], value) for i, value in enumerate(row)) for row in cur.fetchall()]
                 print(data)
-            return render_template('active_events_driver_data.html', unique_events=unique_events, sqldata=data, event_entry_file=event_entry_file)
+            return render_template('admin/active_events_driver_data.html', unique_events=unique_events, sqldata=data, event_entry_file=event_entry_file)
 
         else:
             
@@ -149,13 +157,14 @@ def active_events_driver_data():
             sql_con.commit()
             sql_con.close()
         
-        return render_template('active_events_driver_data.html', unique_events=unique_events, sqldata=data, event_entry_file="None")
+        return render_template('admin/active_events_driver_data.html', unique_events=unique_events, sqldata=data, event_entry_file="None")
 
-    return render_template('active_events_driver_data.html', unique_events=unique_events, sqldata="None", event_entry_file="None")
+    return render_template('admin/active_events_driver_data.html', unique_events=unique_events, sqldata="None", event_entry_file="None")
 
 def msport_proxy():
+
     return render_template('pdfconverter.html')
 
 def microservices():
     # Logic for test service tab
-    return render_template('microservices.html')
+    return render_template('admin/microservices.html')
