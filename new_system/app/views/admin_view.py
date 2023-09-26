@@ -127,8 +127,11 @@ def active_events_driver_data():
                 cur.execute(f"SELECT * FROM driver_stats_r{selectedRun}")
 
                 data = [dict((cur.description[i][0], value) for i, value in enumerate(row)) for row in cur.fetchall()]
-                print(data)
-            return render_template('admin/active_events_driver_data.html', unique_events=unique_events, sqldata=data, event_entry_file=event_entry_file)
+                cur.execute(f"SELECT TITLE1, TITLE2, MODE FROM db_index")
+                event_title = cur.fetchall()
+                event_info = event_title[0][0]+" "+event_title[0][1]+" - Heat: " + str(selectedRun)  + " - Mode: "+ str(event_title[0][2])
+
+            return render_template('admin/active_events_driver_data.html', unique_events=unique_events, sqldata=data, event_entry_file=event_info)
 
         else:
             

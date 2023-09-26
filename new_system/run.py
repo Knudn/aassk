@@ -29,8 +29,10 @@ def create_tables(app):
 
         if GlobalConfig_db["display_proxy"]:
             manage_process("scripts/msport_display_proxy.py", "start")
-
-        active_event,active_heat = get_active_data(GlobalConfig_db)
+        try:
+            active_event,active_heat = get_active_data(GlobalConfig_db)
+        except:
+            print("Could not get active driver")
 
         if ActiveDrivers_db is None:
             default_config = ActiveDrivers(
