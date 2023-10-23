@@ -1,7 +1,7 @@
 
 from flask import Blueprint, render_template, request
 import sqlite3
-from app.lib.db_func import reload_event as reload_event_func
+from app.lib.db_operation import reload_event as reload_event_func
 
 
 vmix_bp = Blueprint('vmix', __name__)

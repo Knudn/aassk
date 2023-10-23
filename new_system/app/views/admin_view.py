@@ -1,6 +1,6 @@
 
 from flask import Blueprint, render_template, request, url_for, redirect
-from app.lib.db_func import *
+from app.lib.db_operation import *
 from app.lib.utils import GetEnv
 import json
 
@@ -45,7 +45,6 @@ def home_tab():
 def global_config_tab():
     from app.models import GlobalConfig, ConfigForm, ActiveDrivers
     from app import db
-    from app.lib.db_func import update_active_event, update_event, update_active_event_stats
 
     global_config = GlobalConfig.query.all()
     form = ConfigForm()
@@ -120,7 +119,7 @@ def active_events_driver_data():
         if request.form.get('event_file') is not None:
             selectedEventFile = request.form.get('event_file')
             selectedRun = request.form.get('run')
-            event_entry_file = {"file": selectedEventFile, "run": selectedRun}
+            event_entry_file_picked = {"file": selectedEventFile, "run": selectedRun}
             print("Getting:", selectedEventFile, selectedRun)
             with sqlite3.connect(db_location + selectedEventFile + ".sqlite") as con:
                 cur = con.cursor()
@@ -131,18 +130,16 @@ def active_events_driver_data():
                 event_title = cur.fetchall()
                 event_info = event_title[0][0]+" "+event_title[0][1]+" - Heat: " + str(selectedRun)  + " - Mode: "+ str(event_title[0][2])
 
-            return render_template('admin/active_events_driver_data.html', unique_events=unique_events, sqldata=data, event_entry_file=event_info)
+            return render_template('admin/active_events_driver_data.html', unique_events=unique_events, sqldata=data, event_entry_file=event_entry_file_picked, returned_event_info=event_info)
 
         else:
-            
             data = request.get_json()
             file = data["file"]
             run = data["run"]
 
-
             db_location = db.session.query(GlobalConfig.db_location).all()[0][0]
             sql_con = sqlite3.connect(db_location + file + ".sqlite")
-            
+            print(run)
             sql_cur = sql_con.cursor()
             sql_cur.execute(f'DELETE FROM driver_stats_r{run}')
 
@@ -151,7 +148,6 @@ def active_events_driver_data():
                     locked = "1"
                 else:
                     locked = "0"
-                        # Insert the new record
                 sql_cur.execute(f'''
                     INSERT INTO driver_stats_r{run} (INTER_1, INTER_2, INTER_3, SPEED, PENELTY, FINISHTIME, CID, LOCKED)
                     VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',

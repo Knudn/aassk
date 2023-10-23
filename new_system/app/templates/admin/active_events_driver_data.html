@@ -25,10 +25,10 @@ https://cdn.jsdelivr.net/npm/tabulator-tables@5.5.2/dist/js/tabulator.min.js
 "></script>
 
     <div class="center-div">
-        {% if event_entry_file == "None" %}
+        {% if returned_event_info == "None" %}
             <h2>Pick the Event</h2>
         {% else %}
-            <h2>{{ event_entry_file }}</h2>
+            <h2>{{ returned_event_info }}</h2>
         {% endif %}
     </div>
 
@@ -87,7 +87,7 @@ document.getElementById("updateData").addEventListener("click", function() {
     }
 
     var tableData = table.getData();
-
+    console.log(tableData)
     var combinedData = {
         data: tableData,
         file: "{{ event_entry_file.file }}",

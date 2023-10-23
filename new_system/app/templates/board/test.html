@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebSocket Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            background: url('path_to_your_light_background.jpg') no-repeat center center fixed;
+            background-size: cover;
+        }
+
+        .dashboard {
+            background-color: rgba(0, 0, 0, 0.7); /* Black with 70% opacity */
+            border-radius: 8px;
+            max-width: 700px;
+            margin: 50px auto;
+            padding: 20px;
+            color: #ffffff;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .race {
+            margin-top: 20px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            background-color: rgba(50, 50, 50, 0.7);
+            border-radius: 5px;
+        }
+
+        .race h2 {
+            font-size: 1.2em;
+            border-bottom: 1px solid #aaa;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+
+        .race p {
+            margin: 5px 0;
+        }
+
+        .race hr {
+            border: 0;
+            height: 1px;
+            background: #999;
+            margin: 10px 0;
+        }
+
+    </style>
+</head>
+
+<body>
+
+    <div class="dashboard">
+        <h1>Race Dashboard</h1>
+        <div id="startlist">
+            <!-- Startlist data will be displayed here -->
+        </div>
+    </div>
+
+    <script>
+        const socket = io.connect('http://' + document.domain + ':' + location.port);
+
+        socket.on('connect', function () {
+            console.log('Connected to the server');
+
+            // Join a room if needed
+            socket.emit('join', { username: 'John', room: 'room1' });
+        });
+
+socket.on('response', function (dataString) {
+    const data = JSON.parse(dataString);
+    
+    const startlistDiv = document.getElementById('startlist');
+    startlistDiv.innerHTML = ''; // Clear the current content
+
+    data.forEach(race => {
+        let raceDiv = document.createElement('div');
+        raceDiv.classList.add('race');
+        raceDiv.innerHTML = `<h2>Race ID: ${race.race_id}</h2>`;
+        race.drivers.forEach(driver => {
+            raceDiv.innerHTML += `
+                <p><strong>${driver.first_name} ${driver.last_name}</strong> - ${driver.vehicle}</p>
+                <p>${driver.club}</p>
+                <hr>
+            `;
+        });
+        startlistDiv.appendChild(raceDiv);
+    });
+});
+
+
+        // Listening for 'updateData' event from the server to update the startlist data
+        socket.on('updateData', function (dataString) {
+            let data;
+
+            // If Flask-SocketIO is handling serialization, you might want to check the type:
+            if (typeof dataString === 'string') {
+                data = JSON.parse(dataString);
+            } else {
+                data = dataString;
+            }
+
+            const startlistDiv = document.getElementById('startlist');
+            startlistDiv.innerHTML = ''; // Clear the current content
+
+            data.forEach(race => {
+                let raceDiv = document.createElement('div');
+                raceDiv.classList.add('race');
+                raceDiv.innerHTML = `<h2>Race ID: ${race.race_id}</h2>`;
+                race.drivers.forEach(driver => {
+                    raceDiv.innerHTML += `
+                        <p><strong>${driver.first_name} ${driver.last_name}</strong> - ${driver.vehicle}</p>
+                        <p>${driver.club}</p>
+                        <hr>
+                    `;
+                });
+                startlistDiv.appendChild(raceDiv);
+            });
+        });
+
+    </script>
+
+</body>
+
+</html>

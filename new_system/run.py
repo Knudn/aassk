@@ -1,6 +1,6 @@
-from app import create_app, db
+from app import create_app, db, socketio  # Notice the added socketio import
 from app.models import GlobalConfig, ActiveDrivers
-from app.lib.db_func import get_active_data
+from app.lib.db_operation import update_active_event
 import os
 from app.lib.utils import manage_process, GetEnv
 
@@ -13,7 +13,7 @@ def create_tables(app):
         GlobalConfig_db = GlobalConfig.query.get(1)
         ActiveDrivers_db = ActiveDrivers.query.get(1)
 
-        #If the database do not exist, it will be created here
+        # If the database do not exist, it will be created here
         if GlobalConfig_db is None:
             default_config = GlobalConfig(
                 session_name = "Åseral",
@@ -30,9 +30,11 @@ def create_tables(app):
         if GlobalConfig_db["display_proxy"]:
             manage_process("scripts/msport_display_proxy.py", "start")
         try:
-            active_event,active_heat = get_active_data(GlobalConfig_db)
+            active_event,active_heat = update_active_event(GlobalConfig_db)
         except:
-            print("Could not get active driver")
+            print("Could not get active event")
+            active_event = 000
+            active_heat = 0
 
         if ActiveDrivers_db is None:
             default_config = ActiveDrivers(
@@ -46,8 +48,8 @@ def create_tables(app):
             db.session.commit()
 
 if __name__ == '__main__':
-    app = create_app()
+    app, socketio = create_app()  # Update this line to get both app and socketio
     
     create_tables(app)
     
-    app.run(debug=True, host="0.0.0.0", port=7777)
+    socketio.run(app, debug=True, host="0.0.0.0", port=7777)  # Use socketio.run instead of app.run
