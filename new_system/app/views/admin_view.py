@@ -102,6 +102,7 @@ def active_events_driver_data():
     from sqlalchemy import func
     import sqlite3
     import time
+    from app.lib.db_operation import get_active_event
 
     db_location = db.session.query(GlobalConfig.db_location).all()[0][0]
 
@@ -117,8 +118,13 @@ def active_events_driver_data():
 
     if request.method == 'POST':
         if request.form.get('event_file') is not None:
-            selectedEventFile = request.form.get('event_file')
-            selectedRun = request.form.get('run')
+            if request.form.get('event_file') == "active_event":
+                active_event = get_active_event()
+                selectedEventFile = active_event[0]["db_file"]
+                selectedRun = active_event[0]["SPESIFIC_HEAT"]
+            else:
+                selectedEventFile = request.form.get('event_file')
+                selectedRun = request.form.get('run')
             event_entry_file_picked = {"file": selectedEventFile, "run": selectedRun}
             print("Getting:", selectedEventFile, selectedRun)
             with sqlite3.connect(db_location + selectedEventFile + ".sqlite") as con:

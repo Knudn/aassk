@@ -32,11 +32,13 @@ https://cdn.jsdelivr.net/npm/tabulator-tables@5.5.2/dist/js/tabulator.min.js
         {% endif %}
     </div>
 
-<form method="POST" action="{{ url_for('admin.admin', tab_name='active_events_driver_data') }}">
+<!-- Form with an id for referencing -->
+<form id="eventForm" method="POST" action="{{ url_for('admin.admin', tab_name='active_events_driver_data') }}">
+
     <select id="eventDropdown" class="form-select form-select-lg mb-3" aria-label=".form-select-lg example" name="event_name">
         <option selected>Open this select menu</option>
         {% for event in unique_events %}
-        <option value="{{ event[0] }}" data-run="{{ event[1] }}" data-event-file="{{ event[2] }}">{{ event[0] }}</option>
+            <option value="{{ event[0] }}" data-run="{{ event[1] }}" data-event-file="{{ event[2] }}">{{ event[0] }}</option>
         {% endfor %}
     </select>
 
@@ -45,11 +47,28 @@ https://cdn.jsdelivr.net/npm/tabulator-tables@5.5.2/dist/js/tabulator.min.js
     </select>
 
     <input type="hidden" name="event_file" id="eventFileInput" value="">
-<br>
+
     <div class="d-grid gap-2">
-      <button class="btn btn-primary" type="submit">Select</button>
+        <button class="btn btn-primary" type="submit">Select</button>
+        <!-- Active Events Button -->
+        <button class="btn btn-secondary" type="button" id="activeEventsBtn">Active Event</button>
     </div>
+
 </form>
+
+<script>
+    // JavaScript to handle the "Active Events" button click
+    document.getElementById('activeEventsBtn').addEventListener('click', function() {
+        // Set the hidden input's value to "active_event"
+        document.getElementById('eventFileInput').value = "active_event";
+
+        // Submit the form
+        document.getElementById('eventForm').submit();
+    });
+</script>
+
+
+
 
 <br>
 <div id="driver-stats-table"></div>
@@ -119,7 +138,6 @@ document.getElementById("refresh_data").addEventListener("click", function() {
         run: "{{ event_entry_file.run }}"
     };
     
-    console.log(jsonData)
      fetch("{{ url_for('api.api', tab_name='reload_event') }}", {
         method: "POST",
         headers: {
@@ -131,6 +149,9 @@ document.getElementById("refresh_data").addEventListener("click", function() {
         console.log(data);
     });
 });
+
+
+
 
     });
 

@@ -10,7 +10,7 @@ def Check_Event(event):
     from app import db as my_db
 
     event_query = ActiveEvents.query.filter(ActiveEvents.event_file.like(event[0]["db_file"][-15:].replace(".sqlite",""))).all()
-
+    print(event_query)
     if len(event_query) == 0:
         return False
     else:
@@ -20,9 +20,10 @@ def Get_active_drivers(g_config, event_data_dict):
     with sqlite3.connect(g_config["project_dir"]+"site.db") as conn:
         cursor = conn.cursor()
         print(event_data_dict["MODE"])
-        if event_data_dict["MODE"] == 3:
+        if event_data_dict["MODE"] == 3 or event_data_dict["MODE"] == 2:
             active_drivers_sql = cursor.execute("SELECT D1, D2 FROM active_drivers").fetchall()
             active_drivers = {"D1":active_drivers_sql[0][0],"D2":active_drivers_sql[0][1]}
+
     return active_drivers
 
 
@@ -92,13 +93,6 @@ def format_startlist(event,include_timedata=False):
             event_data = cursor.execute("SELECT MODE, RUNS, TITLE1, TITLE2 FROM db_index;").fetchall()
             event_data_dict={"MODE":event_data[0][0],"HEATS":event_data[0][1], "HEAT":int(event[0]["SPESIFIC_HEAT"]),"TITLE_1":event_data[0][2], "TITLE_2":event_data[0][3]}
 
-            count = 0
-            driver_entries = []
-            for b in range(0,int(len(startlist_data)/2)):
-                
-                driver_entries.append((b+1, startlist_data[count][1],startlist_data[count+1][1]))
-                count = count+2
-
             cursor.execute("SELECT * FROM drivers")
             drivers_data = cursor.fetchall()
             
@@ -109,27 +103,53 @@ def format_startlist(event,include_timedata=False):
             drivers_dict = {driver[0]: driver[1:] for driver in drivers_data}
             structured_races = []
             structured_races.append({"race_config":event_data_dict})
-            active_drivers = Get_active_drivers(g_config, event_data_dict)
-            structured_races.append({"Active_Driver":active_drivers})
-            
+
+            if event_data_dict["MODE"] == 3 or event_data_dict["MODE"] == 2:
+                active_drivers = Get_active_drivers(g_config, event_data_dict)
+                driver_entries = []
+                count = 0
+                for b in range(0,int(len(startlist_data)/2)):
+                    driver_entries.append((b+1, startlist_data[count][1],startlist_data[count+1][1]))
+                    count = count+2   
+            else:
+                driver_entries = []
+                count = 0
+
+                for b in range(0,int(len(startlist_data))):
+                    driver_entries.append((b+1, startlist_data[count][1]))
+                    count = count + 1
+                active_drivers = {"D1":"None"}
+                
 
             for race in driver_entries:
                 race_id = race[0]
                 drivers_in_race = []
                 for driver_id in race[1:]:
+
                     driver_data = drivers_dict.get(driver_id)
                     if driver_data:
+                        if int(driver_id) in active_drivers.values():
+                            active = True
+                        else:
+                            active = False
+                        
+                        
                         driver_info = {
                             "id": driver_id,
                             "first_name": driver_data[0],
                             "last_name": driver_data[1],
                             "club": driver_data[2],
-                            "vehicle": driver_data[3]
+                            "vehicle": driver_data[3],
+                            "active": active
                         }
                         if include_timedata:
                             for a in time_data:
                                 if str(a[0]) == str(driver_id):
                                     driver_info["time_info"] = {"INTER_1":a[1], "INTER_2":a[2], "SPEED":a[3], "PENELTY":a[4], "FINISHTIME":a[5]}
+                                    if any(value is not None for value in driver_info["time_info"].values()):
+                                        print("asd")
+                                    else:
+                                        print("ddddd")
                         drivers_in_race.append(driver_info)
 
                 race_info = {
@@ -141,3 +161,4 @@ def format_startlist(event,include_timedata=False):
         return structured_races
     else:
         logging.error(f"Active event not initiated operation")
+        return "None"
