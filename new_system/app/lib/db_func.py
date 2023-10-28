@@ -195,21 +195,35 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True):
                 cursor = conn.cursor()
                 sql = "SELECT * FROM startlist_r{0};".format(heat)
                 startlist = cursor.execute(sql).fetchall()
-                print(startlist)
+                startlist_lst = [g[1] for g in startlist]
+
+                tmp_driver = [l["CID"] for l in time_data_lst]
+
+                for v in startlist_lst:
+                    if v not in tmp_driver:
+                        time_data_lst.append({
+                            "CID": v, 
+                            "INTER_1": 0, 
+                            "INTER_2": 0, 
+                            "INTER_3": 0,
+                            "SPEED": 0, 
+                            "PENELTY": 0, 
+                            "FINISHTIME": 0
+                        })
+
                 if init_mode:
 
                     timedata_tuples = [
                         (d["INTER_1"], d["INTER_2"], d["INTER_3"], d["SPEED"], d["PENELTY"], d["FINISHTIME"], d["CID"]) 
                         for d in time_data_lst
                     ]
-                    print(timedata_tuples)
-
-                    sql = f"""
-                    INSERT OR REPLACE INTO driver_stats_r{heat} 
-                    (INTER_1, INTER_2, INTER_3, SPEED, PENELTY, FINISHTIME, CID) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                    """
-                    cursor.executemany(sql, timedata_tuples)
+                    
+                    #sql = f"""
+                    #INSERT OR REPLACE INTO driver_stats_r{heat} 
+                    #(INTER_1, INTER_2, INTER_3, SPEED, PENELTY, FINISHTIME, CID) 
+                    #VALUES (?, ?, ?, ?, ?, ?, ?)
+                    #"""
+                    #cursor.executemany(sql, timedata_tuples)
                 else:
                     if exclude_lst:
                         query = f"SELECT CID from driver_stats_r{heat} WHERE LOCKED = 1"
@@ -229,13 +243,13 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True):
                         
                         cursor.execute(f'DELETE FROM driver_stats_r{heat}')
                     
-                    sql = f"""
-                    INSERT OR REPLACE INTO driver_stats_r{heat} 
-                    (INTER_1, INTER_2, INTER_3, SPEED, PENELTY, FINISHTIME, CID) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?)
-                    """
+                sql = f"""
+                INSERT OR REPLACE INTO driver_stats_r{heat} 
+                (INTER_1, INTER_2, INTER_3, SPEED, PENELTY, FINISHTIME, CID) 
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """
 
-                    cursor.executemany(sql, timedata_tuples)
+                cursor.executemany(sql, timedata_tuples)
                     
 def insert_start_list(db, g_config, init_mode=True):
     from app.models import ActiveEvents
@@ -259,53 +273,41 @@ def insert_start_list(db, g_config, init_mode=True):
 
         local_event_db = db_location+a["db_file"]+".sqlite"
         ext_event_db = event_dir+a["db_file"]+"Ex.scdb"
-
         for b in range(0, int(heats)):
 
             heat = (b + 1)
 
             with sqlite3.connect(ext_event_db) as conn:
-                    cursor = conn.cursor()
-                    try:
-                        if mode == "0":
-                            cursor.execute("SELECT C_NUM FROM TSTARTLIST_HEAT{0};".format(heat))
+                
+                cursor = conn.cursor()
+                try:
+                    if str(mode) == "0":
+                        cursor.execute("SELECT C_NUM FROM TSTARTLIST_HEAT{0};".format(heat))
 
-                        elif mode == "2":
-                            cursor.execute("SELECT C_NUM FROM TSTARTLIST_PARQ2_HEAT{0};".format(heat))
+                    elif str(mode) == "2":
+                        cursor.execute("SELECT C_NUM FROM TSTARTLIST_PARQ2_HEAT{0};".format(heat))
 
-                        elif mode == "3":
-                            if spesific_heat != False:
-                                heat_inverted = (int(heats) - int(spesific_heat)) +1
-                            else:
-                                heat_inverted = (int(heats) - int(heat)) +1
-
-                            cursor.execute("SELECT C_NUM FROM TSTARTLIST_PARF_HEAT{0};".format(heat_inverted)) 
+                    elif str(mode) == "3":   
+                        if spesific_heat != False:
+                            heat_inverted = (int(heats) - int(spesific_heat)) +1
                         else:
-                            return False
-                        
-                    except Error as e:
-                        print(e)
+                            heat_inverted = (int(heats) - int(heat)) +1
 
-                    startlist_data = cursor.fetchall()
-
+                        cursor.execute("SELECT C_NUM FROM TSTARTLIST_PARF_HEAT{0};".format(heat_inverted)) 
+                    else:
+                        return False
+                
+                except Error as e:
+                    print(e)
+                startlist_data = cursor.fetchall()
             with sqlite3.connect(local_event_db) as conn_new_db:
-                startlist_lst = []
                 cursor_new = conn_new_db.cursor()
-
                 if init_mode == False:
                     cursor_new.execute(f'DELETE FROM driver_stats_r{heat}')
-
-                for a in startlist_data:
-                    print(a[0])
-                    startlist_lst.append(str(a[0]))
-                startlist_tuples = tuple(startlist_lst)
-                print(startlist_tuples)
-
+                    cursor_new.execute(f'DELETE FROM startlist_r{heat}')
                 try:
-                    
                     sql = "INSERT INTO startlist_r{0} (CID) VALUES (?)".format(heat)
-
-                    cursor_new.executemany(sql, startlist_tuples)
+                    cursor_new.executemany(sql, startlist_data)
 
                 except Error as e:
                     print(e)

@@ -4,130 +4,267 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebSocket Test</title>
+    <title>WebSocket</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+
     <style>
         body {
-            font-family: 'Arial', sans-serif;
-            background: url('path_to_your_light_background.jpg') no-repeat center center fixed;
-            background-size: cover;
+            font-family: 'Poppins', sans-serif;
+            background-color: #f3f3f3;
+            margin: 0;
+            overflow: hidden;
+            background-image: url('{{ url_for('static', filename='assets/startlist_bg.avif') }}');
+                /* Make the image fit the screen */
+                background-size: cover;
+                background-repeat: no-repeat;
+                background-position: center center;
+
+                /* Optional: Fix the background to the viewport */
+                background-attachment: fixed;
+            }
+        
+        .container {
+            position: relative;
+            width: 100%;
+            max-height: 100vh;
+            overflow: auto;
         }
 
-        .dashboard {
-            background-color: rgba(0, 0, 0, 0.7); /* Black with 70% opacity */
-            border-radius: 8px;
-            max-width: 700px;
-            margin: 50px auto;
-            padding: 20px;
-            color: #ffffff;
-        }
-
-        h1 {
+        .main_manue {
             text-align: center;
-            margin-bottom: 20px;
         }
 
-        .race {
-            margin-top: 20px;
-            border: 1px solid #ddd;
-            padding: 10px;
-            background-color: rgba(50, 50, 50, 0.7);
-            border-radius: 5px;
+        .Startliste {
+            font-size: 24px;
         }
 
-        .race h2 {
-            font-size: 1.2em;
-            border-bottom: 1px solid #aaa;
-            padding-bottom: 5px;
-            margin-bottom: 10px;
+        .race-wrapper {
+            border-bottom: 1px solid #e0e0e0;
+            padding: 5px 10px;
+            text-align: center;
         }
 
-        .race p {
-            margin: 5px 0;
+
+        .driver-name {
+            font-weight: 500;
+            font-size: 22px;
         }
 
-        .race hr {
-            border: 0;
-            height: 1px;
-            background: #999;
-            margin: 10px 0;
+        .driver-club,
+        .driver-vehicle {
+            font-size: 12px;
+            color: #777;
+        }
+        .driver-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative; 
         }
 
+
+.race-id {
+    width: 20px;
+    transform: scale(1.6);
+    text-align: center;
+    font-weight: bold;
+    font-size: 16px;
+    background-color: #e0e0e0;
+    padding: 5px;
+    border-radius: 3px;
+    margin: -5px 0;
+    z-index: 1; /* Make sure it overlaps other items */
+    position: relative;
+}
+
+.driver-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    align-self: center;
+    margin-left: 10px; /* Optional: for some space between name and info */
+}
+
+
+.driver-info {
+    align-self: center;
+
+}
+/* General Styling for driver-card */
+.driver-card {
+    flex: 1;
+    display: flex;
+    justify-content: space-between; /* Place elements at both ends */
+    align-items: center; 
+    padding: 5px;
+    border: 1px solid #e0e0e0;
+    border-radius: 3px;
+    margin: 2px;
+    background-color: #ffffff;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    transition: transform 0.2s;
+}
+
+/* Left Card Specific Styling */
+.left-card .driver-name {
+    order: 2; /* This ensures name comes after info */
+    padding-right: 20px;
+}
+
+.left-card .driver-info {
+    order: 1; 
+    margin-right: 10px; /* Optional: for some space between name and info */
+}
+
+/* Right Card Specific Styling */
+.right-card .driver-name {
+    order: 1;
+    padding-left: 20px;
+}
+
+.right-card .driver-info {
+    order: 2;
+    margin-left: 10px; /* Optional: for some space between name and info */
+}
     </style>
 </head>
 
 <body>
+    <div class="container">
+        <div class="main_manue">
+            <h1 id="Startliste">Startliste</h1>
+            <h2 id="main_title"></h2>
+        </div>
 
-    <div class="dashboard">
-        <h1>Race Dashboard</h1>
         <div id="startlist">
-            <!-- Startlist data will be displayed here -->
+            <!-- Content will be populated here via WebSocket -->
         </div>
     </div>
 
     <script>
+        let currentPage = 1;
+        const recordsPerPage = 20;
+        let paginatedData = [];
+
+        function fetchDataFromAPI() {
+            fetch('http://192.168.1.50:7777/api/get_current_startlist_w_data')
+                .then(response => response.json())
+                .then(data => {
+                    renderData(data);
+                })
+                .catch(error => {
+                    console.error('Error fetching initial data:', error);
+                });
+        }
+
+        document.addEventListener('DOMContentLoaded', (event) => {
+            fetchDataFromAPI();
+        });
+
         const socket = io.connect('http://' + document.domain + ':' + location.port);
 
-        socket.on('connect', function () {
+        socket.on('connect', function() {
             console.log('Connected to the server');
 
-            // Join a room if needed
             socket.emit('join', { username: 'John', room: 'room1' });
         });
 
-socket.on('response', function (dataString) {
-    const data = JSON.parse(dataString);
-    
-    const startlistDiv = document.getElementById('startlist');
-    startlistDiv.innerHTML = ''; // Clear the current content
-
-    data.forEach(race => {
-        let raceDiv = document.createElement('div');
-        raceDiv.classList.add('race');
-        raceDiv.innerHTML = `<h2>Race ID: ${race.race_id}</h2>`;
-        race.drivers.forEach(driver => {
-            raceDiv.innerHTML += `
-                <p><strong>${driver.first_name} ${driver.last_name}</strong> - ${driver.vehicle}</p>
-                <p>${driver.club}</p>
-                <hr>
-            `;
+        socket.on('response', function(dataString) {
+            const data = JSON.parse(dataString);
+            
+            renderData(data);
         });
-        startlistDiv.appendChild(raceDiv);
-    });
-});
 
-
-        // Listening for 'updateData' event from the server to update the startlist data
-        socket.on('updateData', function (dataString) {
-            let data;
-
-            // If Flask-SocketIO is handling serialization, you might want to check the type:
-            if (typeof dataString === 'string') {
-                data = JSON.parse(dataString);
-            } else {
-                data = dataString;
+        function renderData(data) {
+            // Create paginated data
+            paginatedData = [];
+            
+            while (data.length) {
+                paginatedData.push(data.splice(0, recordsPerPage));
             }
+            displayPage(currentPage);
+        }
+        let autoSwitchPageTimeout;
+        function displayPage(pageNumber) {
+            clearTimeout(autoSwitchPageTimeout);
+            if (!paginatedData[pageNumber - 1]) return;
 
             const startlistDiv = document.getElementById('startlist');
-            startlistDiv.innerHTML = ''; // Clear the current content
+            startlistDiv.innerHTML = '';
+            
 
-            data.forEach(race => {
+            paginatedData[pageNumber - 1].forEach(race => {
                 let raceDiv = document.createElement('div');
-                raceDiv.classList.add('race');
-                raceDiv.innerHTML = `<h2>Race ID: ${race.race_id}</h2>`;
-                race.drivers.forEach(driver => {
-                    raceDiv.innerHTML += `
-                        <p><strong>${driver.first_name} ${driver.last_name}</strong> - ${driver.vehicle}</p>
-                        <p>${driver.club}</p>
-                        <hr>
-                    `;
-                });
+                raceDiv.classList.add('race-wrapper');
+
+                let driversDiv = document.createElement('div');
+                driversDiv.classList.add('driver-container');
+                //console.data[1].Active_Driver.D1
+                if (race.drivers && Array.isArray(race.drivers)) {
+                    driversDiv.innerHTML = `
+                        <div class="driver-card left-card">
+                            <div class="driver-name">${race.drivers[0].first_name} ${race.drivers[0].last_name} [${race.drivers[0].id}]</div>
+                            <div class="driver-info">
+                                <div class="driver-club">${race.drivers[0].club}</div>
+                                <div class="driver-vehicle">${race.drivers[0].vehicle}</div>
+                            </div>
+                        </div>
+                        <div class="race-id">${race.race_id}</div>`;
+                    if (race.drivers[1]) {
+                        driversDiv.innerHTML += `
+                        <div class="driver-card right-card">
+                            <div class="driver-name">[${race.drivers[1].id}] ${race.drivers[1].first_name} ${race.drivers[1].last_name} </div>
+                            <div class="driver-info">
+                                <div class="driver-club">${race.drivers[1].club}</div>
+                                <div class="driver-vehicle">${race.drivers[1].vehicle}</div>
+                            </div>
+                        </div>`;
+                    }
+                }
+
+
+                raceDiv.appendChild(driversDiv);
                 startlistDiv.appendChild(raceDiv);
+            
             });
+
+            // Logic to display page indicator
+            const main_title = document.getElementById('main_title');
+            if (paginatedData.length < 2) {
+                main_title.innerHTML = paginatedData[0][0].race_config.TITLE_1 + " " + paginatedData[0][0].race_config.TITLE_2;
+            } else {
+                main_title.innerHTML = paginatedData[0][0].race_config.TITLE_1 + " " + paginatedData[0][0].race_config.TITLE_2 + ` (${pageNumber}/${paginatedData.length})`;
+            }
+        
+            if (pageNumber < paginatedData.length) {
+                autoSwitchPageTimeout = setTimeout(() => {
+                currentPage++;
+                displayPage(currentPage);
+            }, 100000);  // 10 seconds
+
+        } else {
+
+            // If it's the last page, loop back to the first page after the timeout
+            autoSwitchPageTimeout = setTimeout(() => {
+                currentPage = 1;
+                displayPage(currentPage);
+            }, 100000);  // 10 seconds
+        }
+    }
+
+        // Add Event Listeners for page switchers
+        document.addEventListener('keyup', function(e) {
+            if (e.key === "ArrowRight" && currentPage < paginatedData.length) {
+                currentPage++;
+                displayPage(currentPage);
+            } else if (e.key === "ArrowLeft" && currentPage > 1) {
+                currentPage--;
+                displayPage(currentPage);
+            }
         });
 
     </script>
-
 </body>
 
 </html>

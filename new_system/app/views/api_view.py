@@ -27,7 +27,7 @@ def update_active_drivers():
 
 @api_bp.route('/api/active_event_update', methods=['GET'])
 def active_event_update():
-
+    
     update_active_event_stats()
     send_data_to_room(get_active_startlist())
     return "Updated"

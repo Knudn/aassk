@@ -5,6 +5,27 @@ import signal
 import sys
 import sqlite3
 
+def Check_Event(event):
+    from app.models import ActiveEvents
+    from app import db as my_db
+
+    event_query = ActiveEvents.query.filter(ActiveEvents.event_file.like(event[0]["db_file"][-15:].replace(".sqlite",""))).all()
+
+    if len(event_query) == 0:
+        return False
+    else:
+        return True
+
+def Get_active_drivers(g_config, event_data_dict):
+    with sqlite3.connect(g_config["project_dir"]+"site.db") as conn:
+        cursor = conn.cursor()
+        print(event_data_dict["MODE"])
+        if event_data_dict["MODE"] == 3:
+            active_drivers_sql = cursor.execute("SELECT D1, D2 FROM active_drivers").fetchall()
+            active_drivers = {"D1":active_drivers_sql[0][0],"D2":active_drivers_sql[0][1]}
+    return active_drivers
+
+
 def GetEnv():
     from app.models import GlobalConfig
 
@@ -59,47 +80,64 @@ def manage_process(python_program_path: str, operation: str) -> None:
 
 def format_startlist(event,include_timedata=False):
     import json
+    g_config = GetEnv()
 
-    with sqlite3.connect(event[0]["db_file"]) as conn:
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM startlist_r{0};".format(event[0]["SPESIFIC_HEAT"]))
-        startlist_data = cursor.fetchall()
-        cursor.execute("SELECT * FROM drivers")
-        drivers_data = cursor.fetchall()
-        if include_timedata:
-            cursor.execute("SELECT CID, INTER_1, INTER_2, SPEED, PENELTY, FINISHTIME FROM driver_stats_r{0};".format(event[0]["SPESIFIC_HEAT"]))
-            time_data = cursor.fetchall()
+    
 
-        drivers_dict = {driver[0]: driver[1:] for driver in drivers_data}
-        structured_races = []
+    if Check_Event(event) == True:
+        with sqlite3.connect(event[0]["db_file"]) as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM startlist_r{0};".format(event[0]["SPESIFIC_HEAT"]))
+            startlist_data = cursor.fetchall()
+            event_data = cursor.execute("SELECT MODE, RUNS, TITLE1, TITLE2 FROM db_index;").fetchall()
+            event_data_dict={"MODE":event_data[0][0],"HEATS":event_data[0][1], "HEAT":int(event[0]["SPESIFIC_HEAT"]),"TITLE_1":event_data[0][2], "TITLE_2":event_data[0][3]}
 
-        for race in startlist_data:
-            race_id = race[0]
-            drivers_in_race = []
+            count = 0
+            driver_entries = []
+            for b in range(0,int(len(startlist_data)/2)):
+                
+                driver_entries.append((b+1, startlist_data[count][1],startlist_data[count+1][1]))
+                count = count+2
 
-            for driver_id in race[1:]:
-                driver_data = drivers_dict.get(driver_id)
-                if driver_data:
-                    driver_info = {
-                        "id": driver_id,
-                        "first_name": driver_data[0],
-                        "last_name": driver_data[1],
-                        "club": driver_data[2],
-                        "vehicle": driver_data[3]
-                    }
-                    if include_timedata:
-                        for a in time_data:
-                            if str(a[0]) == str(driver_id):
-                                driver_info["time_info"] = {"INTER_1":a[1], "INTER_2":a[2], "SPEED":a[3], "PENELTY":a[4], "FINISHTIME":a[5]}
-                    drivers_in_race.append(driver_info)
+            cursor.execute("SELECT * FROM drivers")
+            drivers_data = cursor.fetchall()
+            
+            if include_timedata:
+                cursor.execute("SELECT CID, INTER_1, INTER_2, SPEED, PENELTY, FINISHTIME FROM driver_stats_r{0};".format(event[0]["SPESIFIC_HEAT"]))
+                time_data = cursor.fetchall()
 
-            race_info = {
-                "race_id": race_id,
-                "drivers": drivers_in_race
-            }
-            structured_races.append(race_info)
+            drivers_dict = {driver[0]: driver[1:] for driver in drivers_data}
+            structured_races = []
+            structured_races.append({"race_config":event_data_dict})
+            active_drivers = Get_active_drivers(g_config, event_data_dict)
+            structured_races.append({"Active_Driver":active_drivers})
+            
 
-        
+            for race in driver_entries:
+                race_id = race[0]
+                drivers_in_race = []
+                for driver_id in race[1:]:
+                    driver_data = drivers_dict.get(driver_id)
+                    if driver_data:
+                        driver_info = {
+                            "id": driver_id,
+                            "first_name": driver_data[0],
+                            "last_name": driver_data[1],
+                            "club": driver_data[2],
+                            "vehicle": driver_data[3]
+                        }
+                        if include_timedata:
+                            for a in time_data:
+                                if str(a[0]) == str(driver_id):
+                                    driver_info["time_info"] = {"INTER_1":a[1], "INTER_2":a[2], "SPEED":a[3], "PENELTY":a[4], "FINISHTIME":a[5]}
+                        drivers_in_race.append(driver_info)
 
-    return structured_races
-
+                race_info = {
+                    "race_id": race_id,
+                    "drivers": drivers_in_race,
+                }
+                
+                structured_races.append(race_info)
+        return structured_races
+    else:
+        logging.error(f"Active event not initiated operation")
