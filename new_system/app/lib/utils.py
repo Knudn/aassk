@@ -96,9 +96,9 @@ def format_startlist(event,include_timedata=False):
             cursor.execute("SELECT * FROM drivers")
             drivers_data = cursor.fetchall()
             
-            if include_timedata:
-                cursor.execute("SELECT CID, INTER_1, INTER_2, SPEED, PENELTY, FINISHTIME FROM driver_stats_r{0};".format(event[0]["SPESIFIC_HEAT"]))
-                time_data = cursor.fetchall()
+
+            cursor.execute("SELECT CID, INTER_1, INTER_2, SPEED, PENELTY, FINISHTIME FROM driver_stats_r{0};".format(event[0]["SPESIFIC_HEAT"]))
+            time_data = cursor.fetchall()
 
             drivers_dict = {driver[0]: driver[1:] for driver in drivers_data}
             structured_races = []
@@ -120,7 +120,7 @@ def format_startlist(event,include_timedata=False):
                     count = count + 1
                 active_drivers = {"D1":"None"}
                 
-
+            print(driver_entries)
             for race in driver_entries:
                 race_id = race[0]
                 drivers_in_race = []
@@ -142,15 +142,32 @@ def format_startlist(event,include_timedata=False):
                             "vehicle": driver_data[3],
                             "active": active
                         }
-                        if include_timedata:
-                            for a in time_data:
-                                if str(a[0]) == str(driver_id):
-                                    driver_info["time_info"] = {"INTER_1":a[1], "INTER_2":a[2], "SPEED":a[3], "PENELTY":a[4], "FINISHTIME":a[5]}
-                                    if any(value is not None for value in driver_info["time_info"].values()):
-                                        print("asd")
-                                    else:
-                                        print("ddddd")
+                        for a in time_data:
+                            if str(a[0]) == str(driver_id):
+                                driver_info["time_info"] = {"INTER_1":a[1], "INTER_2":a[2], "SPEED":a[3], "PENELTY":a[4], "FINISHTIME":a[5]}
+                                if a[5] == 0 or a[4] != 0:
+                                    driver_info["status"] = 0
+                                    started = False
+
                         drivers_in_race.append(driver_info)
+
+
+                        if len(drivers_in_race) == 2 and (event_data_dict["MODE"] == 3 or event_data_dict["MODE"] == 2):
+                            if "status" in drivers_in_race[0] and drivers_in_race[1]["time_info"]["FINISHTIME"] > 0:
+                                drivers_in_race[1]["status"] = 1
+                                drivers_in_race[0]["status"] = 2
+                            elif "status" in drivers_in_race[1] and drivers_in_race[0]["time_info"]["FINISHTIME"] > 0:
+                                drivers_in_race[0]["status"] = 1
+                                drivers_in_race[1]["status"] = 2
+                                
+                            if drivers_in_race[0]["time_info"]["FINISHTIME"] < drivers_in_race[1]["time_info"]["FINISHTIME"] and not "status" in drivers_in_race[0]:
+
+                                drivers_in_race[0]["status"] = 1
+                                drivers_in_race[1]["status"] = 2
+
+                            elif drivers_in_race[0]["time_info"]["FINISHTIME"] > drivers_in_race[1]["time_info"]["FINISHTIME"] and not "status" in drivers_in_race[1]:
+                                drivers_in_race[1]["status"] = 1
+                                drivers_in_race[0]["status"] = 2
 
                 race_info = {
                     "race_id": race_id,
