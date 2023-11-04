@@ -1,11 +1,31 @@
 {% extends 'admin/layout.html' %}
 {% block content %}
 
-  <script>
-    function confirmAction() {
-      return confirm("ALL CURRENT RACE DATA WILL BE RELOADED");
+<style>
+    #search_string1, #search_string2 {
+        display: none;
     }
-  </script>
+</style>
+
+<script>
+    function toggleSortingFields() {
+        var checkBox = document.getElementById("enable_sorting");
+        var search1 = document.getElementById("search_string1");
+        var search2 = document.getElementById("search_string2");
+        
+        if (checkBox.checked == true) {
+            search1.style.display = "table-row";
+            search2.style.display = "table-row";
+        } else {
+            search1.style.display = "none";
+            search2.style.display = "none";
+        }
+    }
+
+    function confirmAction() {
+        return confirm("ALL CURRENT RACE DATA WILL BE RELOADED");
+    }
+</script>
 
 <h3>Global Config</h3>
 
@@ -20,7 +40,6 @@
         </thead>
         <tbody>
             {% for config in global_config %}
-
             <tr>
                 <td>Session Name</td>
                 <td>{{ form.session_name(value=config.session_name) }}</td>
@@ -49,6 +68,20 @@
                 <td>Enable MSport display proxy?</td>
                 <td><input type="checkbox" name="display_proxy" {% if config.display_proxy %}checked{% endif %}></td>
             </tr>
+            <tr>
+                <td>Enable Sorting</td>
+                <td><input type="checkbox" name="enable_sorting" id="enable_sorting" onchange="toggleSortingFields()" {% if config.enable_sorting %}checked{% endif %}></td>
+            </tr>
+            {% if config.enable_sorting %}
+            <tr>
+                <td>Search String 1</td>
+                <td><input type="text" name="search_string1" value="{{ config.search_string1 }}"></td>
+            </tr>
+            <tr>
+                <td>Search String 2</td>
+                <td><input type="text" name="search_string2" value="{{ config.search_string2 }}"></td>
+            </tr>
+            {% endif %}
             {% endfor %}
         </tbody>
     </table>

@@ -23,6 +23,8 @@ class GlobalConfig(db.Model):
     wl_title = db.Column(db.String(100), nullable=True, default="Watercross")
     wl_bool = db.Column(db.Boolean, default=True)
     display_proxy = db.Column(db.Boolean, default=True)
+    Smart_Sorting = db.Column(db.Boolean, default=False)
+
 
 class ActiveEvents(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -32,6 +34,10 @@ class ActiveEvents(db.Model):
     enabled = db.Column(db.Integer, default=True)
     sort_order = db.Column(db.Integer)
     mode = db.Column(db.Integer)
+    
+    def __repr__(self):
+        return (f"<ActiveEvents(id={self.id}, event_name='{self.event_name}', event_file='{self.event_file}', "
+                f"run={self.run}, enabled={self.enabled}, sort_order={self.sort_order}, mode={self.mode})>")
 
 class LockedEntry(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
@@ -45,3 +51,24 @@ class ActiveDrivers(db.Model):
     Heat = db.Column(db.String(20))
     D1 = db.Column(db.Integer)
     D2 = db.Column(db.Integer)
+
+class EventType(db.Model):
+    __tablename__ = 'event_types'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    order = db.Column(db.Integer, nullable=False)
+    name = db.Column(db.String, nullable=False)
+    finish_heat = db.Column(db.Boolean, default=False, nullable=False)
+
+    def __repr__(self):
+        return f"<EventType(order={self.order}, name='{self.name}', finish_heat={self.finish_heat})>"
+
+class EventOrder(db.Model):
+    __tablename__ = 'event_order'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    order = db.Column(db.Integer, nullable=False)
+    name = db.Column(db.String, nullable=False)
+
+    def __repr__(self):
+        return f"<EventOrder(order={self.order}, name='{self.name}')>"

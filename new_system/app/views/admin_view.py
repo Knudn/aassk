@@ -1,7 +1,7 @@
 
-from flask import Blueprint, render_template, request, url_for, redirect
+from flask import Blueprint, render_template, request, url_for, redirect, flash
 from app.lib.db_operation import *
-from app.lib.utils import GetEnv
+from app.lib.utils import GetEnv, intel_sort
 import json
 
 admin_bp = Blueprint('admin', __name__)
@@ -49,12 +49,8 @@ def global_config_tab():
     global_config = GlobalConfig.query.all()
     form = ConfigForm()
     
-    active_events_data = ActiveDrivers.query.get(1)
-    #update_active_event_stats()
-    print(active_events_data.Event, active_events_data.Heat )
-    
     if form.validate_on_submit():
-        if 'submit' in request.form:
+        if 'submit' in request.form:            
             for config in global_config:
                 config.session_name = form.session_name.data
                 config.project_dir = form.project_dir.data
@@ -65,36 +61,99 @@ def global_config_tab():
                 config.display_proxy = bool(form.display_proxy.data)
                 db.session.commit()
         else:
-            print(full_db_reload())
+            # I'm assuming this is related to the "Reload" button, but you can update as needed
+            print(full_db_reload(add_intel_sort=True))
             
         return redirect(url_for('admin.admin', tab_name='global-config'))
 
     return render_template('admin/global_config.html', global_config=global_config, form=form)
 
+
 def active_events():
-    from app.models import ActiveEvents
+    from app.models import ActiveEvents, EventType, EventOrder, GlobalConfig
     from app import db
 
     if request.method == 'POST':
+        # Handle the form data for table updates
         table_data = request.form.get('table_data')
+        sort_data = request.form.get('eventOrderJson')
+
+        # If table_data is provided, process it
         if table_data:
             try:
                 table_data = json.loads(table_data)
-                for row in table_data:
+                print(table_data)
+                for k, row in enumerate(table_data):
+                    k += 1
                     event = ActiveEvents.query.get(row['id'])
                     if event:
                         event.event_name = row['name']
                         event.run = row['run']
                         event.enabled = row['enable']
-                        event.sort_order = row['sort_order']
+                        event.sort_order = k
                 db.session.commit()
-                return redirect(url_for('admin.admin', tab_name='active_events'))
+                flash('Active events updated successfully.', 'success')
             except Exception as e:
-                print(f"An error occurred: {e}")
+                db.session.rollback()  # Rollback in case of error
+                flash(f'An error occurred: {e}', 'error')
+        
+        # If sort_data is provided, process it to update the sort order
+        elif sort_data:
+            try:
+                EventType.query.delete()
+                EventOrder.query.delete()
+                # Insert EventTypes
+                sort_data = json.loads(sort_data)
+                for event_type in sort_data['eventTypes']:
+                    new_event_type = EventType(
+                        order=event_type['order'],
+                        name=event_type['name'],
+                        finish_heat=event_type['finishHeat']
+                    )
+                    db.session.add(new_event_type)
+                
+                # Insert EventOrders
+                for event_order in sort_data['eventOrder']:
+                    new_event_order = EventOrder(
+                        order=event_order['order'],
+                        name=event_order['name']
+                    )
+                    db.session.add(new_event_order)
+                
+                # Commit the session to save changes
+                db.session.commit()
+                
+            except Exception as e:
+                db.session.rollback()  # Rollback in case of error
+                flash(f'An error occurred while updating the sort order: {e}', 'error')
+            intel_sort()
 
+        elif "smartSortingEnabled" in request.get_json():
+            data = request.get_json()['smartSortingEnabled']
+            global_config = GlobalConfig.query.first()
+            global_config.Smart_Sorting = bool(data)
+            db.session.commit()
+
+            if bool(data) == False:
+                active_events = ActiveEvents.query.all()
+
+                # Update sort_order to match the id for each event
+                for event in active_events:
+                    event.sort_order = event.id
+
+                # Commit the changes to the database
+                db.session.commit()
+                
+                
+        return redirect(url_for('admin.admin', tab_name='active_events'))
+
+    # For GET requests or after POST processing, retrieve and display the active events
     active_events = ActiveEvents.query.order_by(ActiveEvents.sort_order).all()
+    event_types = EventType.query.order_by(EventType.order).all()
+    event_order = EventOrder.query.order_by(EventOrder.order).all()
+    global_config_new = GlobalConfig.query.first()
 
-    return render_template('admin/active_events.html', active_events=active_events)
+    return render_template('admin/active_events.html', active_events=active_events, event_types=event_types, event_order=event_order, global_config_new=global_config_new)
 
 def active_events_driver_data():
     from app.models import ActiveEvents, GlobalConfig, LockedEntry
@@ -145,7 +204,6 @@ def active_events_driver_data():
 
             db_location = db.session.query(GlobalConfig.db_location).all()[0][0]
             sql_con = sqlite3.connect(db_location + file + ".sqlite")
-            print(run)
             sql_cur = sql_con.cursor()
             sql_cur.execute(f'DELETE FROM driver_stats_r{run}')
 

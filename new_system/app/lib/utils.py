@@ -79,6 +79,89 @@ def manage_process(python_program_path: str, operation: str) -> None:
     else:
         logging.error(f"Unsupported operation: {operation}")
 
+
+def intel_sort():
+    from app import db
+    from app.models import ActiveEvents, EventOrder, EventType
+    from sqlalchemy import or_
+    from app.lib.db_func import map_database_files
+    from app.lib.utils import GetEnv
+
+    #Get data for event_type
+    event_types_list = []
+    event_types = EventType.query.all()
+    for event_type in event_types:
+        event_types_list.append(event_type)
+    
+    
+    
+    #Get data for event_order
+    event_order_list = []
+    event_types = EventOrder.query.all()
+    for event_order in event_types:
+        event_order_list.append(event_order)
+
+
+    new_event_list = []
+    new_type_dict = {}
+    active_events = ActiveEvents.query.all()
+    for g in event_order_list:
+        for a in active_events:
+            for b in event_types_list:
+                if b.name not in new_type_dict:
+                    new_type_dict[b.name] = []
+                if str(b.name) in str(a.event_name) and g.name in a.event_name:
+                    new_type_dict[b.name].append(a)
+
+
+    tmp_list = []
+    count = 1
+
+    
+
+    for a in new_type_dict:
+        
+        for g in event_types_list:
+            if g.finish_heat == True:
+                finish_heat = True
+            else:
+                finish_heat = False
+
+        for b in new_type_dict[a]:
+
+            b.sort_order = count
+            count += 1
+
+        db.session.add_all(new_type_dict[a])
+        db.session.commit()
+
+    
+
+
+    active_events = ActiveEvents.query.order_by(ActiveEvents.sort_order).all()
+    new_type_dict = {}
+    for event_type in event_types_list:
+        filtered_events = [event for event in active_events if event_type.name in event.event_name]
+        if event_type.finish_heat:
+            # Sort by run first, then by sort_order within each run
+            sorted_events = sorted(filtered_events, key=lambda x: (x.run, x.sort_order))
+        else:
+            # Sort just by sort_order
+            sorted_events = sorted(filtered_events, key=lambda x: x.sort_order)
+        
+        new_type_dict[event_type.name] = sorted_events
+                        
+    count = 1
+    for a in new_type_dict:
+
+        for b in new_type_dict[a]:
+
+            b.sort_order = count
+            count += 1
+
+        db.session.add_all(new_type_dict[a])
+        db.session.commit()
+
 def format_startlist(event,include_timedata=False):
     import json
     g_config = GetEnv()
@@ -120,7 +203,6 @@ def format_startlist(event,include_timedata=False):
                     count = count + 1
                 active_drivers = {"D1":"None"}
                 
-            print(driver_entries)
             for race in driver_entries:
                 race_id = race[0]
                 drivers_in_race = []
@@ -156,10 +238,11 @@ def format_startlist(event,include_timedata=False):
                             if "status" in drivers_in_race[0] and drivers_in_race[1]["time_info"]["FINISHTIME"] > 0:
                                 drivers_in_race[1]["status"] = 1
                                 drivers_in_race[0]["status"] = 2
+                                
                             elif "status" in drivers_in_race[1] and drivers_in_race[0]["time_info"]["FINISHTIME"] > 0:
                                 drivers_in_race[0]["status"] = 1
                                 drivers_in_race[1]["status"] = 2
-                                
+
                             if drivers_in_race[0]["time_info"]["FINISHTIME"] < drivers_in_race[1]["time_info"]["FINISHTIME"] and not "status" in drivers_in_race[0]:
 
                                 drivers_in_race[0]["status"] = 1

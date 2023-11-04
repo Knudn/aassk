@@ -5,7 +5,7 @@ import os
 from app.lib.utils import GetEnv
 from typing import List, Dict, Union, Tuple
 
-def map_database_files(global_config, Event=None):
+def map_database_files(global_config, Event=None, event_only=False):
     
     db_data = []
     driver_db_data = {}
@@ -19,6 +19,9 @@ def map_database_files(global_config, Event=None):
     else:
         events = os.listdir(event_dir)
 
+    if event_only == True:
+        tmp_event_list = []
+
     #This for loop will enumerate a folder to find a bunch of database files
 
     for filename in events:
@@ -27,9 +30,12 @@ def map_database_files(global_config, Event=None):
         if os.path.isfile(f):
             if "ex.scdb" not in f.capitalize() and "online" not in f.capitalize():
                 with sqlite3.connect(f) as conn:
+                    
+
                     cursor = conn.cursor()
                     cursor.execute("SELECT C_VALUE FROM TPARAMETERS WHERE C_PARAM='MODULE' OR C_PARAM='TITLE1' OR C_PARAM='TITLE2' OR C_PARAM='HEAT_NUMBER';")
                     rows = cursor.fetchall()
+                    
 
                     cursor.execute("SELECT C_NUM, C_FIRST_NAME, C_LAST_NAME, C_CLUB, C_TEAM FROM TCOMPETITORS;")
                     driver_rows = cursor.fetchall()
@@ -43,7 +49,7 @@ def map_database_files(global_config, Event=None):
                                 pass
                         elif wh_title.upper() in str(rows[2][0]).upper():
                             db_data.append({"db_file":filename[:-5],"MODE":rows[1][0],"TITLE1":rows[2][0],"TITLE2":rows[3][0],"HEATS":rows[0][0]})
-                            if driver_rows:
+                            if driver_rows and event_only == False:
                                 for b in driver_rows:
                                     driver_db_data.setdefault(filename[:-5], []).append({"CID": b[0], "FIRST_NAME": b[1], "LAST_NAME": b[2], "CLUB": b[3], "SNOWMOBILE": b[4]})
                             else:
@@ -191,6 +197,7 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True):
                 for data in time_data
             ]
 
+            print(main_db_path)
             with sqlite3.connect(main_db_path) as conn:
                 cursor = conn.cursor()
                 sql = "SELECT * FROM startlist_r{0};".format(heat)
@@ -226,13 +233,14 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True):
                     #cursor.executemany(sql, timedata_tuples)
                 else:
                     if exclude_lst:
-                        query = f"SELECT CID from driver_stats_r{heat} WHERE LOCKED = 1"
+                        query = f"SELECT CID from driver_stats_r{str(heat)} WHERE LOCKED = 1"
                         cursor.execute(query)
                         locked_cids = [item[0] for item in cursor.fetchall()]
                         timedata_tuples = [
                             (d["INTER_1"], d["INTER_2"], d["INTER_3"], d["SPEED"], d["PENELTY"], d["FINISHTIME"], d["CID"]) 
                             for d in time_data_lst if d["CID"] not in locked_cids
                         ]
+
                         cursor.execute(f'DELETE FROM driver_stats_r{heat} WHERE LOCKED != 1;')
                         
                     else:
@@ -240,7 +248,6 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True):
                             (d["INTER_1"], d["INTER_2"], d["INTER_3"], d["SPEED"], d["PENELTY"], d["FINISHTIME"], d["CID"]) 
                             for d in time_data_lst
                         ]
-                        
                         cursor.execute(f'DELETE FROM driver_stats_r{heat}')
                     
                 sql = f"""
@@ -303,8 +310,10 @@ def insert_start_list(db, g_config, init_mode=True):
             with sqlite3.connect(local_event_db) as conn_new_db:
                 cursor_new = conn_new_db.cursor()
                 if init_mode == False:
-                    cursor_new.execute(f'DELETE FROM driver_stats_r{heat}')
+                    #NO IDEA WHY I ADDED THIS, WILL PROBABLY FIND OUT IN THE FUTURE
+                    #cursor_new.execute(f'DELETE FROM driver_stats_r{heat}')
                     cursor_new.execute(f'DELETE FROM startlist_r{heat}')
+                    
                 try:
                     sql = "INSERT INTO startlist_r{0} (CID) VALUES (?)".format(heat)
                     cursor_new.executemany(sql, startlist_data)

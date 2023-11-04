@@ -3,6 +3,7 @@ import sqlite3
 from app.lib.db_operation import reload_event as reload_event_func
 from app.lib.db_operation import update_active_event_stats, get_active_startlist, get_active_startlist_w_timedate
 from app import socketio
+from app.lib.utils import intel_sort
 
 
 
@@ -45,7 +46,7 @@ def get_current_startlist():
 
 @api_bp.route('/api/get_current_startlist_w_data', methods=['GET'])
 def get_current_startlist_w_data():
-
+    intel_sort()
     return get_active_startlist_w_timedate()
 
 @api_bp.route('/api/<string:tab_name>', methods=['GET','POST'])
