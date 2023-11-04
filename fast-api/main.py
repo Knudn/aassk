@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Depends, HTTPException
 from pydantic import BaseModel
 import uvicorn
 from sqlalchemy import create_engine, Column, Integer, String, MetaData
@@ -29,6 +29,12 @@ class ItemCreate(BaseModel):
     name: str
     description: str
 
+# Pydantic model to define response model
+class ItemResponse(BaseModel):
+    id: int
+    name: str
+    description: str
+
 # Dependency to get the database session
 def get_db():
     db = SessionLocal()
@@ -43,8 +49,8 @@ def read_random_number():
     return {"random_number": random.randint(1, 100)}
 
 # Add an item to the database
-@app.post("/items/", response_model=ItemCreate)
-def create_item(item: ItemCreate, db: SessionLocal = next(get_db())):
+@app.post("/items/", response_model=ItemResponse)
+def create_item(item: ItemCreate, db: SessionLocal = Depends(get_db)):
     db_item = Item(name=item.name, description=item.description)
     db.add(db_item)
     db.commit()
@@ -52,8 +58,8 @@ def create_item(item: ItemCreate, db: SessionLocal = next(get_db())):
     return db_item
 
 # Retrieve all items from the database
-@app.get("/items/")
-def read_items(db: SessionLocal = next(get_db())):
+@app.get("/items/", response_model=list[ItemResponse])
+def read_items(db: SessionLocal = Depends(get_db)):
     items = db.query(Item).all()
     return items
 
