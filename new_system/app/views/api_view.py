@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request
+from flask import Blueprint, render_template, request, json
 import sqlite3
 from app.lib.db_operation import reload_event as reload_event_func
 from app.lib.db_operation import update_active_event_stats, get_active_startlist, get_active_startlist_w_timedate
@@ -8,6 +8,25 @@ from app.lib.utils import intel_sort
 
 
 api_bp = Blueprint('api', __name__)
+
+@api_bp.route('/api/init', methods=['POST'])
+def receive_init():
+    from app.models import InfoScreenInitMessage
+    from app import db
+
+    data = request.json
+    hostname = data.get('Hostname')
+    ip = data.get('IP')
+    unique_id = data.get('ID')
+
+    # You may want to add validation and error handling here
+
+    new_message = InfoScreenInitMessage(hostname=hostname, ip=ip, unique_id=unique_id)
+    db.session.add(new_message)
+    db.session.commit()
+
+    return json({'message': 'Initialization data received'}), 201
+
 
 @api_bp.route('/api/send_data')
 def send_data_to_room(msg):

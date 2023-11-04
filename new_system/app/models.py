@@ -3,6 +3,15 @@ from wtforms import StringField, SubmitField, BooleanField, IntegerField
 from datetime import datetime
 from app import db
 
+class InfoScreenInitMessage(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    hostname = db.Column(db.String(128), nullable=False)
+    ip = db.Column(db.String(15), nullable=False)  # Assuming IPv4 for simplicity
+    unique_id = db.Column(db.String(32), nullable=False)
+
+    def __repr__(self):
+        return f'<InitMessage {self.hostname} {self.ip}>'
+
 class ConfigForm(FlaskForm):
     session_name = StringField('Session Name')
     project_dir = StringField('Project Directory')
@@ -34,7 +43,7 @@ class ActiveEvents(db.Model):
     enabled = db.Column(db.Integer, default=True)
     sort_order = db.Column(db.Integer)
     mode = db.Column(db.Integer)
-    
+
     def __repr__(self):
         return (f"<ActiveEvents(id={self.id}, event_name='{self.event_name}', event_file='{self.event_file}', "
                 f"run={self.run}, enabled={self.enabled}, sort_order={self.sort_order}, mode={self.mode})>")
