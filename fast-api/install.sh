@@ -4,10 +4,10 @@
 sudo apt-get update
 
 # Install Python 3 and pip
-sudo apt-get install -y python3 python3-pip
+sudo apt-get install -y python3 python3-pip 
 
 # Install virtualenv
-sudo pip3 install virtualenv
+sudo pip3 install virtualenv requests
 
 # Create a virtual environment for the application
 virtualenv fastapi_app_env

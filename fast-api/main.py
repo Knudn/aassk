@@ -1,10 +1,14 @@
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import uvicorn
 from sqlalchemy import create_engine, Column, Integer, String, MetaData
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import random
+import socket
+import hashlib
+import requests
 
 app = FastAPI()
 
@@ -24,12 +28,11 @@ class Item(Base):
 # Create the database tables
 Base.metadata.create_all(bind=engine)
 
-# Pydantic model to define request body
+# Pydantic models to define request and response data shapes
 class ItemCreate(BaseModel):
     name: str
     description: str
 
-# Pydantic model to define response model
 class ItemResponse(BaseModel):
     id: int
     name: str
@@ -43,12 +46,32 @@ def get_db():
     finally:
         db.close()
 
-# Define a random function
+@app.on_event("startup")
+async def startup_event():
+    print("Asdasd")
+    hostname = socket.gethostname()
+    ip_address = socket.gethostbyname(hostname)
+    id_hash = hashlib.md5(f"{hostname}{ip_address}".encode()).hexdigest()
+
+    init_msg = {
+        "Hostname": hostname,
+        "IP": ip_address,
+        "ID": id_hash
+    }
+
+    flask_app_url = 'http://192.168.1.50:7777/api/init'
+    
+    try:
+        response = requests.post(flask_app_url, json=init_msg)
+        response.raise_for_status()
+        print(f"Initialization message sent successfully: {response.text}")
+    except requests.exceptions.RequestException as e:
+        print(f"Failed to send initialization message: {e}")
+
 @app.get("/random")
 def read_random_number():
     return {"random_number": random.randint(1, 100)}
 
-# Add an item to the database
 @app.post("/items/", response_model=ItemResponse)
 def create_item(item: ItemCreate, db: SessionLocal = Depends(get_db)):
     db_item = Item(name=item.name, description=item.description)
@@ -57,7 +80,6 @@ def create_item(item: ItemCreate, db: SessionLocal = Depends(get_db)):
     db.refresh(db_item)
     return db_item
 
-# Retrieve all items from the database
 @app.get("/items/", response_model=list[ItemResponse])
 def read_items(db: SessionLocal = Depends(get_db)):
     items = db.query(Item).all()
