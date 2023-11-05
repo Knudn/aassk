@@ -10,6 +10,7 @@ import socket
 import hashlib
 import requests
 import os
+import subprocess
 
 app = FastAPI()
 
@@ -41,17 +42,18 @@ def get_db():
     finally:
         db.close()
 
-# Function to kill Chromium and open a new window with the specified message
 def open_chromium_with_message(file_path):
     # Kill any existing Chromium browser instances
-    os.system("pkill chromium || true")  # '|| true' to ignore errors if chromium is not running
+    subprocess.run(["pkill", "chromium"], stderr=subprocess.DEVNULL)
 
     # Set the DISPLAY environment variable to use the physical display
     os.environ["DISPLAY"] = ":0"
 
     # Command to open Chromium browser in fullscreen with the specified local HTML file
-    cmd = f"/usr/bin/chromium --start-fullscreen {file_path}"
-    os.system(cmd)
+    cmd = ["/usr/bin/chromium", "--start-fullscreen", file_path]
+
+    # Run the command in a non-blocking way
+    subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
 
 @app.on_event("startup")
@@ -86,6 +88,10 @@ async def startup_event():
 
     except requests.exceptions.RequestException as e:
         print(f"Failed to send initialization message: {e}")
+        
+@app.get("/")
+async def root():
+    return {"message": "Hello World"}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
