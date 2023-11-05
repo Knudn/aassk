@@ -9,6 +9,7 @@ import random
 import socket
 import hashlib
 import requests
+import os
 
 app = FastAPI()
 
@@ -28,7 +29,6 @@ class Config(Base):
 # Create the database tables
 Base.metadata.create_all(bind=engine)
 
-
 # Dependency to get the database session
 def get_db():
     db = SessionLocal()
@@ -36,17 +36,23 @@ def get_db():
         yield db
     finally:
         db.close()
-        
+
+# Function to kill Chromium and open a new window with the specified message
+def open_chromium_with_message(file_path):
+    # Kill any existing Chromium browser instances
+    os.system("pkill chromium")
+    
+    # Command to open Chromium browser in fullscreen with the specified local HTML file
+    cmd = f"/usr/bin/chromium --start-fullscreen {file_path}"
+    os.system(cmd)
+
 @app.on_event("startup")
 async def startup_event():
-    print()
     hostname = socket.gethostname()
-
     init_msg = {
         "Hostname": hostname,
         "Init": True,
     }
-
     flask_app_url = 'http://192.168.1.50:7777/api/init'
     
     try:
@@ -54,22 +60,22 @@ async def startup_event():
         response.raise_for_status()
         print(f"Initialization message sent successfully: {response.text}")
 
-        # Corrected code: use the session to query the database
         with SessionLocal() as db:
             existing_config = db.query(Config).first()
             if existing_config:
-                # If there's an existing config, update it
                 existing_config.host_id = hostname
                 existing_config.approved = False
+                db.commit()
+                if not existing_config.approved:
+                    open_chromium_with_message('file:///path/to/monitor-not-approved.html')
             else:
-                # If there's no existing config, create a new one
                 new_config = Config(host_id=hostname, approved=False)
                 db.add(new_config)
-            db.commit()  # Don't forget to commit the changes
+                db.commit()
+                open_chromium_with_message('file:///path/to/no-endpoint.html')
 
     except requests.exceptions.RequestException as e:
         print(f"Failed to send initialization message: {e}")
-
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
