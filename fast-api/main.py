@@ -36,7 +36,7 @@ def get_db():
         yield db
     finally:
         db.close()
-
+        
 @app.on_event("startup")
 async def startup_event():
     print()
@@ -53,18 +53,23 @@ async def startup_event():
         response = requests.post(flask_app_url, json=init_msg)
         response.raise_for_status()
         print(f"Initialization message sent successfully: {response.text}")
-        existing_config = Base.query(Config).first()
-        if existing_config:
-            # If there's an existing config, update it
-            existing_config.host_id = hostname
-            existing_config.approved = False
-        else:
-            # If there's no existing config, create a new one
-            new_config = Config(host_id=hostname, approved=False)
-            Base.add(new_config)
+
+        # Corrected code: use the session to query the database
+        with SessionLocal() as db:
+            existing_config = db.query(Config).first()
+            if existing_config:
+                # If there's an existing config, update it
+                existing_config.host_id = hostname
+                existing_config.approved = False
+            else:
+                # If there's no existing config, create a new one
+                new_config = Config(host_id=hostname, approved=False)
+                db.add(new_config)
+            db.commit()  # Don't forget to commit the changes
 
     except requests.exceptions.RequestException as e:
         print(f"Failed to send initialization message: {e}")
+
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
