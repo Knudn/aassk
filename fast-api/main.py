@@ -19,24 +19,15 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 
 # Define the database model
-class Item(Base):
-    __tablename__ = 'items'
+class Config(Base):
+    __tablename__ = 'Global_Config'
     id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True)
-    description = Column(String)
+    host_id = Column(String, index=True)
+    approved = Column(Boolean)
 
 # Create the database tables
 Base.metadata.create_all(bind=engine)
 
-# Pydantic models to define request and response data shapes
-class ItemCreate(BaseModel):
-    name: str
-    description: str
-
-class ItemResponse(BaseModel):
-    id: int
-    name: str
-    description: str
 
 # Dependency to get the database session
 def get_db():
