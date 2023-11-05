@@ -48,7 +48,7 @@ def get_db():
 
 @app.on_event("startup")
 async def startup_event():
-    print("Asdasd")
+    print("asdasdasd")
     hostname = socket.gethostname()
     ip_address = socket.gethostbyname(hostname)
     id_hash = hashlib.md5(f"{hostname}{ip_address}".encode()).hexdigest()
