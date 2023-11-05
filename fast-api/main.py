@@ -50,13 +50,10 @@ def get_db():
 async def startup_event():
     print()
     hostname = socket.gethostname()
-    ip_address = socket.gethostbyname(hostname)
-    id_hash = hashlib.md5(f"{hostname}{ip_address}".encode()).hexdigest()[-5:]
 
     init_msg = {
         "Hostname": hostname,
         "Init": True,
-        "ID": id_hash
     }
 
     flask_app_url = 'http://192.168.1.50:7777/api/init'
