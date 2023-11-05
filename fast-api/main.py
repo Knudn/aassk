@@ -93,10 +93,6 @@ async def websocket_endpoint(websocket: WebSocket):
 
 @app.post("/set-url")
 async def set_url(url_data: URLData):
-    # Logic to update the HTML file with the new URL
-    
-    # Assume html_file_path is defined, you'll need to set it to the path of your HTML file
-    html_file_path = 'path_to_your_html_file.html'
 
     with open(html_file_path, 'r') as file:
         content = file.read()
