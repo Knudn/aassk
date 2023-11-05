@@ -24,6 +24,7 @@ static_dir = os.path.join(script_dir, 'static')
 monitor_not_approved_path = os.path.join(static_dir, 'monitor-not-approved.html')
 no_endpoint_path = os.path.join(static_dir, 'no-endpoint.html')
 
+
 # WebSocket connection manager
 class ConnectionManager:
     def __init__(self):
@@ -48,6 +49,10 @@ class Config(Base):
     host_id = Column(String, index=True)
     approved = Column(Boolean)
 
+
+class URLData(BaseModel):
+    URL: str
+    
 # Create the database tables
 Base.metadata.create_all(bind=engine)
 
@@ -85,6 +90,24 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         manager.disconnect(websocket)
 
+@app.post("/set-url")
+async def set_url(url_data: URLData):
+    # Logic to update the HTML file with the new URL
+    html_file_path = os.path.join(static_dir, 'base.html')
+
+    with open(html_file_path, 'r') as file:
+        content = file.read()
+
+    # Replace placeholder or existing URL in the iframe
+    updated_content = content.replace('__URL_PLACEHOLDER__', url_data.URL)
+
+    with open(html_file_path, 'w') as file:
+        file.write(updated_content)
+
+    # Notify clients
+    await manager.broadcast("update")
+
+    return {"message": "URL updated and clients notified"}
 
 @app.on_event("startup")
 async def startup_event():
