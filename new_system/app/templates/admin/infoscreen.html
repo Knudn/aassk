@@ -1,0 +1,226 @@
+{% extends 'admin/layout.html' %}
+
+{% block content %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/css/bootstrap.min.css">
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta1/dist/js/bootstrap.bundle.min.js"></script>
+
+<style>
+    .drag-handle {
+        cursor: move;
+    }
+    body, html {
+        margin: 0;
+        padding: 0;
+        height: 100%;
+    }
+    .card-header .btn-link {
+        width: 100%;
+        text-align: left;
+    }
+    .card-header .btn-link.collapsed {
+        border-bottom: 1px solid rgba(0,0,0,.125);
+    }
+    .card-header {
+        padding: 0.5rem 1.25rem;
+    }
+    .form-label {
+        margin-bottom: 0.5rem;
+    }
+    .mb-3 {
+        margin-bottom: 1rem!important;
+    }
+    .text-muted {
+        color: #6c757d!important;
+    }
+    .list-group-item {
+        position: relative;
+        display: block;
+        padding: 0.5rem 1rem;
+        background-color: #fff;
+        border: 1px solid rgba(0,0,0,.125);
+    }
+    .btn-primary {
+        color: #fff;
+        background-color: #007bff;
+        border-color: #007bff;
+    }
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+        line-height: 1.5;
+        border-radius: 0.2rem;
+    }
+/* Apply styles only within the .info-messages-container to not affect the rest of the site */
+/* Apply styles only within the .info-messages-container to not affect the rest of the site */
+.info-messages-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: space-around;
+}
+
+.info-message-card {
+    border: 2px solid black;
+    width: 300px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1); /* Modern shadow effect */
+    overflow: hidden; /* Ensures nothing spills out of the card boundaries */
+}
+
+.info-message-header, 
+.info-message-footer {
+    width: 100%;
+    padding: 10px;
+    border-bottom: 2px solid black;
+    text-align: center;
+    background-color: #f8f9fa; /* Light gray background for header and footer */
+}
+
+.info-message-body {
+    padding: 20px;
+    width: 100%;
+    display: flex;
+    justify-content: center;
+}
+
+.view-vnc-btn {
+    padding: 10px 25px;
+    border: none;
+    background-color: #007bff;
+    color: white;
+    font-size: 1.25em;
+    cursor: pointer;
+    width: 80%; /* Large button occupying most of the body's width */
+    margin: auto; /* Center the button horizontally */
+    transition: background-color 0.3s ease; /* Smooth background transition for hover effect */
+}
+
+.view-vnc-btn:hover {
+    background-color: #0056b3; /* Darken button on hover for interactive effect */
+}
+
+.deactivate-btn,
+.remove-btn {
+    padding: 5px 15px;
+    border: none;
+    background-color: #6c757d;
+    color: white;
+    margin: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.deactivate-btn:hover {
+    background-color: #545b62; /* Darken button on hover */
+}
+
+.remove-btn {
+    background-color: #dc3545;
+}
+
+.remove-btn:hover {
+    background-color: #c82333; /* Darken button on hover */
+}
+
+.info-message-footer button {
+    width: calc(50% - 10px); /* Adjust width to account for the margin */
+}
+
+
+
+
+</style>
+</head>
+<body>
+
+<div class="container py-4">
+<h2>Dashboard Configuration</h2>
+
+    <!-- Add a new section for displaying the InfoScreenInitMessages -->
+    <div class="card my-3">
+        <div class="card-header">
+            <button class="btn btn-link text-start" data-bs-toggle="collapse" data-bs-target="#infoScreenMessagesSection">
+                Info Screen Messages
+            </button>
+        </div>
+        <div id="infoScreenMessagesSection" class="collapse show">
+            <div class="card-body">
+                <div class="info-messages-container">
+                    {% for message in info_screen_msg %}
+                    <div class="info-message-card">
+                        <div class="info-message-header">
+                            <span>Hostname: {{ message.hostname }}</span>
+                            <span>IP: {{ message.ip }}</span>
+                        </div>
+                        <div class="info-message-body">
+                            <button class="view-vnc-btn">View VNC</button>
+                        </div>
+                        <div class="info-message-footer">
+                            <button class="deactivate-btn">Deactivate</button>
+                            <button class="remove-btn">Remove</button>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                
+                
+            </div>
+        </div>
+    </div>
+    
+
+<!-- Monitors Section -->
+<div class="card my-3">
+    <div class="card-header">
+        <button class="btn btn-link text-start" data-bs-toggle="collapse" data-bs-target="#monitorsSection">
+            Monitors
+        </button>
+    </div>
+    <div id="monitorsSection" class="collapse">
+        <div class="card-body">
+            <!-- Mock data for Monitors -->
+            <ul class="list-group">
+                <li class="list-group-item">Monitor 1 - <span class="text-muted">Active</span></li>
+                <li class="list-group-item">Monitor 2 - <span class="text-muted">Inactive</span></li>
+                <li class="list-group-item">Monitor 3 - <span class="text-muted">Active</span></li>
+                <!-- ... more items ... -->
+            </ul>
+        </div>
+    </div>
+</div>
+
+<!-- URL Section -->
+<div class="card my-3">
+    <div class="card-header">
+        <button class="btn btn-link text-start" data-bs-toggle="collapse" data-bs-target="#urlSection">
+            URL Selection
+        </button>
+    </div>
+    <div id="urlSection" class="collapse show">
+        <div class="card-body">
+            <form id="url-selection-form" method="post">
+                <div class="mb-3">
+                    <label for="urlDropdown" class="form-label">Select URL</label>
+                    <select class="form-select" id="urlDropdown" name="selectedUrl">
+                        <!-- Mock data for URLs -->
+                        <option value="1">URL 1</option>
+                        <option value="2">URL 2</option>
+                        <option value="3">URL 3</option>
+                        <!-- ... more options ... -->
+                    </select>
+                </div>
+                <!-- Submit Button for URL Selection -->
+                <div class="text-center">
+                    <button type="submit" class="btn btn-primary btn-sm">Update URL</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+
+</div>
+
+{% endblock %}

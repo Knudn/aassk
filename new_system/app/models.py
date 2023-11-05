@@ -6,11 +6,20 @@ from app import db
 class InfoScreenInitMessage(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     hostname = db.Column(db.String(128), nullable=False)
-    ip = db.Column(db.String(15), nullable=False)  # Assuming IPv4 for simplicity
+    ip = db.Column(db.String(15), nullable=False)
     unique_id = db.Column(db.String(32), nullable=False)
+    approved = db.Column(db.String(6), nullable=False, default=False)
 
     def __repr__(self):
-        return f'<InitMessage {self.hostname} {self.ip}>'
+        return f'<InitMessage {self.hostname} {self.ip} {self.unique_id} {self.approved}>'
+
+class InfoScreenUrlIndex(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    url = db.Column(db.String(32), nullable=False)
+    loop = db.Column(db.Boolean, nullable=False)
+
+    def __repr__(self):
+        return f'<InitMessage {self.unique_id} {self.url} {self.loop}>'
 
 class ConfigForm(FlaskForm):
     session_name = StringField('Session Name')

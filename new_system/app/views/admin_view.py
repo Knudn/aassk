@@ -10,22 +10,14 @@ admin_bp = Blueprint('admin', __name__)
 def admin_home():
     return home_tab()
 
-@admin_bp.route('/admin/ms/<string:tab_name>', methods=['GET','POST'])
-def microservices(tab_name):
-
-    if tab_name == 'home':
-        return home_tab()
-    else:
-        return "Invalid tab", 404
-
 @admin_bp.route('/admin/<string:tab_name>', methods=['GET','POST'])
 def admin(tab_name):
     if tab_name == 'home':
         return home_tab()
     elif tab_name == 'global-config':
         return global_config_tab()
-    elif tab_name == 'microservices':
-        return microservices()
+    elif tab_name == 'infoscreen':
+        return infoscreen()
     elif tab_name == 'active_events':
         return active_events()
     elif tab_name == 'active_events_driver_data':
@@ -228,6 +220,10 @@ def msport_proxy():
 
     return render_template('pdfconverter.html')
 
-def microservices():
-    # Logic for test service tab
-    return render_template('admin/microservices.html')
+def infoscreen():
+    from app import db
+    from app.models import InfoScreenInitMessage, InfoScreenUrlIndex
+
+    info_screen_msg = InfoScreenInitMessage.query.all()
+    print(info_screen_msg)
+    return render_template('admin/infoscreen.html', info_screen_msg=info_screen_msg)
