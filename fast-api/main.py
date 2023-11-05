@@ -23,7 +23,7 @@ script_dir = os.path.dirname(os.path.realpath(__file__))
 static_dir = os.path.join(script_dir, 'static')
 monitor_not_approved_path = os.path.join(static_dir, 'monitor-not-approved.html')
 no_endpoint_path = os.path.join(static_dir, 'no-endpoint.html')
-
+html_file_path = os.path.join(static_dir, 'base.html')
 
 # WebSocket connection manager
 class ConnectionManager:
@@ -93,7 +93,7 @@ async def websocket_endpoint(websocket: WebSocket):
 @app.post("/set-url")
 async def set_url(url_data: URLData):
     # Logic to update the HTML file with the new URL
-    html_file_path = os.path.join(static_dir, 'base.html')
+    
 
     with open(html_file_path, 'r') as file:
         content = file.read()
@@ -131,12 +131,12 @@ async def startup_event():
                 db.commit()
                 if not existing_config.approved:
                     print(monitor_not_approved_path)
-                    open_chromium_with_message(monitor_not_approved_path)
+                    #open_chromium_with_message(monitor_not_approved_path)
+                    open_chromium_with_message(html_file_path)
             else:
                 new_config = Config(host_id=hostname, approved=False)
                 db.add(new_config)
                 db.commit()
-                print(no_endpoint_path)
                 open_chromium_with_message(no_endpoint_path)
                 
                 
