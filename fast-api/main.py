@@ -1,17 +1,17 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import uvicorn
 from sqlalchemy import create_engine, Column, Integer, String, MetaData, Boolean  
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-import random
 import socket
-import hashlib
 import requests
 import os
 import subprocess
 import time
+from typing import List
+
 app = FastAPI()
 
 # Database setup
@@ -23,6 +23,23 @@ script_dir = os.path.dirname(os.path.realpath(__file__))
 static_dir = os.path.join(script_dir, 'static')
 monitor_not_approved_path = os.path.join(static_dir, 'monitor-not-approved.html')
 no_endpoint_path = os.path.join(static_dir, 'no-endpoint.html')
+
+# WebSocket connection manager
+class ConnectionManager:
+    def __init__(self):
+        self.active_connections: List[WebSocket] = []
+
+    async def connect(self, websocket: WebSocket):
+        await websocket.accept()
+        self.active_connections.append(websocket)
+
+    def disconnect(self, websocket: WebSocket):
+        self.active_connections.remove(websocket)
+
+    async def broadcast(self, message: str):
+        for connection in self.active_connections:
+            await connection.send_text(message)
+
 
 # Define the database model
 class Config(Base):
@@ -54,6 +71,19 @@ def open_chromium_with_message(file_path):
 
     # Run the command in a non-blocking way
     subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+
+manager = ConnectionManager()
+
+# WebSocket endpoint
+@app.websocket("/ws")
+async def websocket_endpoint(websocket: WebSocket):
+    await manager.connect(websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        manager.disconnect(websocket)
 
 
 @app.on_event("startup")
@@ -91,11 +121,13 @@ async def startup_event():
         print(f"Failed to send initialization message: {e}")
         open_chromium_with_message(no_endpoint_path)
         time.sleep(1)
-        open_chromium_with_message("https://vg.no")
         
 @app.get("/")
 async def root():
     return {"message": "Hello World"}
+
+async def notify_clients_of_update():
+    await manager.broadcast("update")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
