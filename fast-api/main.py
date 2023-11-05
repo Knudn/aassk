@@ -11,6 +11,7 @@ import os
 import subprocess
 import time
 from typing import List
+import re
 
 app = FastAPI()
 
@@ -94,20 +95,26 @@ async def websocket_endpoint(websocket: WebSocket):
 async def set_url(url_data: URLData):
     # Logic to update the HTML file with the new URL
     
+    # Assume html_file_path is defined, you'll need to set it to the path of your HTML file
+    html_file_path = 'path_to_your_html_file.html'
 
     with open(html_file_path, 'r') as file:
         content = file.read()
 
-    # Replace placeholder or existing URL in the iframe
-    updated_content = content.replace('__URL_PLACEHOLDER__', url_data.URL)
+    # The regex pattern to match the src attribute of the iframe
+    pattern = r'src="[^"]*"'
+
+    # Replace the captured group with the new URL
+    updated_content = re.sub(pattern, f'src="{url_data.URL}"', content)
 
     with open(html_file_path, 'w') as file:
         file.write(updated_content)
 
-    # Notify clients
+    # Notify clients, assuming manager.broadcast is defined
     await manager.broadcast("update")
 
     return {"message": "URL updated and clients notified"}
+
 
 @app.on_event("startup")
 async def startup_event():
