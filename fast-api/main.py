@@ -88,6 +88,7 @@ async def startup_event():
 
     except requests.exceptions.RequestException as e:
         print(f"Failed to send initialization message: {e}")
+        open_chromium_with_message(no_endpoint_path)
         
 @app.get("/")
 async def root():
