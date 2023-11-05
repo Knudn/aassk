@@ -85,11 +85,13 @@ async def startup_event():
                 db.commit()
                 print(no_endpoint_path)
                 open_chromium_with_message(no_endpoint_path)
-                time.sleep(1)
-                open_chromium_with_message("https://vg.no")
+                
+                
     except requests.exceptions.RequestException as e:
         print(f"Failed to send initialization message: {e}")
         open_chromium_with_message(no_endpoint_path)
+        time.sleep(1)
+        open_chromium_with_message("https://vg.no")
         
 @app.get("/")
 async def root():
