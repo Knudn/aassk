@@ -18,6 +18,10 @@ DATABASE_URL = "sqlite:///./test.db"
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+script_dir = os.path.dirname(os.path.realpath(__file__))
+static_dir = os.path.join(script_dir, 'Static')
+monitor_not_approved_path = os.path.join(static_dir, 'monitor-not-approved.html')
+no_endpoint_path = os.path.join(static_dir, 'no-endpoint.html')
 
 # Define the database model
 class Config(Base):
@@ -71,12 +75,14 @@ async def startup_event():
                 existing_config.approved = False
                 db.commit()
                 if not existing_config.approved:
-                    open_chromium_with_message('file:///path/to/monitor-not-approved.html')
+                    print(monitor_not_approved_path)
+                    open_chromium_with_message(monitor_not_approved_path)
             else:
                 new_config = Config(host_id=hostname, approved=False)
                 db.add(new_config)
                 db.commit()
-                open_chromium_with_message('file:///path/to/no-endpoint.html')
+                print(no_endpoint_path)
+                open_chromium_with_message(no_endpoint_path)
 
     except requests.exceptions.RequestException as e:
         print(f"Failed to send initialization message: {e}")
