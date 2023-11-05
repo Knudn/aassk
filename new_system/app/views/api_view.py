@@ -13,19 +13,19 @@ api_bp = Blueprint('api', __name__)
 def receive_init():
     from app.models import InfoScreenInitMessage
     from app import db
+    import hashlib
 
     data = request.json
     hostname = data.get('Hostname')
     ip = request.remote_addr
-    unique_id = data.get('ID')
-    print(hostname, ip, unique_id)
+    id_hash = hashlib.md5((str(ip)+str(hostname)).encode()).hexdigest()[-5:]
+   
     # You may want to add validation and error handling here
-
-    new_message = InfoScreenInitMessage(hostname=hostname, ip=ip, unique_id=unique_id)
+    new_message = InfoScreenInitMessage(hostname=hostname, ip=ip, unique_id=id_hash)
     db.session.add(new_message)
     db.session.commit()
 
-    return "None"
+    return {"Added":id_hash, "Approved": False}
 
 
 @api_bp.route('/api/send_data')
