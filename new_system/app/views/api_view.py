@@ -15,6 +15,7 @@ def receive_init():
     from app import db
 
     data = request.json
+    print(data)
     hostname = data.get('Hostname')
     ip = data.get('IP')
     unique_id = data.get('ID')
@@ -25,7 +26,7 @@ def receive_init():
     db.session.add(new_message)
     db.session.commit()
 
-    return json({'message': 'Initialization data received'}), 201
+    return "None"
 
 
 @api_bp.route('/api/send_data')
