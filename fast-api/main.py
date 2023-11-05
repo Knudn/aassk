@@ -40,11 +40,15 @@ def get_db():
 # Function to kill Chromium and open a new window with the specified message
 def open_chromium_with_message(file_path):
     # Kill any existing Chromium browser instances
-    os.system("pkill chromium")
-    
+    os.system("pkill chromium || true")  # '|| true' to ignore errors if chromium is not running
+
+    # Set the DISPLAY environment variable to use the physical display
+    os.environ["DISPLAY"] = ":0"
+
     # Command to open Chromium browser in fullscreen with the specified local HTML file
-    cmd = f"/usr/bin/chromium --start-fullscreen {file_path}"
+    cmd = f"/usr/bin/chromium --no-sandbox --start-fullscreen {file_path}"
     os.system(cmd)
+
 
 @app.on_event("startup")
 async def startup_event():
