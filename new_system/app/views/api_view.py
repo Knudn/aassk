@@ -15,11 +15,10 @@ def receive_init():
     from app import db
 
     data = request.json
-    print(data)
     hostname = data.get('Hostname')
-    ip = data.get('IP')
+    ip = request.remote_addr
     unique_id = data.get('ID')
-
+    print(hostname, ip, unique_id)
     # You may want to add validation and error handling here
 
     new_message = InfoScreenInitMessage(hostname=hostname, ip=ip, unique_id=unique_id)
