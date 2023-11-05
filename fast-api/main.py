@@ -19,7 +19,7 @@ engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 script_dir = os.path.dirname(os.path.realpath(__file__))
-static_dir = os.path.join(script_dir, 'Static')
+static_dir = os.path.join(script_dir, 'static')
 monitor_not_approved_path = os.path.join(static_dir, 'monitor-not-approved.html')
 no_endpoint_path = os.path.join(static_dir, 'no-endpoint.html')
 
