@@ -46,7 +46,7 @@ def open_chromium_with_message(file_path):
     os.environ["DISPLAY"] = ":0"
 
     # Command to open Chromium browser in fullscreen with the specified local HTML file
-    cmd = f"/usr/bin/chromium --no-sandbox --start-fullscreen {file_path}"
+    cmd = f"/usr/bin/chromium --start-fullscreen {file_path}"
     os.system(cmd)
 
 
