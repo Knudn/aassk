@@ -50,11 +50,13 @@ class Config(Base):
     host_id = Column(String, index=True)
     approved = Column(Boolean)
 
-class Assets(Base):
-    __tablename__ = 'Assets'
+class Asset(Base):
+    __tablename__ = 'assets'
     id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
     url = Column(String, index=True)
-    approved = Column(Boolean)
+    timer = Column(Integer)
+
 
 
 class URLData(BaseModel):
@@ -121,10 +123,25 @@ async def set_url(url_data: URLData):
 
 
 @app.post("/update_index/")
-async def receive_data(request: Request):
+async def receive_data(request: Request, db: Session = Depends(get_db)):
     data = await request.json()
-    print(data)
-    return {"message": "Data received", "received_data": data}
+    
+    # Delete existing records
+    db.query(Asset).delete()
+    db.commit()
+
+    # Insert new data
+    for item in data:
+        new_asset = Asset(name=item['name'], url=item['url'], timer=item['timer'])
+        db.add(new_asset)
+    db.commit()
+
+    return {"message": "Data received, old data deleted, and new data stored"}
+
+@app.get("/current_assets/")
+async def get_current_assets(db: Session = Depends(get_db)):
+    assets = db.query(Asset).all()
+    return [to_dict(asset) for asset in assets]
 
 @app.on_event("startup")
 async def startup_event():
