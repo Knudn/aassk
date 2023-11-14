@@ -11,6 +11,8 @@ import subprocess
 import time
 from typing import List
 import re
+import argparse
+
 
 app = FastAPI()
 
@@ -190,4 +192,14 @@ async def notify_clients_of_update():
     await manager.broadcast("update")
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    # Set up the argument parser
+    parser = argparse.ArgumentParser(description="Run the FastAPI server")
+    parser.add_argument("--host", default="0.0.0.0", type=str, help="Host IP address")
+    parser.add_argument("--port", default=8000, type=int, help="Port number")
+    parser.add_argument("--flhost", default="https://192.168.1.50:7000", type=str, help="Endpoint used for to orchestrate client")
+    # Parse the arguments
+    args = parser.parse_args()
+    print(args)
+
+    # Start the Uvicorn server with the specified host and port
+    uvicorn.run(app, host=args.host, port=args.port)
