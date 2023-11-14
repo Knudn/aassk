@@ -137,7 +137,7 @@ async def receive_data(request: Request, db: Session = Depends(get_db)):
     for item in data:
         extension = item['url'].lower().split('.')[-1]
         print(extension, flhost+item['url'].lower())
-        if extension in image_extensions and "http" not in item['url'].lower():
+        if "."+extension in image_extensions and "http" not in item['url'].lower():
             print(flhost+item['url'].lower())
             print("asd")
         new_asset = Asset(name=item['name'], url=item['url'], timer=item['timer'])
