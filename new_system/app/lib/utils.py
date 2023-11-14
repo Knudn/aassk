@@ -4,6 +4,7 @@ import logging
 import signal
 import sys
 import sqlite3
+import requests
 
 def Check_Event(event):
     from app.models import ActiveEvents
@@ -28,12 +29,20 @@ def Get_active_drivers(g_config, event_data_dict):
 
 def update_info_screen(id):
     from app import db
-    from app.models import InfoScreenAssetAssociations
-    
-    assets = InfoScreenAssetAssociations.query.filter_by(infoscreen=1)
-
+    from app.models import InfoScreenAssetAssociations, InfoScreenAssets, InfoScreenInitMessage
+    id = 1
+    assets = InfoScreenAssetAssociations.query.filter_by(infoscreen=id)
+    infoscreen_url = InfoScreenInitMessage.query.filter_by(id=id).first()
+    port = "8000"
+    infoscreen_url = f'http://{infoscreen_url.ip}:{port}/update_index'
+    json_data = []
     for a in assets:
-        print(a)
+        entry = {}
+        asset_name = InfoScreenAssets.query.filter_by(id=a.asset).first()
+        entry = {"name":asset_name.name, "url":asset_name.asset, "timer":a.timer}
+        json_data.append(entry)
+    
+    requests.post(infoscreen_url, json=json_data)
 
 def GetEnv():
     from app.models import GlobalConfig

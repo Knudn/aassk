@@ -318,10 +318,6 @@ def infoscreen():
                 new_message = InfoScreenAssetAssociations(asset=asset.id, infoscreen=infoscreen, timer=a["timer"])
                 db.session.add(new_message)
             db.session.commit()
-            #asset_query = InfoScreenAssetAssociations(asset=data["selectedAsset"], infoscreen=data["infoscreen"], timer=data["timer"])
-
-            print(data["messageID"])
-            print(data["data"])
 
         return {"OP":"None"}
 
