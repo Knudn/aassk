@@ -121,7 +121,7 @@ async def set_url(url_data: URLData):
 
 
 @app.post("/update_index/")
-async def receive_data():
+async def receive_data(data):
     # Process the data here
     return {"message": "Data received", "received_data": data}
 
