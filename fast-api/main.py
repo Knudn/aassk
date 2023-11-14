@@ -47,7 +47,6 @@ class ConnectionManager:
 class Config(Base):
     __tablename__ = 'Global_Config'
     id = Column(Integer, primary_key=True, index=True)
-    orchestrator_endpoint = Column(String, index=True)
     host_id = Column(String, index=True)
     approved = Column(Boolean)
 
@@ -153,12 +152,8 @@ async def startup_event():
         "Hostname": hostname,
         "Init": True,
     }
-    print(args.flhost)
-    Session = sessionmaker(bind=engine)
-    session = Session()
-    flask_app_url = session.query(Config.orchestrator_endpoint).first()[0]
     
-    flask_app_url = flask_app_url + "/api/init"
+    flask_app_url = args.flhost + "/api/init"
 
     try:
         response = requests.post(flask_app_url, json=init_msg)
