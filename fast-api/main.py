@@ -132,13 +132,13 @@ async def receive_data(request: Request, db: Session = Depends(get_db)):
     # Delete existing records
     db.query(Asset).delete()
     db.commit()
- 
+
     # Insert new data
     for item in data:
         extension = item['url'].lower().split('.')[-1]
 
         if "."+extension in image_extensions and "http" not in item['url'].lower():
-            new_asset = Asset(name=item['name'], url=flhost+"/"+item['url'].lower(), timer=item['timer'])
+            new_asset = Asset(name=item['name'], url=flhost+"/api/infoscreen_asset/"+item['url'].lower(), timer=item['timer'])
         else:
             new_asset = Asset(name=item['name'], url=item['url'], timer=item['timer'])
         db.add(new_asset)
