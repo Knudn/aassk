@@ -1,9 +1,9 @@
-from flask import Blueprint, render_template, request, json
+from flask import Blueprint, render_template, request, json, send_from_directory
 import sqlite3
 from app.lib.db_operation import reload_event as reload_event_func
 from app.lib.db_operation import update_active_event_stats, get_active_startlist, get_active_startlist_w_timedate
 from app import socketio
-from app.lib.utils import intel_sort,update_info_screen
+from app.lib.utils import intel_sort, update_info_screen
 
 
 
@@ -32,7 +32,9 @@ def receive_init():
         return {"Added":id_hash, "Approved": False}
 
         
-
+@api_bp.route('/api/infoscreen_asset/<filename>')
+def infoscreen_asset(filename):
+    return send_from_directory('static/assets/infoscreen', filename)
 
 @api_bp.route('/api/send_data')
 def send_data_to_room(msg):
