@@ -10,12 +10,12 @@
             height: 100%;
             margin: 0;
             padding: 0;
-            overflow: hidden; /* Optional: to remove scrollbar if not needed */
+            overflow: hidden;
         }
         iframe {
             width: 100%;
             height: 100%;
-            border: none; /* Optional: to remove the border */
+            border: none;
         }
     </style>
 </head>
@@ -24,10 +24,28 @@
 
     <script>
         let socket = new WebSocket("ws://localhost:8000/ws");
+        let currentIndex = 0;
+        let displayData = [];
+
+        const updateIframe = () => {
+            const item = displayData[currentIndex];
+            const iframe = document.getElementById('scoreboard');
+            iframe.src = item.url;
+            
+            currentIndex = (currentIndex + 1) % displayData.length;
+            setTimeout(updateIframe, item.timer * 1000);
+        };
+
+        const fetchData = async () => {
+            const response = await fetch('http://127.0.0.1:8000/current_assets/');
+            displayData = await response.json();
+            currentIndex = 0;
+            updateIframe();
+        };
 
         socket.onmessage = function(event) {
             if (event.data === "update") {
-                window.location.reload(); // Refresh the page
+                fetchData();
             }
         };
 
@@ -41,6 +59,9 @@
         socket.onerror = function(error) {
             // Handle any errors that occur.
         };
+
+        // Initial fetch on page load
+        fetchData();
     </script>
 </body>
 </html>
