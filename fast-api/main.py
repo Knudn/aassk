@@ -1,8 +1,8 @@
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, Request, Session
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 import uvicorn
-from sqlalchemy import create_engine, Column, Integer, String, MetaData, Boolean  
+from sqlalchemy import create_engine, Column, Integer, String, MetaData, Boolean, Session 
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import socket
