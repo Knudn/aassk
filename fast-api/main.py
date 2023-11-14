@@ -135,7 +135,7 @@ async def receive_data(request: Request, db: Session = Depends(get_db)):
 
     # Insert new data
     for item in data:
-        
+        print(item['url'])
         extension = item['url'].lower().split('.')[-1]
         if extension in image_extensions and "http" not in item['url'].lower():
             
