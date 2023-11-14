@@ -138,13 +138,13 @@ async def receive_data(request: Request, db: Session = Depends(get_db)):
         extension = item['url'].lower().split('.')[-1]
 
         if "."+extension in image_extensions and "http" not in item['url'].lower():
-            new_asset = Asset(name=item['name'], url=flhost+"/api/infoscreen_asset/"+item['url'].lower(), timer=item['timer'])
+            new_asset = Asset(name=item['name'], url=flhost+"/api/infoscreen_asset/"+item['url'], timer=item['timer'])
         else:
             new_asset = Asset(name=item['name'], url=item['url'], timer=item['timer'])
         db.add(new_asset)
     db.commit()
 
-    return {"message": "Data received, old data deleted, and new data stored"}
+    return {"message": "Data received, old data deleted, new data stored"}
 
 @app.get("/current_assets/")
 async def get_current_assets(db: Session = Depends(get_db)):
