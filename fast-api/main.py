@@ -127,13 +127,20 @@ async def set_url(url_data: URLData):
 @app.post("/update_index/")
 async def receive_data(request: Request, db: Session = Depends(get_db)):
     data = await request.json()
-    
+    image_extensions = ['.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp']
+
     # Delete existing records
     db.query(Asset).delete()
     db.commit()
 
     # Insert new data
     for item in data:
+        
+        extension = item['url'].lower().split('.')[-1]
+        if extension in image_extensions and "http" not in item['url'].lower():
+            
+            print(flhost+item['url'].lower())
+
         new_asset = Asset(name=item['name'], url=item['url'], timer=item['timer'])
         db.add(new_asset)
     db.commit()
