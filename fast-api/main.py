@@ -58,8 +58,6 @@ class Asset(Base):
     url = Column(String, index=True)
     timer = Column(Integer)
 
-
-
 class URLData(BaseModel):
     URL: str
 
@@ -158,7 +156,7 @@ async def startup_event():
     Session = sessionmaker(bind=engine)
     session = Session()
     flask_app_url = session.query(Config.orchestrator_endpoint).first()[0]
-    print(flask_app_url)
+    print(args.flhost)
     flask_app_url = flask_app_url + "/api/init"
 
     try:
