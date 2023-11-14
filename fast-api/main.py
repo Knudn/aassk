@@ -48,6 +48,7 @@ class ConnectionManager:
 class Config(Base):
     __tablename__ = 'Global_Config'
     id = Column(Integer, primary_key=True, index=True)
+    orchestrator_endpoint = Column(String, index=True)
     host_id = Column(String, index=True)
     approved = Column(Boolean)
 
@@ -167,13 +168,14 @@ async def startup_event():
             if existing_config:
                 existing_config.host_id = hostname
                 existing_config.approved = False
+                existing_config.orchestrator_endpoint = flhost
                 db.commit()
                 if not existing_config.approved:
                     print(monitor_not_approved_path)
                     #open_chromium_with_message(monitor_not_approved_path)
                     open_chromium_with_message(html_file_path)
             else:
-                new_config = Config(host_id=hostname, approved=False)
+                new_config = Config(host_id=hostname, approved=False, orchestrator_endpoint = flhost)
                 db.add(new_config)
                 db.commit()
                 open_chromium_with_message(no_endpoint_path)
@@ -199,7 +201,7 @@ if __name__ == "__main__":
     parser.add_argument("--flhost", default="https://192.168.1.50:7000", type=str, help="Endpoint used for to orchestrate client")
     # Parse the arguments
     args = parser.parse_args()
-    print(args)
+    flhost = args.flhost
 
     # Start the Uvicorn server with the specified host and port
     uvicorn.run(app, host=args.host, port=args.port)
