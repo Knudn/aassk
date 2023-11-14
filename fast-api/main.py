@@ -165,14 +165,13 @@ async def startup_event():
             if existing_config:
                 existing_config.host_id = hostname
                 existing_config.approved = False
-                existing_config.orchestrator_endpoint = flhost
                 db.commit()
                 if not existing_config.approved:
                     print(monitor_not_approved_path)
                     #open_chromium_with_message(monitor_not_approved_path)
                     open_chromium_with_message(html_file_path)
             else:
-                new_config = Config(host_id=hostname, approved=False, orchestrator_endpoint = flhost)
+                new_config = Config(host_id=hostname, approved=False)
                 db.add(new_config)
                 db.commit()
                 open_chromium_with_message(no_endpoint_path)
