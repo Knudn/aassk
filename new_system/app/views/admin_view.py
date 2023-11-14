@@ -3,6 +3,8 @@ from flask import Blueprint, render_template, request, url_for, redirect, flash
 from app.lib.db_operation import *
 from app.lib.utils import GetEnv, intel_sort
 import json
+from werkzeug.utils import secure_filename
+
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -220,10 +222,130 @@ def msport_proxy():
 
     return render_template('pdfconverter.html')
 
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in {'png', 'jpg', 'jpeg', 'gif'}
+
+
 def infoscreen():
     from app import db
-    from app.models import InfoScreenInitMessage, InfoScreenUrlIndex
+    from app.models import InfoScreenInitMessage, GlobalConfig, InfoScreenAssets, InfoScreenAssetAssociations
+    import html
+
+    global_config = db.session.query(GlobalConfig).all()[0]
+    full_asset_path = global_config.project_dir[:-1] + global_config.infoscreen_asset_path
+
+    if request.method == 'POST':
+        
+        content_type = request.content_type
+        
+        if content_type.startswith("multipart/form-data"):
+
+            # Decode HTML entities in the form data
+            name = html.unescape(request.form.get('name'))
+            file = request.files.get('file')
+            url = html.unescape(request.form.get('url'))
+            
+            check_name = InfoScreenAssets.query.filter_by(name=name).first()
+            
+            if file and allowed_file(file.filename):
+
+                check_asset = InfoScreenAssets.query.filter_by(asset=file.filename).first()
+
+                if check_asset is not None or check_name is not None:
+                    print("Asset already exists")
+                    return 'Asset already exists'
+                
+                new_message = InfoScreenAssets(name=name, asset=file.filename)
+                db.session.add(new_message)
+                db.session.commit()
+                filename = secure_filename(file.filename)
+                file.save(os.path.join(full_asset_path, filename))
+            elif url:
+                check_asset = InfoScreenAssets.query.filter_by(asset=url).first()
+
+                if check_asset is not None or check_name is not None:
+                    print("Asset already exists")
+                    return 'Asset already exists'
+                
+                new_message = InfoScreenAssets(name=name, asset=url)
+                db.session.add(new_message)
+                db.session.commit()
+                                
+                return 'File uploaded successfully'
+                
+            if url:                
+                return 'URL saved successfully'
+            return 'No valid asset provided'
+        print(request.get_json())
+        if request.get_json()["operation"] == 1:
+            print("asd")
+            id = request.get_json()["id"]
+            
+            if request.get_json()["action"] == "approve":
+                query = InfoScreenInitMessage.query.filter_by(unique_id=id).update({"approved": True})
+
+            elif request.get_json()["action"] == "remove":
+                query = InfoScreenInitMessage.query.filter_by(unique_id=id)
+                query.delete()
+
+            elif request.get_json()["action"] == "deactivate":
+                query = InfoScreenInitMessage.query.filter_by(unique_id=id).update({"approved": False})
+
+            elif request.get_json()["action"] == "delete":
+                query = InfoScreenAssets.query.filter_by(id=id)
+                asset_query = InfoScreenAssetAssociations.query.filter_by(asset=id)
+                asset_query.delete()
+                query.delete()
+            db.session.commit()
+            return {"OP":"Done"}
+        
+        elif request.get_json()["operation"] == 2:
+            print(request.get_json())
+            if request.get_json()["action"] == "add":
+                data = request.get_json()
+                if data["timer"] == '':
+                    data["timer"] == 0
+                new_message = InfoScreenAssetAssociations(asset=data["selectedAsset"], infoscreen=data["infoscreen"], timer=data["timer"])
+                db.session.add(new_message)
+                db.session.commit()
+        elif request.get_json()["operation"] == 3:
+            data = request.get_json()
+            infoscreen = data["messageID"]
+            asset_query = InfoScreenAssetAssociations.query.filter_by(infoscreen=infoscreen)
+            asset_query.delete()
+            for a in request.get_json()["data"]:
+                asset = InfoScreenAssets.query.filter_by(name=a["name"]).first()
+                new_message = InfoScreenAssetAssociations(asset=asset.id, infoscreen=infoscreen, timer=a["timer"])
+                db.session.add(new_message)
+            db.session.commit()
+            #asset_query = InfoScreenAssetAssociations(asset=data["selectedAsset"], infoscreen=data["infoscreen"], timer=data["timer"])
+
+            print(data["messageID"])
+            print(data["data"])
+
+        return {"OP":"None"}
+
 
     info_screen_msg = InfoScreenInitMessage.query.all()
-    print(info_screen_msg)
-    return render_template('admin/infoscreen.html', info_screen_msg=info_screen_msg)
+    info_screen_assents = InfoScreenAssets.query.all()
+    info_screen_associations = InfoScreenAssetAssociations.query.all()
+
+    info_screen_assents_list = [
+        {c.name: getattr(assent, c.name) for c in InfoScreenAssets.__table__.columns}
+        for assent in info_screen_assents
+    ]
+    info_screen_assents_json = json.dumps(info_screen_assents_list, default=str)
+    info_screen_approved = InfoScreenInitMessage.query.filter_by(approved=True).all() 
+
+
+
+
+    return render_template(
+        'admin/infoscreen.html',
+        info_screen_msg=info_screen_msg,
+        info_screen_approved=info_screen_approved,
+        info_screen_assents_json=info_screen_assents_json,
+        info_screen_assents=info_screen_assents,
+        info_screen_associations=info_screen_associations
+    )
+

@@ -3,7 +3,7 @@ import sqlite3
 from app.lib.db_operation import reload_event as reload_event_func
 from app.lib.db_operation import update_active_event_stats, get_active_startlist, get_active_startlist_w_timedate
 from app import socketio
-from app.lib.utils import intel_sort
+from app.lib.utils import intel_sort,update_info_screen
 
 
 
@@ -19,13 +19,19 @@ def receive_init():
     hostname = data.get('Hostname')
     ip = request.remote_addr
     id_hash = hashlib.md5((str(ip)+str(hostname)).encode()).hexdigest()[-5:]
-   
-    # You may want to add validation and error handling here
-    new_message = InfoScreenInitMessage(hostname=hostname, ip=ip, unique_id=id_hash)
-    db.session.add(new_message)
-    db.session.commit()
 
-    return {"Added":id_hash, "Approved": False}
+    existing_message = InfoScreenInitMessage.query.filter_by(unique_id=id_hash).first()
+
+    if existing_message:
+        return {"Added":id_hash, "Approved": existing_message.approved}
+    else:
+        new_message = InfoScreenInitMessage(hostname=hostname, ip=ip, unique_id=id_hash)
+        db.session.add(new_message)
+        db.session.commit()
+
+        return {"Added":id_hash, "Approved": False}
+
+        
 
 
 @api_bp.route('/api/send_data')
@@ -65,7 +71,7 @@ def get_current_startlist():
 
 @api_bp.route('/api/get_current_startlist_w_data', methods=['GET'])
 def get_current_startlist_w_data():
-    intel_sort()
+    update_info_screen("2")
     return get_active_startlist_w_timedate()
 
 @api_bp.route('/api/<string:tab_name>', methods=['GET','POST'])

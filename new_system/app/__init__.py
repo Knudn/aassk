@@ -12,7 +12,7 @@ def create_app():
     
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////home/rock/aassk/new_system/site.db'
     app.config['SECRET_KEY'] = 'your_secret_key'
-    
+
     db.init_app(app)
     socketio.init_app(app)
 

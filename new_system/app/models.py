@@ -1,5 +1,6 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, BooleanField, IntegerField
+from sqlalchemy.dialects.postgresql import JSON
 from datetime import datetime
 from app import db
 
@@ -13,13 +14,23 @@ class InfoScreenInitMessage(db.Model):
     def __repr__(self):
         return f'<InitMessage {self.hostname} {self.ip} {self.unique_id} {self.approved}>'
 
-class InfoScreenUrlIndex(db.Model):
+class InfoScreenAssetAssociations(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    url = db.Column(db.String(32), nullable=False)
-    loop = db.Column(db.Boolean, nullable=False)
+    asset = db.Column(db.Integer, nullable=False)
+    infoscreen = db.Column(db.Integer, nullable=False)
+    timer = db.Column(db.Integer)
+    options = db.Column(JSON, nullable=True)
 
     def __repr__(self):
-        return f'<InitMessage {self.unique_id} {self.url} {self.loop}>'
+        return f'<InitMessage {self.asset} {self.infoscreen} {self.timer} {self.options}>'
+    
+class InfoScreenAssets(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(32), nullable=False)
+    asset = db.Column(db.String(256), nullable=False)
+
+    def __repr__(self):
+        return f'<InitMessage {self.asset} {self.name}>'
 
 class ConfigForm(FlaskForm):
     session_name = StringField('Session Name')
@@ -35,10 +46,11 @@ class ConfigForm(FlaskForm):
 class GlobalConfig(db.Model):
     id = db.Column(db.Integer, primary_key=True, default=1)
     session_name = db.Column(db.String(100), nullable=True, default="Åseral")
-    project_dir = db.Column(db.String(100), nullable=True, default="/home/rock/aassk/new_timing_system")
+    project_dir = db.Column(db.String(100), nullable=True, default="/home/rock/aassk/new_system")
     db_location = db.Column(db.String(100), nullable=True, default="/home/rock/aassk/new_system/event_db/")
     event_dir = db.Column(db.String(100), nullable=True, default="/mnt/test/")
     wl_title = db.Column(db.String(100), nullable=True, default="Watercross")
+    infoscreen_asset_path = db.Column(db.String(128), nullable=True, default="/app/static/assets/infoscreen")
     wl_bool = db.Column(db.Boolean, default=True)
     display_proxy = db.Column(db.Boolean, default=True)
     Smart_Sorting = db.Column(db.Boolean, default=False)

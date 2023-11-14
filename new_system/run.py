@@ -20,7 +20,8 @@ def create_tables(app):
                 project_dir = pwd+"/",
                 db_location = pwd+"/data/event_db/",
                 event_dir = "/mnt/test/",
-                wl_title = "Eikerapen"
+                wl_title = "Eikerapen",
+                infoscreen_asset_path="/app/static/assets/infoscreen"
             )
             db.session.add(default_config)
             db.session.commit()
@@ -49,7 +50,9 @@ def create_tables(app):
 
 if __name__ == '__main__':
     app, socketio = create_app()  # Update this line to get both app and socketio
-    
+
+
+
     create_tables(app)
     
     socketio.run(app, debug=True, host="0.0.0.0", port=7777)  # Use socketio.run instead of app.run

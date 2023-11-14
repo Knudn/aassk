@@ -26,6 +26,14 @@ def Get_active_drivers(g_config, event_data_dict):
 
     return active_drivers
 
+def update_info_screen(id):
+    from app import db
+    from app.models import InfoScreenAssetAssociations
+    
+    assets = InfoScreenAssetAssociations.query.filter_by(infoscreen=1)
+
+    for a in assets:
+        print(a)
 
 def GetEnv():
     from app.models import GlobalConfig
@@ -113,11 +121,7 @@ def intel_sort():
                 if str(b.name) in str(a.event_name) and g.name in a.event_name:
                     new_type_dict[b.name].append(a)
 
-
-    tmp_list = []
     count = 1
-
-    
 
     for a in new_type_dict:
         
