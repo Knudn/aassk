@@ -158,9 +158,9 @@ async def startup_event():
     }
     Session = sessionmaker(bind=engine)
     session = Session()
-    flask_app_url = session.query(Config.orchestrator_endpoint).all()
+    flask_app_url = session.query(Config.orchestrator_endpoint).first()
     flask_app_url = flask_app_url + "/api/init"
-    
+
     try:
         response = requests.post(flask_app_url, json=init_msg)
         response.raise_for_status()
