@@ -50,10 +50,17 @@ class Config(Base):
     host_id = Column(String, index=True)
     approved = Column(Boolean)
 
+class Assets(Base):
+    __tablename__ = 'Global_Config'
+    id = Column(Integer, primary_key=True, index=True)
+    url = Column(String, index=True)
+    approved = Column(Boolean)
+
 
 class URLData(BaseModel):
     URL: str
-    
+
+
 # Create the database tables
 Base.metadata.create_all(bind=engine)
 
@@ -111,6 +118,12 @@ async def set_url(url_data: URLData):
 
     return {"message": "URL updated and clients notified"}
 
+
+
+@app.post("/update_index/")
+async def receive_data():
+    # Process the data here
+    return {"message": "Data received", "received_data": data}
 
 @app.on_event("startup")
 async def startup_event():
