@@ -159,7 +159,6 @@ async def startup_event():
     Session = sessionmaker(bind=engine)
     session = Session()
     flask_app_url = session.query(Config.orchestrator_endpoint).first()[0]
-    print(flask_app_url)
     flask_app_url = flask_app_url + "/api/init"
 
     try:
