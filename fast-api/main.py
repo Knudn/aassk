@@ -65,6 +65,10 @@ class URLData(BaseModel):
 # Create the database tables
 Base.metadata.create_all(bind=engine)
 
+def to_dict(row):
+    return {column.name: getattr(row, column.name) for column in row.__table__.columns}
+
+
 # Dependency to get the database session
 def get_db():
     db = SessionLocal()
