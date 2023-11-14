@@ -123,8 +123,7 @@ async def set_url(url_data: URLData):
 @app.post("/update_index/")
 async def receive_data(request: Request):
     data = await request.json()
-    for a in data:
-        print(a)
+    print(data)
     return {"message": "Data received", "received_data": data}
 
 @app.on_event("startup")
