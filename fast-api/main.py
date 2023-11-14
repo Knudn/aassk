@@ -51,7 +51,7 @@ class Config(Base):
     approved = Column(Boolean)
 
 class Assets(Base):
-    __tablename__ = 'Global_Config'
+    __tablename__ = 'Assets'
     id = Column(Integer, primary_key=True, index=True)
     url = Column(String, index=True)
     approved = Column(Boolean)
