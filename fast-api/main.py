@@ -132,7 +132,7 @@ async def receive_data(request: Request, db: Session = Depends(get_db)):
     # Delete existing records
     db.query(Asset).delete()
     db.commit()
-
+ 
     # Insert new data
     for item in data:
         extension = item['url'].lower().split('.')[-1]
