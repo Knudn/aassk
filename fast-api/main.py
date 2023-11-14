@@ -144,7 +144,7 @@ async def receive_data(request: Request, db: Session = Depends(get_db)):
         db.add(new_asset)
     db.commit()
 
-    return {"message": "Data received, old data deleted, new data stored"}
+    return {"message": "Data received, old data deleted, and new data stored"}
 
 @app.get("/current_assets/")
 async def get_current_assets(db: Session = Depends(get_db)):
