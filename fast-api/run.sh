@@ -10,7 +10,7 @@ function check_script_execution() {
         echo "Script has not been executed: Virtual environment 'fastapi_app_env' does not exist."
         return 1
     fi
-    
+
     echo "Script has been executed previously."
     return 0
 }
@@ -24,3 +24,4 @@ if [ $? -eq 1 ]; then
 fi
 
 ./vnc/vnc_config.sh
+python run.sh &
