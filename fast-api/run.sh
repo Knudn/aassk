@@ -11,7 +11,7 @@ function check_script_execution() {
         return 1
     fi
 
-    source fastapi_app_env/bin/activate
+    source ./fastapi_app_env/bin/activate
     if ! pip list | grep -q fastapi || ! pip list | grep -q uvicorn || ! pip list | grep -q sqlalchemy; then
         echo "Script has not been executed: FastAPI, Uvicorn, or SQLAlchemy is not installed in the virtual environment."
         deactivate
