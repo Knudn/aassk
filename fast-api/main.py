@@ -12,11 +12,9 @@ import time
 from typing import List
 import re
 import argparse
-from flask_cors import CORS
 
 
 app = FastAPI()
-CORS(app)
 
 # Database setup
 DATABASE_URL = "sqlite:///./test.db"
