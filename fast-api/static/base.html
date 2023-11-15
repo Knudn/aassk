@@ -37,7 +37,7 @@
         };
 
         const fetchData = async () => {
-            const response = await fetch('http://127.0.0.1:8000/current_assets/');
+            const response = await fetch('/current_assets/');
             displayData = await response.json();
             currentIndex = 0;
             updateIframe();
