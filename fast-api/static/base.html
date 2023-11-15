@@ -45,7 +45,7 @@
         };
 
         const fetchData = async () => {
-            const response = await fetch('API_ENDPOINT_URL'); // Replace with your API endpoint
+            const response = await fetch('http//127.0.0.1:8000/current_assets/'); // Replace with your API endpoint
             displayData = await response.json();
             currentIndex = 0;
             updateIframe();
