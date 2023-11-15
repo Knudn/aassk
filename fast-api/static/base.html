@@ -27,6 +27,26 @@
         let displayData = [];
         const iframe = document.getElementById('scoreboard');
         let loadingContent = false;
+        let socket = new WebSocket("ws://localhost:8000/ws"); // Adjust the WebSocket server URL as needed
+
+        socket.onmessage = function(event) {
+            if (event.data === "update") {
+                fetchData();
+            }
+        };
+
+        socket.onclose = function(event) {
+            if (!event.wasClean) {
+                console.error('WebSocket closed unexpectedly');
+                // Handle the disconnection here
+                // You may want to try to reconnect or display a fallback message
+            }
+        };
+
+        socket.onerror = function(error) {
+            console.error('WebSocket error:', error);
+            // Handle any errors that occur here
+        };
 
         const fetchData = async () => {
             try {
@@ -39,7 +59,6 @@
                 updateDisplay();
             } catch (error) {
                 console.error('Fetch error:', error);
-                // Consider adding a fallback URL or message here
             }
         };
 
@@ -57,7 +76,6 @@
                 };
                 iframe.onerror = () => {
                     console.error('Error loading iframe content');
-                    // Handle iframe loading errors here
                     currentIndex = (currentIndex + 1) % displayData.length;
                     loadingContent = false;
                     updateDisplay();
