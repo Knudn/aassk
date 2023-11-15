@@ -16,6 +16,8 @@
             width: 100%;
             height: 100%;
             border: none;
+            opacity: 0;
+            transition: opacity 1s;
         }
     </style>
 </head>
@@ -23,41 +25,35 @@
     <iframe id="scoreboard" src="__URL_PLACEHOLDER__"></iframe>
 
     <script>
-        let socket = new WebSocket("ws://localhost:8000/ws");
         let currentIndex = 0;
         let displayData = [];
-
-        const updateIframe = () => {
-            const item = displayData[currentIndex];
-            const iframe = document.getElementById('scoreboard');
-            iframe.src = item.url;
-            
-            currentIndex = (currentIndex + 1) % displayData.length;
-            setTimeout(updateIframe, item.timer * 1000);
-        };
+        const iframe = document.getElementById('scoreboard');
 
         const fetchData = async () => {
-            const response = await fetch('http://192.168.20.149:8000/current_assets/'); // Replace with your API endpoint
-            displayData = await response.json();
-            currentIndex = 0;
-            updateIframe();
-        };
-
-        socket.onmessage = function(event) {
-            if (event.data === "update") {
-                fetchData();
+            try {
+                const response = await fetch('http://192.168.20.149:8000/current_assets/'); // Replace with your API endpoint
+                displayData = await response.json();
+                currentIndex = 0;
+                updateDisplay();
+            } catch (error) {
+                console.error('Fetch error:', error);
+                // Handle fetch errors here
             }
         };
 
-        socket.onclose = function(event) {
-            if (!event.wasClean) {
-                // Handle the disconnection
-                // Attempt to reconnect or display a message
+        const updateDisplay = () => {
+            if (displayData.length > 0) {
+                const item = displayData[currentIndex];
+                iframe.style.opacity = 0;
+                setTimeout(() => {
+                    iframe.src = item.url;
+                    iframe.onload = () => {
+                        iframe.style.opacity = 1;
+                        setTimeout(updateDisplay, item.timer * 1000); // Wait for the specified timer before updating
+                    };
+                    currentIndex = (currentIndex + 1) % displayData.length;
+                }, 2000); // Adjust for transition time
             }
-        };
-
-        socket.onerror = function(error) {
-            // Handle any errors that occur.
         };
 
         // Initial fetch on page load
