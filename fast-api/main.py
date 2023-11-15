@@ -18,10 +18,10 @@ app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins
+    allow_origins=["*"],
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # Database setup
@@ -151,6 +151,8 @@ async def receive_data(request: Request, db: Session = Depends(get_db)):
             new_asset = Asset(name=item['name'], url=item['url'], timer=item['timer'])
         db.add(new_asset)
     db.commit()
+
+    await manager.broadcast("update")
 
     return {"message": "Data received, old data deleted, and new data stored"}
 
