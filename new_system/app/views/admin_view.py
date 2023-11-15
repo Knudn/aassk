@@ -1,7 +1,7 @@
 
 from flask import Blueprint, render_template, request, url_for, redirect, flash
 from app.lib.db_operation import *
-from app.lib.utils import GetEnv, intel_sort
+from app.lib.utils import GetEnv, intel_sort, update_info_screen
 import json
 from werkzeug.utils import secure_filename
 
@@ -318,10 +318,11 @@ def infoscreen():
                 new_message = InfoScreenAssetAssociations(asset=asset.id, infoscreen=infoscreen, timer=a["timer"])
                 db.session.add(new_message)
             db.session.commit()
+            update_info_screen(infoscreen)
 
         return {"OP":"None"}
 
-
+    
     info_screen_msg = InfoScreenInitMessage.query.all()
     info_screen_assents = InfoScreenAssets.query.all()
     info_screen_associations = InfoScreenAssetAssociations.query.all()
