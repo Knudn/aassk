@@ -22,7 +22,8 @@ if [ $? -eq 1 ]; then
     ./install.sh
 fi
 
-./vnc/vnc_config.sh
+x11vnc -display :0 -wait 50 -noxdamage -auth guess -viewonly -forever &
+./vnc/novnc_proxy &
 
 # Execute the run.sh script as a Bash script
-./run.sh &
+./run.sh 
