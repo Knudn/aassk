@@ -170,33 +170,39 @@ async def startup_event():
     }
 
     flask_app_url = args.flhost + "/api/init"
+    connected = False
 
-    try:
-        response = requests.post(flask_app_url, json=init_msg)
-        response.raise_for_status()
-        print(f"Initialization message sent successfully: {response.text}")
+    while not connected:
+        try:
+            response = requests.post(flask_app_url, json=init_msg)
+            response.raise_for_status()
+            print(f"Initialization message sent successfully: {response.text}")
 
-        with SessionLocal() as db:
-            existing_config = db.query(Config).first()
-            if existing_config:
-                existing_config.host_id = hostname
-                existing_config.approved = False
-                db.commit()
-                if not existing_config.approved:
-                    print(monitor_not_approved_path)
-                    #open_chromium_with_message(monitor_not_approved_path)
-                    open_chromium_with_message(html_file_path)
-            else:
-                new_config = Config(host_id=hostname, approved=False)
-                db.add(new_config)
-                db.commit()
-                open_chromium_with_message(no_endpoint_path)
-                
-                
-    except requests.exceptions.RequestException as e:
-        print(f"Failed to send initialization message: {e}")
-        open_chromium_with_message(no_endpoint_path)
-        time.sleep(1)
+            with SessionLocal() as db:
+                existing_config = db.query(Config).first()
+                if existing_config:
+                    existing_config.host_id = hostname
+                    existing_config.approved = False
+                    db.commit()
+                    if not existing_config.approved:
+                        print(monitor_not_approved_path)
+                        #open_chromium_with_message(monitor_not_approved_path)
+                        open_chromium_with_message(html_file_path)
+                else:
+                    new_config = Config(host_id=hostname, approved=False)
+                    db.add(new_config)
+                    db.commit()
+                    open_chromium_with_message(no_endpoint_path)
+            
+            connected = True  # Connection was successful, exit loop
+
+        except requests.exceptions.RequestException as e:
+            print(f"Failed to send initialization message: {e}")
+            open_chromium_with_message(no_endpoint_path)
+            time.sleep(10)  # Wait for 10 seconds before retrying
+
+    # Additional code or functions can be added here if needed
+
         
 @app.get("/")
 async def root():
