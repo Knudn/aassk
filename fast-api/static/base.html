@@ -16,6 +16,8 @@
             width: 100%;
             height: 100%;
             border: none;
+            opacity: 0;
+            transition: opacity 1s;
         }
     </style>
 </head>
@@ -26,34 +28,52 @@
         let currentIndex = 0;
         let displayData = [];
         const iframe = document.getElementById('scoreboard');
-        let loadingContent = false; // New variable to track loading status
+        let socket = new WebSocket("ws://localhost:8000/ws");
 
         const fetchData = async () => {
             try {
-                const response = await fetch('http://192.168.20.149:8000/current_assets/');
+                const response = await fetch('API_ENDPOINT_URL'); // Replace with your API endpoint
                 displayData = await response.json();
                 currentIndex = 0;
                 updateDisplay();
             } catch (error) {
                 console.error('Fetch error:', error);
+                // Handle fetch errors here
             }
         };
 
         const updateDisplay = () => {
-            if (displayData.length > 0 && !loadingContent) { // Check if not already loading content
+            if (displayData.length > 0) {
                 const item = displayData[currentIndex];
-                iframe.src = item.url + "?nocache=" + new Date().getTime(); // Adding a cache buster
-                loadingContent = true; // Set loading to true
-                iframe.onload = () => {
-                    setTimeout(() => {
-                        currentIndex = (currentIndex + 1) % displayData.length;
-                        loadingContent = false; // Reset loading status
-                        updateDisplay();
-                    }, item.timer * 1000);
-                };
+                iframe.style.opacity = 0;
+                setTimeout(() => {
+                    iframe.src = item.url;
+                    iframe.onload = () => {
+                        iframe.style.opacity = 1;
+                        setTimeout(updateDisplay, item.timer * 1000); // Wait for the specified timer before updating
+                    };
+                    currentIndex = (currentIndex + 1) % displayData.length;
+                }, 1000); // Adjust for transition time
             }
         };
 
+        socket.onmessage = function(event) {
+            if (event.data === "update") {
+                fetchData();
+            }
+        };
+
+        socket.onclose = function(event) {
+            if (!event.wasClean) {
+                // Handle the disconnection, attempt to reconnect or display a message
+            }
+        };
+
+        socket.onerror = function(error) {
+            // Handle any errors that occur with the WebSocket
+        };
+
+        // Initial fetch on page load
         fetchData();
     </script>
 </body>
