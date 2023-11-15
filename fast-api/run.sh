@@ -15,7 +15,7 @@ function check_script_execution() {
     return 0
 }
 
-check_script_execution
+check_script_execution &
 
 source ./fastapi_app_env/bin/activate
 
