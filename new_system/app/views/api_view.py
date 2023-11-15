@@ -73,7 +73,7 @@ def get_current_startlist():
 
 @api_bp.route('/api/get_current_startlist_w_data', methods=['GET'])
 def get_current_startlist_w_data():
-    update_info_screen("2")
+    
     return get_active_startlist_w_timedate()
 
 @api_bp.route('/api/<string:tab_name>', methods=['GET','POST'])
