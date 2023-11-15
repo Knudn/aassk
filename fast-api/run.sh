@@ -17,7 +17,6 @@ function check_script_execution() {
 
 check_script_execution &
 
-
 source ./fastapi_app_env/bin/activate
 if [ $? -eq 1 ]; then
     ./install.sh
@@ -25,5 +24,5 @@ fi
 
 ./vnc/vnc_config.sh
 
-
-python ./run.sh &
+# Execute the run.sh script as a Bash script
+./run.sh &
