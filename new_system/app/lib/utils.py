@@ -9,9 +9,7 @@ import requests
 def Check_Event(event):
     from app.models import ActiveEvents
     from app import db as my_db
-
     event_query = ActiveEvents.query.filter(ActiveEvents.event_file.like(event[0]["db_file"][-15:].replace(".sqlite",""))).all()
-    print(event_query)
     if len(event_query) == 0:
         return False
     else:
@@ -20,12 +18,27 @@ def Check_Event(event):
 def Get_active_drivers(g_config, event_data_dict):
     with sqlite3.connect(g_config["project_dir"]+"site.db") as conn:
         cursor = conn.cursor()
-        print(event_data_dict["MODE"])
         if event_data_dict["MODE"] == 3 or event_data_dict["MODE"] == 2:
             active_drivers_sql = cursor.execute("SELECT D1, D2 FROM active_drivers").fetchall()
             active_drivers = {"D1":active_drivers_sql[0][0],"D2":active_drivers_sql[0][1]}
 
     return active_drivers
+
+def export_events():
+    from app.models import ActiveEvents
+
+    g_config = GetEnv()
+
+    events = ActiveEvents.query.order_by(ActiveEvents.sort_order).all()
+    for a in events:
+        print(a)
+    data = []
+    for a in events:
+        event= [{'db_file':g_config["db_location"]+str(a.event_file)+".sqlite", 'SPESIFIC_HEAT':a.run}]
+        data.append(format_startlist(event,True))
+
+    return data
+
 
 def update_info_screen(id):
     from app import db
@@ -178,9 +191,7 @@ def intel_sort():
 def format_startlist(event,include_timedata=False):
     import json
     g_config = GetEnv()
-
-    
-
+    print(event)
     if Check_Event(event) == True:
         with sqlite3.connect(event[0]["db_file"]) as conn:
             cursor = conn.cursor()

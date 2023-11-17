@@ -8,3 +8,7 @@ board_bp = Blueprint('board', __name__)
 @board_bp.route('/board/test')
 def board():
     return render_template('board/test.html')
+
+@board_bp.route('/board/scoreboard')
+def scoreboard():
+    return render_template('board/scoreboard.html')

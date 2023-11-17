@@ -3,7 +3,7 @@ import sqlite3
 from app.lib.db_operation import reload_event as reload_event_func
 from app.lib.db_operation import update_active_event_stats, get_active_startlist, get_active_startlist_w_timedate
 from app import socketio
-from app.lib.utils import intel_sort, update_info_screen
+from app.lib.utils import intel_sort, update_info_screen, export_events
 
 
 
@@ -60,11 +60,20 @@ def active_event_update():
     send_data_to_room(get_active_startlist())
     return "Updated"
 
-
-
 @api_bp.route('/api/update_active_startlist', methods=['GET'])
 def update_active_startlist():
     return "Method not allowed"
+
+@api_bp.route('/api/export', methods=['GET'])
+def export():
+    events = request.args.get('events', default=None)
+    if events == 'all':
+        
+        return export_events()
+    elif events == 'active':
+        return get_active_startlist_w_timedate()
+    else:
+        return 'No events parameter provided'
 
 @api_bp.route('/api/get_current_startlist', methods=['GET'])
 def get_current_startlist():

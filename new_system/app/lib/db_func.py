@@ -4,6 +4,13 @@ import random
 import os
 from app.lib.utils import GetEnv
 from typing import List, Dict, Union, Tuple
+from datetime import datetime, timedelta
+
+def timevalue_convert(dateint):
+
+    base_date = datetime(1900, 1, 1)
+    actual_date = base_date + timedelta(days=dateint - 2)
+    return actual_date.strftime("%Y-%m-%d")
 
 def map_database_files(global_config, Event=None, event_only=False):
     
@@ -33,27 +40,28 @@ def map_database_files(global_config, Event=None, event_only=False):
                     
 
                     cursor = conn.cursor()
-                    cursor.execute("SELECT C_VALUE FROM TPARAMETERS WHERE C_PARAM='MODULE' OR C_PARAM='TITLE1' OR C_PARAM='TITLE2' OR C_PARAM='HEAT_NUMBER';")
+                    cursor.execute("SELECT C_VALUE FROM TPARAMETERS WHERE C_PARAM='DATE' OR C_PARAM='MODULE' OR C_PARAM='TITLE1' OR C_PARAM='TITLE2' OR C_PARAM='HEAT_NUMBER';")
                     rows = cursor.fetchall()
                     
-
                     cursor.execute("SELECT C_NUM, C_FIRST_NAME, C_LAST_NAME, C_CLUB, C_TEAM FROM TCOMPETITORS;")
                     driver_rows = cursor.fetchall()
-                    if len(rows) >= 4:
+                    if len(rows) >= 5:
+                        print(rows)
                         if wh_check == False:
-                            db_data.append({"db_file":filename[:-5],"MODE":rows[1][0],"TITLE1":rows[2][0],"TITLE2":rows[3][0],"HEATS":rows[0][0]})
+                            datevalue = timevalue_convert(int(rows[0][0]))
+                            db_data.append({"db_file":filename[:-5],"MODE":rows[2][0],"TITLE1":rows[3][0],"TITLE2":rows[4][0],"HEATS":rows[0][0], "DATE":datevalue})
                             if driver_rows:
                                 for b in driver_rows:
                                     driver_db_data.setdefault(filename[:-5], []).append({"CID": b[0], "FIRST_NAME": b[1], "LAST_NAME": b[2], "CLUB": b[3], "SNOWMOBILE": b[4]})
                             else:
                                 pass
-                        elif wh_title.upper() in str(rows[2][0]).upper():
-                            db_data.append({"db_file":filename[:-5],"MODE":rows[1][0],"TITLE1":rows[2][0],"TITLE2":rows[3][0],"HEATS":rows[0][0]})
+                        elif wh_title.upper() in str(rows[3][0]).upper():
+                            datevalue = timevalue_convert(int(rows[0][0]))
+
+                            db_data.append({"db_file":filename[:-5],"MODE":rows[2][0],"TITLE1":rows[3][0],"TITLE2":rows[4][0],"HEATS":rows[0][0], "DATE":datevalue})
                             if driver_rows and event_only == False:
                                 for b in driver_rows:
                                     driver_db_data.setdefault(filename[:-5], []).append({"CID": b[0], "FIRST_NAME": b[1], "LAST_NAME": b[2], "CLUB": b[3], "SNOWMOBILE": b[4]})
-                            else:
-                                pass
 
     return db_data, driver_db_data
 
@@ -71,7 +79,8 @@ def init_database(event_files, driver_db_data, g_config, init_mode=True, exclude
                     RUNS INTEGER,
                     DB_FILE TEXT,
                     TITLE1 TEXT,
-                    TITLE2 TEXT
+                    TITLE2 TEXT,
+                    DATE
                 )
                 ''')
 
@@ -87,8 +96,8 @@ def init_database(event_files, driver_db_data, g_config, init_mode=True, exclude
 
                 #Replace or insert event
                 cursor.execute('''
-                REPLACE INTO db_index (MODE, RUNS, DB_FILE, TITLE1, TITLE2) VALUES (?, ?, ?, ?, ?)
-                ''', (entry["MODE"], entry["HEATS"], entry["db_file"], entry["TITLE1"], entry["TITLE2"]))
+                REPLACE INTO db_index (MODE, RUNS, DB_FILE, TITLE1, TITLE2, DATE) VALUES (?, ?, ?, ?, ?, ?)
+                ''', (entry["MODE"], entry["HEATS"], entry["db_file"], entry["TITLE1"], entry["TITLE2"], entry["DATE"]))
 
                 print("Added:", entry["db_file"], entry["MODE"])
 
