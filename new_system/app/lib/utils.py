@@ -197,8 +197,8 @@ def format_startlist(event,include_timedata=False):
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM startlist_r{0};".format(event[0]["SPESIFIC_HEAT"]))
             startlist_data = cursor.fetchall()
-            event_data = cursor.execute("SELECT MODE, RUNS, TITLE1, TITLE2 FROM db_index;").fetchall()
-            event_data_dict={"MODE":event_data[0][0],"HEATS":event_data[0][1], "HEAT":int(event[0]["SPESIFIC_HEAT"]),"TITLE_1":event_data[0][2], "TITLE_2":event_data[0][3]}
+            event_data = cursor.execute("SELECT MODE, RUNS, TITLE1, TITLE2, DATE FROM db_index;").fetchall()
+            event_data_dict={"MODE":event_data[0][0],"HEATS":event_data[0][1], "HEAT":int(event[0]["SPESIFIC_HEAT"]),"TITLE_1":event_data[0][2], "TITLE_2":event_data[0][3], "DATE":event_data[0][4]}
 
             cursor.execute("SELECT * FROM drivers")
             drivers_data = cursor.fetchall()

@@ -45,11 +45,10 @@ def map_database_files(global_config, Event=None, event_only=False):
                     
                     cursor.execute("SELECT C_NUM, C_FIRST_NAME, C_LAST_NAME, C_CLUB, C_TEAM FROM TCOMPETITORS;")
                     driver_rows = cursor.fetchall()
-                    if len(rows) >= 5:
-                        print(rows)
+                    if len(rows) >= 4:
                         if wh_check == False:
                             datevalue = timevalue_convert(int(rows[0][0]))
-                            db_data.append({"db_file":filename[:-5],"MODE":rows[2][0],"TITLE1":rows[3][0],"TITLE2":rows[4][0],"HEATS":rows[0][0], "DATE":datevalue})
+                            db_data.append({"db_file":filename[:-5],"MODE":rows[2][0],"TITLE1":rows[3][0],"TITLE2":rows[4][0],"HEATS":rows[1][0], "DATE":datevalue})
                             if driver_rows:
                                 for b in driver_rows:
                                     driver_db_data.setdefault(filename[:-5], []).append({"CID": b[0], "FIRST_NAME": b[1], "LAST_NAME": b[2], "CLUB": b[3], "SNOWMOBILE": b[4]})
@@ -57,8 +56,7 @@ def map_database_files(global_config, Event=None, event_only=False):
                                 pass
                         elif wh_title.upper() in str(rows[3][0]).upper():
                             datevalue = timevalue_convert(int(rows[0][0]))
-
-                            db_data.append({"db_file":filename[:-5],"MODE":rows[2][0],"TITLE1":rows[3][0],"TITLE2":rows[4][0],"HEATS":rows[0][0], "DATE":datevalue})
+                            db_data.append({"db_file":filename[:-5],"MODE":rows[2][0],"TITLE1":rows[3][0],"TITLE2":rows[4][0],"HEATS":rows[1][0], "DATE":datevalue})
                             if driver_rows and event_only == False:
                                 for b in driver_rows:
                                     driver_db_data.setdefault(filename[:-5], []).append({"CID": b[0], "FIRST_NAME": b[1], "LAST_NAME": b[2], "CLUB": b[3], "SNOWMOBILE": b[4]})
