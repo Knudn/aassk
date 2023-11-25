@@ -14,8 +14,7 @@ class RaceDay(Base):
 class Drivers(Base):
     __tablename__ = 'drivers'
     id = Column(Integer, primary_key=True)
-    first_name = Column(String)
-    last_name = Column(String)
+    name = Column(String)
     club = Column(String)
 
 class Race(Base):

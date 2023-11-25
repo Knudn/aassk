@@ -86,8 +86,8 @@ def fix_names(first_name, last_name, club):
         first_name = "Preben Bjørnestad"
         last_name = "Knabenes"
 
-
-    return first_name, last_name, club
+    name = first_name + " " + last_name 
+    return name, club
 
 def get_db():
     db = SessionLocal()
@@ -106,8 +106,7 @@ async def get_drivers(db: Session = Depends(get_db)):
     # Convert each tuple into a dictionary
     results_list = [
         {
-            "first_name": row[1],
-            "last_name": row[2],
+            "Name": row[1],
         } for row in rows
     ]
 
@@ -193,10 +192,10 @@ async def upload_data(request: Request):
 
             #Adding driver names
             for b in a[h]["drivers"]:
-                first_name, last_name, club = fix_names(b["first_name"],b["last_name"],b["club"])
-                race_name = db.query(Drivers).filter(and_(Drivers.first_name == first_name, Drivers.last_name == last_name)).first()
+                name, club = fix_names(b["first_name"],b["last_name"],b["club"])
+                race_name = db.query(Drivers).filter(and_(Drivers.name == name)).first()
                 if race_name == None:
-                    new_entry = Drivers(first_name=first_name, last_name=last_name, club=club)
+                    new_entry = Drivers(name=name, club=club)
                     db.add(new_entry)
                     db.commit()
                     db.refresh(new_entry)
@@ -215,9 +214,9 @@ async def upload_data(request: Request):
             for k, b in enumerate(a[h]["drivers"]):
 
                 pair_id = a[h]["race_id"]
-                first_name, last_name, club = fix_names(b["first_name"],b["last_name"],b["club"])
+                name, club = fix_names(b["first_name"],b["last_name"],b["club"])
 
-                driver_id = db.query(Drivers).filter(and_(Drivers.first_name == first_name, Drivers.last_name == last_name)).first()
+                driver_id = db.query(Drivers).filter(and_(Drivers.name == name)).first()
                 k += 1
 
                 finishtime = b["time_info"]["FINISHTIME"]
