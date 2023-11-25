@@ -27,25 +27,19 @@ class Race(Base):
     mode = Column(Integer)
     raceday = relationship("RaceDay", back_populates="races")
 
-class Mode0Races(Base):
-    __tablename__ = 'mode0races'
+class Run(Base):
+    __tablename__ = 'run'
     id = Column(Integer, primary_key=True)
     race_id = Column(Integer, ForeignKey('races.id'))
-    d1_finishtime = Column(Integer)
-    d1_inter_1 = Column(Integer)
-    d1_inter_2 = Column(Integer)
-    d1_penalty = Column(Integer)  
-    d1_speed = Column(Integer)
-    d1_vehicle = Column(String)
+    driver_id = Column(Integer, ForeignKey('drivers.id'))
+    run_id = Column(Integer)
+    pair_id = Column(Integer)
+    finishtime = Column(Integer)
+    inter_1 = Column(Integer)
+    inter_2 = Column(Integer)
+    penalty = Column(Integer)  
+    speed = Column(Integer)
+    vehicle = Column(String)
+    status = Column(Integer) 
     race = relationship("Race")
-
-class Mode2Races(Mode0Races):
-    __tablename__ = 'mode2races'
-    id = Column(Integer, ForeignKey('mode0races.id'), primary_key=True)
-    d2_finishtime = Column(Integer)
-    d2_inter_1 = Column(Integer)
-    d2_inter_2 = Column(Integer)
-    d2_penalty = Column(Integer) 
-    d2_speed = Column(Integer)
-    d2_vehicle = Column(String)
-
+    drivers = relationship("Drivers")
