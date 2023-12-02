@@ -6,6 +6,9 @@ import sys
 import sqlite3
 import requests
 
+def object_to_dict(obj):
+    return {attr: getattr(obj, attr) for attr in dir(obj) if not attr.startswith('_') and not callable(getattr(obj, attr))}
+
 def Check_Event(event):
     from app.models import ActiveEvents
     from app import db as my_db
@@ -257,24 +260,36 @@ def format_startlist(event,include_timedata=False):
 
                         drivers_in_race.append(driver_info)
 
-
-                        if len(drivers_in_race) == 2 and (event_data_dict["MODE"] == 3 or event_data_dict["MODE"] == 2):
-                            if "status" in drivers_in_race[0] and drivers_in_race[1]["time_info"]["FINISHTIME"] > 0:
-                                drivers_in_race[1]["status"] = 1
-                                drivers_in_race[0]["status"] = 2
+                        if event_data_dict["MODE"] == 3 or event_data_dict["MODE"] == 2:
+                            if len(drivers_in_race) == 2:
+                                if drivers_in_race[0]["time_info"]["PENELTY"] > 0:
+                                    drivers_in_race[1]["status"] = 1
+                                    drivers_in_race[0]["status"] = 2
                                 
-                            elif "status" in drivers_in_race[1] and drivers_in_race[0]["time_info"]["FINISHTIME"] > 0:
-                                drivers_in_race[0]["status"] = 1
-                                drivers_in_race[1]["status"] = 2
+                                elif drivers_in_race[1]["time_info"]["PENELTY"] > 0:
+                                    drivers_in_race[0]["status"] = 1
+                                    drivers_in_race[1]["status"] = 2
 
-                            if drivers_in_race[0]["time_info"]["FINISHTIME"] < drivers_in_race[1]["time_info"]["FINISHTIME"] and not "status" in drivers_in_race[0]:
+                                if "status" in drivers_in_race[0] and drivers_in_race[1]["time_info"]["FINISHTIME"] > 0:
+                                    drivers_in_race[1]["status"] = 1
+                                    drivers_in_race[0]["status"] = 2
+                                    
+                                elif "status" in drivers_in_race[1] and drivers_in_race[0]["time_info"]["FINISHTIME"] > 0:
+                                    drivers_in_race[0]["status"] = 1
+                                    drivers_in_race[1]["status"] = 2
+                                
 
-                                drivers_in_race[0]["status"] = 1
-                                drivers_in_race[1]["status"] = 2
+                                if drivers_in_race[0]["time_info"]["FINISHTIME"] < drivers_in_race[1]["time_info"]["FINISHTIME"] and not "status" in drivers_in_race[0]:
 
-                            elif drivers_in_race[0]["time_info"]["FINISHTIME"] > drivers_in_race[1]["time_info"]["FINISHTIME"] and not "status" in drivers_in_race[1]:
-                                drivers_in_race[1]["status"] = 1
-                                drivers_in_race[0]["status"] = 2
+                                    drivers_in_race[0]["status"] = 1
+                                    drivers_in_race[1]["status"] = 2
+
+                                elif drivers_in_race[0]["time_info"]["FINISHTIME"] > drivers_in_race[1]["time_info"]["FINISHTIME"] and not "status" in drivers_in_race[1]:
+                                    drivers_in_race[1]["status"] = 1
+                                    drivers_in_race[0]["status"] = 2
+
+                        elif event_data_dict["MODE"] == 0:
+                            race_id = int(event[0]["SPESIFIC_HEAT"])
 
                 race_info = {
                     "race_id": race_id,

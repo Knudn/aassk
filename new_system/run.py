@@ -1,5 +1,5 @@
 from app import create_app, db, socketio  # Notice the added socketio import
-from app.models import GlobalConfig, ActiveDrivers
+from app.models import GlobalConfig, ActiveDrivers, SpeakerPageSettings
 from app.lib.db_operation import update_active_event
 import os
 from app.lib.utils import manage_process, GetEnv
@@ -12,6 +12,7 @@ def create_tables(app):
 
         GlobalConfig_db = GlobalConfig.query.get(1)
         ActiveDrivers_db = ActiveDrivers.query.get(1)
+        SpeakerPageSettings_db = SpeakerPageSettings.query.get(1)
 
         # If the database do not exist, it will be created here
         if GlobalConfig_db is None:
@@ -22,6 +23,13 @@ def create_tables(app):
                 event_dir = "/mnt/test/",
                 wl_title = "Eikerapen",
                 infoscreen_asset_path="/app/static/assets/infoscreen"
+            )
+            db.session.add(default_config)
+            db.session.commit()
+
+        if SpeakerPageSettings_db is None:
+            default_config = SpeakerPageSettings(
+                match_parrallel = False,
             )
             db.session.add(default_config)
             db.session.commit()

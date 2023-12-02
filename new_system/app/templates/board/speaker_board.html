@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Race Commentary Information</title>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">    
+
+
+
+  <style>
+    .driver-container {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+    .driver {
+      width: 48%;
+      border: 1px solid black;
+      padding: 10px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .driver-info {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+    .driver-details {
+      margin-top: 10px;
+      font-size: 0.9em;
+      text-align: center;
+    }
+    .drivername {
+        font-size: x-large;
+    }
+    .race-entry {
+    margin-bottom: 10px;
+    padding: 10px;
+}
+
+
+.date-title-group {
+    width: 100%;
+    margin-bottom: 15px;
+}
+
+.date-group {
+    width: 100%;
+    margin-bottom: 15px;
+    font-size: 1.2em;
+}
+
+.race-entry {
+    
+    padding: 0px;
+}
+
+.date-title {
+    text-align: center;
+    font-weight: bold;
+    margin-bottom: 10px;
+}
+
+.table {
+    text-align: center;
+}
+
+.driver-details {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.driver-left, .driver-right {
+    width: 45%;
+    padding: 5px;
+    text-align: center;
+}
+
+.driver-separator {
+    width: 10%;
+    font-weight: bold;
+}
+
+.winner {
+    background-color: rgba(37, 255, 37, 0.658);
+    color: rgb(0, 0, 0);
+}
+
+.loser {
+    background-color: rgba(255, 48, 48, 0.623);
+    color: rgb(0, 0, 0);
+}
+
+.top-driver-match {
+    background-color: aqua;
+}
+
+/* Additional styling as needed */
+
+/* Additional styling as needed */
+
+
+
+  </style>
+</head>
+<body>
+  <div class="driver-container">
+    <div id="left-driver" class="driver"></div>
+    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal">
+        <span id="boot-icon" class="bi bi-gear" style="font-size: 28px; opacity: 1; -webkit-text-stroke-width: 0px;"></span>
+    </button>    <div id="right-driver" class="driver"></div>
+  </div>
+
+  <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="exampleModalLabel">Speaker page settings</h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <div class="modal-body">
+            <div class="form-check">
+                {% if SpeakerPageConfig_json.matching_parallel == False %}
+                <input class="form-check-input" type="checkbox" value="True" id="matching_parallel">
+                {% else %}
+                <input class="form-check-input" type="checkbox" value="True" id="matching_parallel" checked>
+                {% endif %}
+                
+                <label class="form-check-label" for="matching_parallel">
+                    Only display matching parallel races
+                </label>
+                </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          <button type="button" class="btn btn-primary" id="saveChanges">Save Changes</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    //Save changes inserted to model
+    $(document).ready(function() {
+        $('#saveChanges').click(function() {
+            // Collect the new settings data
+            var isCheckboxChecked = $('#matching_parallel').prop('checked');
+            console.log(isCheckboxChecked)
+            var settingsData = {
+                matchingParallel: isCheckboxChecked
+            };
+    
+            // Send the data to the server
+            $.ajax({
+                url: '/board/speaker',  // Replace with your API endpoint
+                type: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(settingsData),
+                success: function(response) {
+                    // Handle success response
+                    console.log('Settings updated:', response);
+                    // Reload the page
+                    location.reload();
+                },
+                error: function(xhr, status, error) {
+                    // Handle error response
+                    console.error('Update failed:', status, error);
+                }
+            });
+        });
+    });
+    </script>
+    
+    <script>
+        {% if SpeakerPageConfig_json.matching_parallel == True %}
+            let parallel_only = true;
+        {% else %}
+            let parallel_only = false;
+        {% endif %}
+        </script>
+  <script>
+
+
+    $(document).ready(function() {
+        // API call to fetch initial data
+        $.ajax({
+            url: 'http://192.168.1.50:7777/api/get_current_startlist_w_data', // API URL
+            type: 'GET',
+            success: function(data) {
+                displayActiveDrivers(data);
+            },
+            error: function() {
+                console.log('Error fetching data from API');
+            }
+        });
+
+        // WebSocket implementation
+        const socket = new WebSocket('ws://your-websocket-url'); // Replace with your WebSocket URL
+        socket.onmessage = function(event) {
+            var newData = JSON.parse(event.data);
+            displayActiveDrivers(newData);
+        };
+
+        // Function to display active drivers
+async function displayActiveDrivers(data) {
+    var activeDrivers = data.filter(item => item.drivers)
+                            .flatMap(item => item.drivers)
+                            .filter(driver => driver.active);
+
+    var leftDriver = activeDrivers[0] || {};
+    var rightDriver = activeDrivers[1] || {};
+
+    var left_driver_name = (leftDriver.first_name + " " + leftDriver.last_name);
+    var right_driver_name = (rightDriver.first_name + " " + rightDriver.last_name);
+
+    $('#left-driver').html(formatDriverInfo(leftDriver));
+    $('#right-driver').html(formatDriverInfo(rightDriver));
+
+    try {
+        // Load and append snowmobile models
+        const leftSnomobileModels = await get_snomobile_models(left_driver_name);
+        $('#left-driver').append(display_snowmobile_models(leftSnomobileModels));
+
+        const rightSnomobileModels = await get_snomobile_models(right_driver_name);
+        $('#right-driver').append(display_snowmobile_models(rightSnomobileModels));
+
+        // Load and append ladder data
+        const leftLadderData = await get_ladder_data(left_driver_name);
+        $('#left-driver').append(display_parallel_history(leftLadderData, left_driver_name, right_driver_name));
+
+        const rightLadderData = await get_ladder_data(right_driver_name);
+        $('#right-driver').append(display_parallel_history(rightLadderData, left_driver_name, right_driver_name));
+    } catch (error) {
+        console.error(error);
+        // Handle errors
+    }
+}
+
+
+        // Function to format driver information
+        function formatDriverInfo(driver) {
+            if (!driver.first_name) {
+                return '<p>No active driver</p>';
+            }
+            var finishTime = (driver.time_info && driver.time_info.FINISHTIME > 0) 
+                             ? (driver.time_info.FINISHTIME / 1000).toFixed(2) + ' seconds' 
+                             : 'N/A';
+
+            
+
+            return `<div class="driver-info">
+                      <div id=drivername>
+                        <h3>${driver.first_name} ${driver.last_name}</h3>
+                      </div>
+                      <div class="driver-details">
+                        <p>Club: ${driver.club}</p>
+                        <p>Vehicle: ${driver.vehicle}</p>
+                        <p>Finish Time: ${finishTime}</p>
+                      </div>
+                    </div>`;
+        }
+    });
+    function get_ladder_data(driver_name) {
+    return new Promise((resolve, reject) => {
+        $.ajax({
+            url: `http://192.168.1.50:8001/get_parallel_results/${driver_name}`,
+            type: 'GET',
+            success: function(data) {
+                resolve(data);
+            },
+            error: function() {
+                reject('Error fetching ladder data');
+            }
+        });
+    });
+}
+
+function get_snomobile_models(driver_name) {
+    return new Promise((resolve, reject) => {
+        $.ajax({
+            url: `http://192.168.1.50:8001/snowmobiles/${driver_name}`,
+            type: 'GET',
+            success: function(data) {
+                resolve(data);
+            },
+            error: function() {
+                reject('Error fetching snowmobile models');
+            }
+        });
+    });
+}
+
+
+function display_parallel_history(data, topDriver1, topDriver2) {
+    // Group data by date and title_day
+    var groupedByDateAndTitle = data.reduce(function (acc, item) {
+        var groupKey = item.date + ' - ' + item.title_day + ' ' + item.title;
+        acc[groupKey] = acc[groupKey] || [];
+        acc[groupKey].push(item);
+        return acc;
+    }, {});
+
+    // Sort keys in descending order of date
+    var sortedKeys = Object.keys(groupedByDateAndTitle).sort(function(a, b) {
+        return new Date(b.split(' - ')[0]) - new Date(a.split(' - ')[0]);
+    });
+
+    var displayHTML = "";    
+
+    // Iterate over each group and create HTML
+    sortedKeys.forEach(function(key) {
+        let count = 0;
+        groupedByDateAndTitle[key].forEach(function(item) {
+            var isTopDriverMatch = (item.d1_name === topDriver1 && item.d2_name === topDriver2) || (item.d1_name === topDriver2 && item.d2_name === topDriver1);
+            let key_len = groupedByDateAndTitle[key].length
+
+            if (isTopDriverMatch || parallel_only == false) {
+
+            
+
+            console.log(groupedByDateAndTitle[key].length)
+
+            if (count == 0) {
+                displayHTML += "<div class='date-title-group'>";
+                displayHTML += "<div class='date-title'>" + key + "</div>";
+            }
+            
+            var rowClass = isTopDriverMatch ? 'top-driver-match' : '';
+
+            
+            displayHTML += "<div class='race-entry " + rowClass + "'>";
+            displayHTML += "<div class='driver-details'>";
+            displayHTML += "<div class='driver-left " + (item.d2_result === "Loser" ? "loser" : "winner") + "'>" + item.d2_name + " - " + item.d2_finishtime + "</div>";
+            displayHTML += "<div class='driver-separator'><></div>";
+            displayHTML += "<div class='driver-right " + (item.d1_result === "Loser" ? "loser" : "winner") + "'>" + item.d1_name + " - " + item.d1_finishtime + "</div>";
+            displayHTML += "</div>";
+            displayHTML += "</div>";
+            
+            if (count == (key_len - 1)) {
+                displayHTML += "</div>"; 
+            }
+            count += 1;
+        }
+        });
+        
+
+    });
+
+    
+    return displayHTML;
+}
+
+function display_snowmobile_models(data) {
+    // Iterate over each group and create HTML
+    var displayHTML = "";
+    displayHTML += "<table class='table'>";
+    displayHTML += "<thead>";
+    displayHTML += "<tr>";
+    displayHTML += "<th scope='col'>Dato</th>";
+    displayHTML += "<th scope='col'>Skuter</th>";
+    displayHTML += "</tr>";
+    displayHTML += "</thead>";
+    displayHTML += "<tbody>";
+    
+    data.forEach(function(key) {
+        displayHTML += "<tr>";
+        displayHTML += "<td>"+ <b> + key.date + </b> + ": " + key.raceday + "</td>";
+        displayHTML += "<td>"+ key.snowmobile +"</td>";
+        displayHTML += "</tr>";
+    });
+
+    displayHTML += "</tbody>";
+    displayHTML += "</table>";
+
+    return displayHTML;
+}
+
+  </script>
+</body>
+</html>

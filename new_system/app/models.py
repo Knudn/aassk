@@ -14,6 +14,22 @@ class InfoScreenInitMessage(db.Model):
     def __repr__(self):
         return f'<InitMessage {self.hostname} {self.ip} {self.unique_id} {self.approved}>'
 
+class SpeakerPageSettings(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    match_parrallel = db.Column(db.Boolean, default=False)
+
+    def __repr__(self):
+        return f'<InitMessage {self.id} {self.match_parrallel}>'
+
+class archive_server(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    hostname = db.Column(db.String(128), nullable=False)
+    auth_token = db.Column(db.String(128), nullable=False)
+    use_use_token = db.Column(db.Boolean, default=False)
+
+    def __repr__(self):
+        return f'<archive_server {self.id} {self.hostname} {self.auth_token} {self.use_use_token}>'
+
 class InfoScreenAssetAssociations(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     asset = db.Column(db.Integer, nullable=False)

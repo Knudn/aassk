@@ -1,9 +1,10 @@
 
 from flask import Blueprint, render_template, request, url_for, redirect, flash
 from app.lib.db_operation import *
-from app.lib.utils import GetEnv, intel_sort, update_info_screen
+from app.lib.utils import GetEnv, intel_sort, update_info_screen, export_events
 import json
 from werkzeug.utils import secure_filename
+import requests
 
 
 admin_bp = Blueprint('admin', __name__)
@@ -26,6 +27,8 @@ def admin(tab_name):
         return active_events_driver_data()
     elif tab_name == 'msport_proxy':
         return msport_proxy()
+    elif tab_name == 'export':
+        return export_data()
     else:
         return "Invalid tab", 404
 
@@ -276,7 +279,6 @@ def infoscreen():
             if url:                
                 return 'URL saved successfully'
             return 'No valid asset provided'
-        print(request.get_json())
         if request.get_json()["operation"] == 1:
             print("asd")
             id = request.get_json()["id"]
@@ -300,7 +302,6 @@ def infoscreen():
             return {"OP":"Done"}
         
         elif request.get_json()["operation"] == 2:
-            print(request.get_json())
             if request.get_json()["action"] == "add":
                 data = request.get_json()
                 if data["timer"] == '':
@@ -346,3 +347,44 @@ def infoscreen():
         info_screen_associations=info_screen_associations
     )
 
+def export_data():
+    from app.models import ActiveEvents, GlobalConfig, LockedEntry, archive_server
+    from app import db
+    if request.method == 'POST':
+        content_type = request.content_type
+        if content_type.startswith("application/json"):
+            archive_params = archive_server.query.first()
+            if archive_params == None:
+                archive_params = archive_server(hostname=request.get_json()["enpoint_url"], auth_token=request.get_json()["auth_token"], use_use_token=request.get_json()["use_auth_token"])
+                db.session.add(archive_params)
+            else:
+                archive_params.hostname = request.get_json()["enpoint_url"]
+                archive_params.auth_token = request.get_json()["auth_token"]
+                archive_params.use_use_token = request.get_json()["use_auth_token"]
+            
+            db.session.commit()
+
+            print(request.get_json())
+
+    archive_params = archive_server.query.first()
+    
+
+    if archive_params == None:
+        status = "2"
+        current_driver = None
+        archive_params_state = None
+    else:
+        archive_params_state = {"hostname":archive_params.hostname, "auth_token":archive_params.auth_token, "use_token":archive_params.use_use_token}
+        
+        try:
+            response = requests.get(archive_params.hostname+"/get_drivers")
+            print(response)
+            current_driver = response.json()
+            status = "0"
+        except:
+            current_driver = "None"
+            status = "1"
+    
+    
+    event_export = export_events()
+    return render_template('admin/export.html', current_events=event_export, current_driver=current_driver, archive_params_state=archive_params_state, status=status)
