@@ -4,13 +4,18 @@
   <meta charset="UTF-8">
   <title>Race Commentary Information</title>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.0.0/dist/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">    
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
 
 
 
   <style>
+    #driver_status {
+        width: 98%;
+        
+    }
     .driver-container {
       display: flex;
       justify-content: space-between;
@@ -42,7 +47,6 @@
     margin-bottom: 10px;
     padding: 10px;
 }
-
 
 .date-title-group {
     width: 100%;
@@ -101,29 +105,88 @@
     background-color: aqua;
 }
 
-/* Additional styling as needed */
 
-/* Additional styling as needed */
+.driver-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
 
+.middle-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
 
+.arrow-buttons {
+    margin-top: 5px;
+    padding-left: 50%;
+    padding-right: 50%;
+}
+
+.driver {
+    width: 49%;
+    /* Other styles for driver */
+}
+
+#arrow-right {
+    margin-top: 5px;
+}
+
+#settingbutton {
+    margin-top: 5px;
+}
+
+.header_title {
+    text-align: center;
+}
 
   </style>
 </head>
 <body>
-  <div class="driver-container">
-    <div id="left-driver" class="driver"></div>
-    <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#exampleModal">
-        <span id="boot-icon" class="bi bi-gear" style="font-size: 28px; opacity: 1; -webkit-text-stroke-width: 0px;"></span>
-    </button>    <div id="right-driver" class="driver"></div>
-  </div>
+    <div class="alert alert-info" role="alert">
+        <h2 class="header_title"></h2>
+      </div>
+    <div class="driver-container">
+        <div id="left-driver" class="driver">
+            <!-- Left Driver Content -->
+        </div>
+    
+        <div class="middle-container">
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal" id="settingbutton">
+                <span id="boot-icon" class="bi bi-gear" style="font-size: 28px; opacity: 1; -webkit-text-stroke-width: 0px;"></span>
+            </button>
+    
+            <div class="arrow-buttons">
+                <button id="arrow-left" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i>
+                </button>
+                <button id="arrow-right" class="btn btn-secondary">
+                    <i class="bi bi-arrow-right"></i>
+                </button>
+            </div>
+            <div>
+            <h1 class="heat_num" style="font-size: 30px">1/1</h1>
+            </div>
+            
+        </div>
+    
+        <div id="right-driver" class="driver">
+            <!-- Right Driver Content -->
+        </div>
+    </div>
+    
+    
+    
+    
 
   <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
       <div class="modal-content">
         <div class="modal-header">
           <h5 class="modal-title" id="exampleModalLabel">Speaker page settings</h5>
-          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-            <span aria-hidden="true">&times;</span>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
           </button>
         </div>
         <div class="modal-body">
@@ -140,12 +203,33 @@
                 </div>
         </div>
         <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
-          <button type="button" class="btn btn-primary" id="saveChanges">Save Changes</button>
+            <button type="button" class="btn btn-primary" data-bs-dismiss="modal" aria-label="Close">Close</button>
+            <button type="button" class="btn btn-primary" id="saveChanges">Save Changes</button>
         </div>
       </div>
     </div>
   </div>
+  
+  <script>
+        const ws = new WebSocket("ws://192.168.1.50:4444/");
+    var x;
+    var arr = [];
+
+    function updateContent(newData) {
+        document.getElementsByClassName("T1")[0].innerHTML = newData.Driver1.time;
+        document.getElementsByClassName("T2")[0].innerHTML = newData.Driver2.time;
+        var D1_name = newData.Driver1.name
+        var D2_name = newData.Driver2.name
+    }
+    
+    ws.onmessage = function(event){
+        var arr = JSON.parse(event.data);
+        setTimeout(() => {
+            updateContent(arr);
+        }, 1);
+    };
+
+  </script>
 
   <script>
     //Save changes inserted to model
@@ -153,7 +237,6 @@
         $('#saveChanges').click(function() {
             // Collect the new settings data
             var isCheckboxChecked = $('#matching_parallel').prop('checked');
-            console.log(isCheckboxChecked)
             var settingsData = {
                 matchingParallel: isCheckboxChecked
             };
@@ -179,15 +262,21 @@
     });
     </script>
     
+
+
     <script>
         {% if SpeakerPageConfig_json.matching_parallel == True %}
             let parallel_only = true;
         {% else %}
             let parallel_only = false;
         {% endif %}
-        </script>
+    </script>
+
+
   <script>
 
+    let driverPairs = [];
+    let currentPairIndex = 0;
 
     $(document).ready(function() {
         // API call to fetch initial data
@@ -196,57 +285,103 @@
             type: 'GET',
             success: function(data) {
                 displayActiveDrivers(data);
+                document.getElementsByClassName("header_title")[0].innerHTML = data[0]["race_config"]["TITLE_1"] + "-" + data[0]["race_config"]["TITLE_2"] + " (" + data[0]["race_config"]["HEAT"] + "/" + data[0]["race_config"]["HEATS"]+")";
             },
             error: function() {
                 console.log('Error fetching data from API');
             }
         });
 
-        // WebSocket implementation
-        const socket = new WebSocket('ws://your-websocket-url'); // Replace with your WebSocket URL
-        socket.onmessage = function(event) {
-            var newData = JSON.parse(event.data);
-            displayActiveDrivers(newData);
-        };
+        const socket = io.connect('http://' + document.domain + ':' + location.port);
+
+        socket.on('connect', function() {
+            console.log('Connected to the server');
+
+            socket.emit('join', { username: 'John', room: 'room1' });
+        });
+
+        socket.on('response', function(dataString) {
+            const data = JSON.parse(dataString);
+            console.log(data)
+            displayActiveDrivers(data);
+            //renderData(data);
+            
+        });
 
         // Function to display active drivers
+        let driverPairs = [];
+let currentPairIndex = 0;
+
 async function displayActiveDrivers(data) {
-    var activeDrivers = data.filter(item => item.drivers)
-                            .flatMap(item => item.drivers)
-                            .filter(driver => driver.active);
+    // Store all driver pairs
+    driverPairs = data.filter(item => item.drivers);
 
-    var leftDriver = activeDrivers[0] || {};
-    var rightDriver = activeDrivers[1] || {};
+    // Find the index of the first pair with an active driver
+    currentPairIndex = driverPairs.findIndex(pair => pair.drivers.some(driver => driver.active));
 
-    var left_driver_name = (leftDriver.first_name + " " + leftDriver.last_name);
-    var right_driver_name = (rightDriver.first_name + " " + rightDriver.last_name);
+    if (currentPairIndex === -1) {
+        // If no active drivers are found, default to the first pair
+        currentPairIndex = 0;
+    }
 
-    $('#left-driver').html(formatDriverInfo(leftDriver));
-    $('#right-driver').html(formatDriverInfo(rightDriver));
+    // Call to update the display with the current pair
+    await updateDriverDisplay();
+}
 
-    try {
-        // Load and append snowmobile models
-        const leftSnomobileModels = await get_snomobile_models(left_driver_name);
-        $('#left-driver').append(display_snowmobile_models(leftSnomobileModels));
+document.getElementById('arrow-left').addEventListener('click', function() {
+    if (currentPairIndex > 0) {
+        currentPairIndex--;
+        updateDriverDisplay();
+    }
+});
 
-        const rightSnomobileModels = await get_snomobile_models(right_driver_name);
-        $('#right-driver').append(display_snowmobile_models(rightSnomobileModels));
+document.getElementById('arrow-right').addEventListener('click', function() {
+    if (currentPairIndex < driverPairs.length - 1) {
+        currentPairIndex++;
+        updateDriverDisplay();
+    }
+});
 
-        // Load and append ladder data
-        const leftLadderData = await get_ladder_data(left_driver_name);
-        $('#left-driver').append(display_parallel_history(leftLadderData, left_driver_name, right_driver_name));
 
-        const rightLadderData = await get_ladder_data(right_driver_name);
-        $('#right-driver').append(display_parallel_history(rightLadderData, left_driver_name, right_driver_name));
-    } catch (error) {
-        console.error(error);
-        // Handle errors
+
+async function updateDriverDisplay() {
+    if (driverPairs[currentPairIndex] && driverPairs[currentPairIndex].drivers) {
+        const drivers = driverPairs[currentPairIndex].drivers;
+        document.getElementsByClassName("heat_num")[0].innerHTML = (currentPairIndex + 1)+"/"+driverPairs.length;
+
+        const leftDriver = drivers[0] || {};
+        const rightDriver = drivers[1] || {};
+
+        const left_driver_name = (leftDriver.first_name + " " + leftDriver.last_name) || '';
+        const right_driver_name = (rightDriver.first_name + " " + rightDriver.last_name) || '';
+
+        // Update the HTML content of the driver divs
+        $('#left-driver').html(websocket_driver_data(leftDriver, 1));
+        $('#right-driver').html(websocket_driver_data(rightDriver, 2));
+
+        try {
+            // Load and append snowmobile models
+            const leftSnomobileModels = await get_snomobile_models(left_driver_name);
+            $('#left-driver').append(display_snowmobile_models(leftSnomobileModels));
+
+            const rightSnomobileModels = await get_snomobile_models(right_driver_name);
+            $('#right-driver').append(display_snowmobile_models(rightSnomobileModels));
+
+            // Load and append ladder data
+            const leftLadderData = await get_ladder_data(left_driver_name);
+            $('#left-driver').append(display_parallel_history(leftLadderData, left_driver_name, right_driver_name));
+
+            const rightLadderData = await get_ladder_data(right_driver_name);
+            $('#right-driver').append(display_parallel_history(rightLadderData, left_driver_name, right_driver_name));
+        } catch (error) {
+            console.error('Error updating driver display:', error);
+        }
     }
 }
 
 
         // Function to format driver information
-        function formatDriverInfo(driver) {
+        function websocket_driver_data(driver,num) {
             if (!driver.first_name) {
                 return '<p>No active driver</p>';
             }
@@ -254,19 +389,62 @@ async function displayActiveDrivers(data) {
                              ? (driver.time_info.FINISHTIME / 1000).toFixed(2) + ' seconds' 
                              : 'N/A';
 
-            
+            let finish_time_sec= (driver.time_info.FINISHTIME / 1000).toFixed(3) + " Sec";
+            var table_color = "" 
+            console.log(driver.status )
+            if (driver.status == "0") {
+                var status = "Ikke Startet" 
+                table_color = "bg-info p-2 text-dark bg-opacity-25"
 
+            } else if (driver.status == "1") {
+                var status = "Vinner"
+                table_color = "bg-success p-2 text-dark bg-opacity-25"
+            }
+            else if (driver.status == "2") {
+                var status = "Taper"
+                table_color = "bg-danger p-2 text-dark bg-opacity-25"
+            }
+            console.log(driver)
+            if (driver.time_info.PENELTY == "0") {
+                var penelty = "" 
+            } else if (driver.time_info.PENELTY == "2") {
+                var penelty = "DNF" 
+                table_color = table_color + " border-warning "
+            } else if (driver.time_info.PENELTY == "1") {
+                var penelty = "DNS" 
+                table_color = table_color + " border-primary "
+            } else if (driver.time_info.PENELTY == "3") {
+                    var penelty = "DSQ" 
+                    table_color = table_color + " border-secondary "
+            }
+            console.log(table_color)
             return `<div class="driver-info">
                       <div id=drivername>
                         <h3>${driver.first_name} ${driver.last_name}</h3>
+                        <h4 class="T${num}">0</h4>
                       </div>
                       <div class="driver-details">
-                        <p>Club: ${driver.club}</p>
-                        <p>Vehicle: ${driver.vehicle}</p>
-                        <p>Finish Time: ${finishTime}</p>
                       </div>
-                    </div>`;
+                    </div>
+                    <div id="driver_status" class="border border-5 ${table_color} rounded">
+                        <div style="text-align: center;">
+                            <h3>${penelty}</h3>
+                        </div>
+                        <table class="table">
+                            <tbody>
+                                <tr>
+                                    <td colspan="2">${driver.club}</td>
+                                    <td>${driver.vehicle}</td>
+                                    <td>${finish_time_sec}</td>
+                                    <td>${status}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <hr width="80%" color="green" />`; 
         }
+    
     });
     function get_ladder_data(driver_name) {
     return new Promise((resolve, reject) => {
@@ -282,8 +460,8 @@ async function displayActiveDrivers(data) {
         });
     });
 }
-
-function get_snomobile_models(driver_name) {
+/get_ladder_placement_sql/
+function get_snomobile_models_old(driver_name) {
     return new Promise((resolve, reject) => {
         $.ajax({
             url: `http://192.168.1.50:8001/snowmobiles/${driver_name}`,
@@ -298,6 +476,20 @@ function get_snomobile_models(driver_name) {
     });
 }
 
+function get_snomobile_models(driver_name) {
+    return new Promise((resolve, reject) => {
+        $.ajax({
+            url: `http://192.168.1.50:8001/get_ladder_placement_sql/${driver_name}`,
+            type: 'GET',
+            success: function(data) {
+                resolve(data);
+            },
+            error: function() {
+                reject('Error fetching snowmobile models');
+            }
+        });
+    });
+}
 
 function display_parallel_history(data, topDriver1, topDriver2) {
     // Group data by date and title_day
@@ -326,7 +518,6 @@ function display_parallel_history(data, topDriver1, topDriver2) {
 
             
 
-            console.log(groupedByDateAndTitle[key].length)
 
             if (count == 0) {
                 displayHTML += "<div class='date-title-group'>";
@@ -335,12 +526,14 @@ function display_parallel_history(data, topDriver1, topDriver2) {
             
             var rowClass = isTopDriverMatch ? 'top-driver-match' : '';
 
-            
+            let d1_finishtime_str= (item.d1_finishtime / 1000).toFixed(3) + " sec";
+            let d2_finishtime_str= (item.d2_finishtime / 1000).toFixed(3) + " sec";
+
             displayHTML += "<div class='race-entry " + rowClass + "'>";
             displayHTML += "<div class='driver-details'>";
-            displayHTML += "<div class='driver-left " + (item.d2_result === "Loser" ? "loser" : "winner") + "'>" + item.d2_name + " - " + item.d2_finishtime + "</div>";
+            displayHTML += "<div class='driver-left " + (item.d2_result === "Loser" ? "loser" : "winner") + "'>" + item.d2_name + " - " + d2_finishtime_str + "</div>";
             displayHTML += "<div class='driver-separator'><></div>";
-            displayHTML += "<div class='driver-right " + (item.d1_result === "Loser" ? "loser" : "winner") + "'>" + item.d1_name + " - " + item.d1_finishtime + "</div>";
+            displayHTML += "<div class='driver-right " + (item.d1_result === "Loser" ? "loser" : "winner") + "'>" + item.d1_name + " - " + d1_finishtime_str + "</div>";
             displayHTML += "</div>";
             displayHTML += "</div>";
             
@@ -349,39 +542,63 @@ function display_parallel_history(data, topDriver1, topDriver2) {
             }
             count += 1;
         }
+        
         });
         
 
     });
+    
 
     
     return displayHTML;
 }
 
 function display_snowmobile_models(data) {
-    // Iterate over each group and create HTML
-    var displayHTML = "";
-    displayHTML += "<table class='table'>";
-    displayHTML += "<thead>";
-    displayHTML += "<tr>";
-    displayHTML += "<th scope='col'>Dato</th>";
-    displayHTML += "<th scope='col'>Skuter</th>";
-    displayHTML += "</tr>";
-    displayHTML += "</thead>";
+    // Start with a table container inside a div
+    var displayHTML = "<div class='container mt-4'><table class='table table-striped'>";
+
+    // Table header
+    displayHTML += "<thead class='thead-dark'><tr>";
+    displayHTML += "<th scope='col'>Date</th>";
+    displayHTML += "<th scope='col'>Titles</th>";
+    displayHTML += "<th scope='col'>Snowmobile</th>";
+    displayHTML += "<th scope='col'>Position</th>";
+    displayHTML += "</tr></thead>";
+
+    // Table body
     displayHTML += "<tbody>";
-    
+
+    // Iterate over each item in the data array
     data.forEach(function(key) {
         displayHTML += "<tr>";
-        displayHTML += "<td>"+ <b> + key.date + </b> + ": " + key.raceday + "</td>";
-        displayHTML += "<td>"+ key.snowmobile +"</td>";
+
+        // Column for the date
+        displayHTML += "<td><b>" + key.date + "</b></td>";
+
+        // Column for the titles
+        displayHTML += "<td>" + key.title_1 + " " +  key.title_2 + "</td>";
+
+        // Column for the snowmobile
+        displayHTML += "<td>" + key.snowmobile + "</td>";
+
+        // Column for the position
+        displayHTML += "<td>" + key.position + "/" + key.total_drivers + "</td>";
+
+        // Close the row
         displayHTML += "</tr>";
     });
 
-    displayHTML += "</tbody>";
-    displayHTML += "</table>";
+    // Close the table and the container div
+    displayHTML += "</tbody></table></div>";
+
+    // Optional: horizontal rule with style
+    displayHTML += "<hr class='my-4' style='border-top: 3px solid green;'>";
 
     return displayHTML;
 }
+
+
+
 
   </script>
 </body>
