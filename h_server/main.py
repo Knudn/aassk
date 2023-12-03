@@ -99,7 +99,7 @@ def get_db():
 @app.get("/get_drivers/")
 async def get_drivers(db: Session = Depends(get_db)):
     query = queries.get_all_drivers()
-
+    
     result = db.execute(text(query))
     rows = result.fetchall()
     print(rows)
@@ -109,6 +109,49 @@ async def get_drivers(db: Session = Depends(get_db)):
             "Name": row[1],
         } for row in rows
     ]
+
+    return results_list
+
+@app.get("/get_parallel_results/{driver_name}")
+async def get_drivers(driver_name: str, db: Session = Depends(get_db)):
+    query = queries.get_parallel_driver_results_sql(driver_name)
+
+    result = db.execute(text(query))
+    rows = result.fetchall()
+    # Convert each tuple into a dictionary
+    results_list = [
+        {
+            "d1_name": row[0],
+            "d2_name": row[1],
+            "d1_result": row[2],
+            "d2_result": row[3],
+            "title_day": row[4],
+            "title": row[5],
+            "date": row[6],
+            "d1_finishtime": row[7],
+            "d2_finishtime": row[8],
+            "d1_snowmobile": row[9],
+            "d2_snowmobile": row[10],
+        } for row in rows
+    ]
+
+    return results_list
+
+@app.get("/snowmobiles/{driver_name}")
+async def snowmobiles(driver_name: str, db: Session = Depends(get_db)):
+    query = queries.get_snowmobiles_sql(driver_name)
+
+    result = db.execute(text(query))
+    rows = result.fetchall()
+    # Convert each tuple into a dictionary
+    results_list = [
+        {
+            "snowmobile": row[1],
+            "date": row[2],
+            "raceday":row[3],
+        } for row in rows
+    ]
+    print(result)
 
     return results_list
 
@@ -139,6 +182,27 @@ async def get_ladder_results(db: Session = Depends(get_db)):
             race_id[a["race_id"]].append({a["driver_name"], a["position"], a["race_name"]})
 
     return race_id
+
+@app.get("/get_ladder_placement_sql/{driver_name}")
+async def get_ladder_placement_sql(driver_name: str, db: Session = Depends(get_db)):
+    query = queries.get_ladder_placement_sql(driver_name)
+    result = db.execute(text(query))
+    rows = result.fetchall()
+    results_list = [
+    {
+        "name": row[0],
+        "title_1": row[1],
+        "title_2": row[2],
+        "position": row[3],
+        "date": row[4],
+        "mode": row[5],
+        "snowmobile": row[6],
+        "total_drivers":row[7],
+        "finishtime":row[8],
+    } for row in rows
+]
+
+    return results_list
 
 @app.post("/upload-data/")
 async def upload_data(request: Request):

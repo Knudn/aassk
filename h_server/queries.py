@@ -88,3 +88,146 @@ SELECT * FROM FirstAndSecond
 ORDER BY race_id, position;
 
     """
+
+def get_parallel_driver_results_sql(driver):
+    return """SELECT 
+    d1.name,
+    d2.name,
+    CASE 
+        WHEN r1.status = 1 THEN 'Winner'
+        WHEN r1.status = 2 THEN 'Loser'
+        ELSE 'Unknown'
+    END as result_driver1,
+    CASE 
+        WHEN r2.status = 1 THEN 'Winner'
+        WHEN r2.status = 2 THEN 'Loser'
+        ELSE 'Unknown'
+    END as result_driver2,
+	rd.title AS race_day,
+    ra.title AS race_title,
+    rd.date AS race_date,
+	r1.finishtime AS d1_finishtime,
+	r2.finishtime AS d2_finishtime,
+	r1.vehicle AS d1_snowmobile,
+	r2.vehicle AS d2_snowmobile
+FROM 
+    run r1
+JOIN 
+    drivers d1 ON r1.driver_id = d1.id
+LEFT JOIN 
+    run r2 ON r1.race_id = r2.race_id AND r1.run_id = r2.run_id AND r1.pair_id = r2.pair_id AND r1.driver_id != r2.driver_id
+LEFT JOIN 
+    drivers d2 ON r2.driver_id = d2.id
+JOIN 
+    races ra ON r1.race_id = ra.id
+JOIN 
+    racedays rd ON ra.raceday_id = rd.id
+WHERE 
+    (d1.name = '{0}')
+    AND ((ra.mode IN (2, 3) AND r2.id IS NOT NULL))
+ORDER BY 
+    rd.date, ra.title, r1.run_id, r1.pair_id;""".format(driver)
+
+
+
+def get_snowmobiles_sql(driver):
+    return """
+        SELECT DISTINCT d.name, r.vehicle, rd.date, rd.title
+        FROM drivers d
+        JOIN run r ON d.id = r.driver_id
+        JOIN races ra ON r.race_id = ra.id
+        JOIN racedays rd ON ra.raceday_id = rd.id
+        WHERE d.name = '{0}' AND r.vehicle <> '';
+    """.format(driver)
+
+def get_ladder_placement_sql(driver):
+    return """
+WITH DriverLastRun AS (
+    SELECT 
+        driver_id, 
+        race_id, 
+        MAX(run_id) AS last_run_id
+    FROM 
+        "run"
+    GROUP BY 
+        driver_id, race_id
+),
+LastRunIdPerRace AS (
+    SELECT
+        race_id,
+        MAX(run_id) AS final_run_id
+    FROM
+        "run"
+    GROUP BY
+        race_id
+),
+DriverPositionInLastRun AS (
+    SELECT 
+        r.driver_id,
+        r.race_id,
+        r.vehicle,
+        r.finishtime,
+        r.pair_id,
+        lr.final_run_id,
+        CASE 
+            WHEN lr.final_run_id = r.run_id THEN
+                CASE 
+                    WHEN r.pair_id = 1 THEN
+                        RANK() OVER (PARTITION BY r.race_id, r.run_id ORDER BY r.finishtime ASC)
+                    WHEN r.pair_id = 2 THEN
+                        RANK() OVER (PARTITION BY r.race_id, r.run_id ORDER BY r.finishtime ASC) + 2
+                END
+            ELSE
+                DENSE_RANK() OVER (PARTITION BY r.race_id ORDER BY r.run_id DESC, r.finishtime ASC) + 4
+        END as raw_position
+    FROM 
+        "run" r
+    INNER JOIN 
+        DriverLastRun dlr ON r.driver_id = dlr.driver_id AND r.race_id = dlr.race_id AND r.run_id = dlr.last_run_id
+    INNER JOIN
+        LastRunIdPerRace lr ON r.race_id = lr.race_id
+    WHERE 
+        r.finishtime IS NOT NULL
+),
+FilteredRaces AS (
+    SELECT rs.id AS race_id
+    FROM "races" rs
+    JOIN "racedays" rsd ON rs.raceday_id = rsd.id
+    WHERE rs.mode = 3
+),
+RankedPositions AS (
+    SELECT
+        *,
+        DENSE_RANK() OVER (PARTITION BY race_id ORDER BY raw_position ASC) as final_position
+    FROM
+        DriverPositionInLastRun
+)
+SELECT 
+    d."name" AS "driver_name", 
+    rsd.title AS "raceday_title", 
+    rs.title AS "race_title", 
+    rp.final_position,
+    rsd.date,
+    rs.mode,
+    rp.vehicle,
+    (SELECT COUNT(DISTINCT driver_id) FROM "run" WHERE race_id = fr.race_id) AS total_drivers,
+    rp.finishtime
+FROM 
+    FilteredRaces fr
+JOIN 
+    "races" rs ON fr.race_id = rs.id
+JOIN 
+    "racedays" rsd ON rs.raceday_id = rsd.id
+LEFT JOIN 
+    DriverLastRun dlr ON fr.race_id = dlr.race_id
+LEFT JOIN 
+    "drivers" d ON dlr.driver_id = d.id
+LEFT JOIN 
+    RankedPositions rp ON d.id = rp.driver_id AND dlr.race_id = rp.race_id
+WHERE 
+    d."name" = '{0}'
+ORDER BY  
+    rsd.date DESC;
+        """.format(driver)
+
+
