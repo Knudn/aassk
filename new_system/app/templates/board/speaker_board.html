@@ -167,13 +167,37 @@
     border-radius: 0;
 }
 
+
+#top_driver_bar {
+    display: flex;
+
+    justify-content: space-between; /* Distribute content evenly */
+}
+
+#top_driver_bar span {
+    display: inline-block;
+    vertical-align: middle;
+    padding-left: 2%;
+    padding-right: 2%;
+}
+
+
+
   </style>
 </head>
 <body>
-    <div class="alert alert-info" role="alert">
+    
+    <div class="alert alert-info" role="alert" style="margin-bottom: 0px; padding:10px;">
         <h2 class="header_title"></h2>
       </div>
-
+      
+    <div class="alert alert-warning" role="alert" style="padding:5px; font-size: larger;" id="top_driver_bar">
+        <span id="currentHeat"></span>
+        <span id="eventTitle"></span>
+        <span id="dayTitle"></span>
+    </div>
+    
+      </div>
 
 
     <div class="driver-container">
@@ -183,6 +207,9 @@
         </div>
     
         <div class="middle-container">
+            <div>
+                <h1 class="heat_num" style="font-size: 30px">1/1</h1>
+                </div>
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal" id="settingbutton">
                 <span id="boot-icon" class="bi bi-gear" style="font-size: 28px; opacity: 1; -webkit-text-stroke-width: 0px;"></span>
             </button>
@@ -207,9 +234,7 @@
                     <i class="bi bi-arrow-right"></i>
                 </button>
             </div>
-            <div>
-            <h1 class="heat_num" style="font-size: 30px">1/1</h1>
-            </div>
+
             
         </div>
     
@@ -368,10 +393,7 @@
 
 
         </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-primary" data-bs-dismiss="modal" aria-label="Close">Close</button>
-            <button type="button" class="btn btn-primary" id="saveChanges">Save Changes</button>
-        </div>
+
       </div>
     </div>
   </div>
@@ -465,6 +487,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     tab = 3
                     recordCount.tab3++;
                 } else {
+                    console.log()
                     return
                 }
                 // Update tab title
@@ -710,15 +733,20 @@ async function updateDriverDisplay() {
         $('#left-driver').html(websocket_driver_data(leftDriver, 1));
         $('#right-driver').html(websocket_driver_data(rightDriver, 2));
         try {
+            
             // Load and append snowmobile models
             $('#left-driver').append(get_overal_table(1));
             $('#right-driver').append(get_overal_table(2));
 
+            //WINNS
             const leftSnomobileModels = await get_snomobile_models(left_driver_name);
             $('#left-driver').append(display_snowmobile_models(leftSnomobileModels, driver_names));
-
-            const rightSnomobileModels = await get_snomobile_models(right_driver_name);
+            const rightSnomobileModels = await get_snomobile_models(right_driver_name);            
             $('#right-driver').append(display_snowmobile_models(rightSnomobileModels, driver_names));
+
+            //TOP TIME
+            const top_speed_data = await get_top_driver_header(title_name);
+            display_get_top_driver_header(top_speed_data)
 
             // Load and append ladder data
             const leftLadderData = await get_ladder_data(left_driver_name);
@@ -732,6 +760,39 @@ async function updateDriverDisplay() {
     }
 }
 
+function get_top_driver_header(title_name) {
+    console.log(title_name, "asd")
+    return new Promise((resolve, reject) => {
+        $.ajax({
+            url: `/api/get_timedata/?title_1=${title_name[0]}&title_2=${title_name[1]}&heat=${title_name[2]}&single_all=true&entries_per_filter=1&unique_names=true`,
+            type: 'GET',
+            success: function(data) {
+                resolve(data);
+            },
+            error: function() {
+                reject('Error fetching snowmobile models');
+            }
+        });
+    });
+}
+
+function milliseconds_to_sec(ms) {
+    return (ms / 1000).toFixed(3)
+}
+
+function display_get_top_driver_header(data) {
+    console.log(data)
+    let heat = data["title_1+title_2+heat_0"]
+    let event = data["title_1+title_2_0"]
+    let day = data["title_1_0"]
+    
+    console.log(heat)
+
+    document.getElementById('currentHeat').innerHTML = `<strong>Current Heat:</strong> ${heat.first_name} ${heat.last_name} - ${milliseconds_to_sec(heat.finishtime)} Sec`;
+    document.getElementById('eventTitle').innerHTML = `<strong>${event.title_2}:</strong> ${event.first_name} ${event.last_name} - ${milliseconds_to_sec(event.finishtime)} Sec`;
+    document.getElementById('dayTitle').innerHTML = `<strong>${day.title_1}:</strong> ${day.first_name} ${day.last_name} - ${milliseconds_to_sec(day.finishtime)} Sec`;
+
+}
 
     function get_overal_table(num) {
         table_base = `
