@@ -2,6 +2,7 @@ from flask import Flask, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from app.lib.db_operation import map_database_files
 from flask_socketio import SocketIO
+from os import getcwd, path
 
 # Initialize SQLAlchemy and SocketIO with no settings
 db = SQLAlchemy()
@@ -10,7 +11,9 @@ socketio = SocketIO()
 def create_app():
     app = Flask(__name__)
     
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////home/rock/aassk/new_system/site.db'
+    pwd = getcwd()
+    print(pwd)
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + path.join(pwd, 'site.db')
     app.config['SECRET_KEY'] = 'your_secret_key'
 
     db.init_app(app)
