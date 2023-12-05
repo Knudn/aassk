@@ -40,7 +40,7 @@ def home_tab():
     return render_template('admin/index.html')
 
 def global_config_tab():
-    from app.models import GlobalConfig, ConfigForm, ActiveDrivers
+    from app.models import GlobalConfig, ConfigForm, ActiveDrivers, Session_Race_Records
     from app import db
 
     global_config = GlobalConfig.query.all()
@@ -59,6 +59,7 @@ def global_config_tab():
                 db.session.commit()
         else:
             # I'm assuming this is related to the "Reload" button, but you can update as needed
+            db.session.query(Session_Race_Records).delete()
             print(full_db_reload(add_intel_sort=True))
             
         return redirect(url_for('admin.admin', tab_name='global-config'))

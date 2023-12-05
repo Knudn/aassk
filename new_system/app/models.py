@@ -17,9 +17,10 @@ class InfoScreenInitMessage(db.Model):
 class SpeakerPageSettings(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     match_parrallel = db.Column(db.Boolean, default=False)
+    h_server_url = db.Column(db.String(128), default="http://192.168.1.50:8001")
 
     def __repr__(self):
-        return f'<InitMessage {self.id} {self.match_parrallel}>'
+        return f'<InitMessage {self.id} {self.match_parrallel} {self.h_server_url}>'
 
 class archive_server(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -118,3 +119,26 @@ class EventOrder(db.Model):
 
     def __repr__(self):
         return f"<EventOrder(order={self.order}, name='{self.name}')>"
+    
+class Session_Race_Records(db.Model):
+    __tablename__ = 'Active_Session_Race_Records'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    first_name = db.Column(db.String(84), nullable=False)
+    last_name = db.Column(db.String(84), nullable=False)
+    title_1 = db.Column(db.String(84), nullable=False)
+    title_2 = db.Column(db.String(84), nullable=False)
+    heat = db.Column(db.Integer, nullable=False)
+    finishtime = db.Column(db.Integer, nullable=False)
+    snowmobile = db.Column(db.String(84), nullable=True)
+    penalty = db.Column(db.Integer, nullable=False)
+    
+
+class Session_Drivers(db.Model):
+    __tablename__ = 'session_drivers'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    first_name = db.Column(db.String(84), nullable=False)
+    last_name = db.Column(db.String(84), nullable=False)
+    def __repr__(self):
+        return f"<EventOrder(id={self.id}, first_name='{self.first_name}', last_name='{self.last_name}')>"
+
+

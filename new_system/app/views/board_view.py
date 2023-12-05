@@ -23,9 +23,11 @@ def speaker():
         data = request.get_json()
 
         SpeakerPageConfig.match_parrallel = data["matchingParallel"]
+        SpeakerPageConfig.h_server_url = data["h_server_url"]
+
         db.session.commit()
         print(request.get_json())
     
-    SpeakerPageConfig_json = {"matching_parallel":SpeakerPageConfig.match_parrallel}
+    SpeakerPageConfig_json = {"matching_parallel":SpeakerPageConfig.match_parrallel,"h_server_url":SpeakerPageConfig.h_server_url}
 
     return render_template('board/speaker_board.html', SpeakerPageConfig_json=SpeakerPageConfig_json)

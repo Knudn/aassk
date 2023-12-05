@@ -4,6 +4,7 @@ from app.lib.db_operation import reload_event as reload_event_func
 from app.lib.db_operation import update_active_event_stats, get_active_startlist, get_active_startlist_w_timedate
 from app import socketio
 from app.lib.utils import intel_sort, update_info_screen, export_events
+from sqlalchemy import func
 
 
 
@@ -85,6 +86,26 @@ def get_current_startlist_w_data():
     
     return get_active_startlist_w_timedate()
 
+@api_bp.route('/api/get_event_order', methods=['GET'])
+def get_event_order():
+    from app.models import ActiveEvents
+    from app.lib.db_operation import get_active_event
+    event_order = ActiveEvents.query.order_by(ActiveEvents.sort_order).all()
+    current_active_event = get_active_event()[0]
+
+    data = []
+    
+    for a in event_order:
+
+        if str(a.event_file) == str(current_active_event["db_file"]) and str(current_active_event["SPESIFIC_HEAT"]) == str(a.run):
+            state = True
+        else:
+            state = False
+        data.append({"Order":a.sort_order, "Event":a.event_name, "Enabled":a.enabled, "Heat":a.run, "Active":state})
+
+    
+    return data
+
 @api_bp.route('/api/<string:tab_name>', methods=['GET','POST'])
 def api(tab_name):
     if tab_name == 'reload_event':
@@ -99,3 +120,133 @@ def reload_event():
     reload_event_func(data["file"], data["run"])
     return data
 
+@api_bp.route('/api/get_timedata/', methods=['GET'])
+def get_timedata():
+    from app.models import Session_Race_Records
+    from flask import request
+    from sqlalchemy import desc
+
+    def format_db_rsp(a):
+        return {
+            "first_name": a.first_name,
+            "last_name": a.last_name,
+            "title_1": a.title_1,
+            "title_2": a.title_2,
+            "heat": a.heat,
+            "finishtime": a.finishtime,
+            "snowmobile": a.snowmobile,
+            "penalty": a.penalty
+        }
+
+    events = request.args.get('events', default='False', type=str)
+    heat = request.args.get('heat', default=None, type=str)
+    title_1 = request.args.get('title_1', default=None, type=str)
+    title_2 = request.args.get('title_2', default=None, type=str)
+    single_all = request.args.get('single_all', default='false', type=str)
+    entries_per_filter = request.args.get('entries_per_filter', default=1, type=int)
+    unique_names = request.args.get('unique_names', default='false', type=str).lower() == 'true'
+
+    if heat and heat.isdigit():
+        heat = int(heat)
+
+    event_data = {}
+
+    if single_all != 'false':
+        filter_combinations = [
+            ('title_1', title_1),
+            ('title_2', title_2),
+            ('heat', heat),
+            ('title_1+title_2', (title_1, title_2)),
+            ('title_1+title_2+heat', (title_1, title_2, heat))
+        ]
+
+        for combo_name, filters in filter_combinations:
+            query = Session_Race_Records.query
+
+            if isinstance(filters, tuple):
+                if 'title_1' in combo_name and title_1:
+                    query = query.filter(Session_Race_Records.title_1 == title_1)
+                if 'title_2' in combo_name and title_2:
+                    query = query.filter(Session_Race_Records.title_2 == title_2)
+                if 'heat' in combo_name and heat:
+                    query = query.filter(Session_Race_Records.heat == heat)
+            else:
+                if combo_name == 'title_1' and title_1:
+                    query = query.filter(Session_Race_Records.title_1 == title_1)
+                elif combo_name == 'title_2' and title_2:
+                    query = query.filter(Session_Race_Records.title_2 == title_2)
+                elif combo_name == 'heat' and heat:
+                    query = query.filter(Session_Race_Records.heat == heat)
+
+            query = query.filter(Session_Race_Records.finishtime != 0)
+
+            if unique_names:
+                # Subquery for unique driver names with min finishtime within each filter
+                subquery = query.with_entities(
+                    Session_Race_Records.first_name,
+                    Session_Race_Records.last_name,
+                    func.min(Session_Race_Records.finishtime).label('min_finishtime')
+                ).group_by(
+                    Session_Race_Records.first_name, 
+                    Session_Race_Records.last_name
+                ).subquery()  # Create a subquery object
+
+                # Main query joins with the subquery
+                query = Session_Race_Records.query.join(
+                    subquery,
+                    (Session_Race_Records.first_name == subquery.c.first_name) &
+                    (Session_Race_Records.last_name == subquery.c.last_name) &
+                    (Session_Race_Records.finishtime == subquery.c.min_finishtime)
+                )
+
+            # Apply order_by and then limit
+            query = query.order_by(Session_Race_Records.finishtime.asc())
+            query = query.limit(entries_per_filter)
+
+            # Fetch and process records
+            records = query.all()
+            for i, record in enumerate(records):
+                event_data[f"{combo_name}_{i}"] = format_db_rsp(record)
+
+    else:
+        query = Session_Race_Records.query
+
+        if heat:
+            query = query.filter(Session_Race_Records.heat == heat)
+        if title_1:
+            query = query.filter(Session_Race_Records.title_1 == title_1)
+        if title_2:
+            query = query.filter(Session_Race_Records.title_2 == title_2)
+
+        query = query.filter(Session_Race_Records.finishtime != 0)
+
+        if unique_names:
+            # Subquery for unique names with min finishtime
+            subquery = query.with_entities(
+                Session_Race_Records.first_name,
+                Session_Race_Records.last_name,
+                func.min(Session_Race_Records.finishtime).label('min_finishtime')
+            ).group_by(
+                Session_Race_Records.first_name, 
+                Session_Race_Records.last_name
+            )
+
+            # Main query joins with the subquery
+            query = Session_Race_Records.query.join(
+                subquery.subquery(),
+                (Session_Race_Records.first_name == subquery.c.first_name) &
+                (Session_Race_Records.last_name == subquery.c.last_name) &
+                (Session_Race_Records.finishtime == subquery.c.min_finishtime)
+            )
+
+        # Apply order_by and then limit
+        query = query.order_by(Session_Race_Records.finishtime.asc())
+        query = query.limit(entries_per_filter)
+
+        # Fetch and process records
+        event_order = query.all()
+
+        for k, a in enumerate(event_order):
+            event_data[k] = format_db_rsp(a)
+
+    return event_data
