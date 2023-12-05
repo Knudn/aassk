@@ -74,14 +74,14 @@ def data_clean(data):
     snowp1 = extract_data("snowmobile_1", data)
     snowp2 = extract_data("snowmobile_2", data)
 
-
+    print(data)
     if "update" in data:
         update_field = True
 
     if name_1:
         if d_history != name_1:
             driver_index = 0
-            
+
         data_sock["Driver1"]["name"] = name_1
         data_sock["Driver1"]["time"] = 0
         if "FILLER" in name_1:
