@@ -1,148 +1,74 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebSocket</title>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
-
+    <title>RaceLab Stream Overlay</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-    body {
-        font-family: 'Poppins', sans-serif;
-        background-color: #d3d3d3;
-        margin: 0;
-        overflow: hidden;
-        /* Make the image fit the screen */
-        background-size: cover;
-        background-repeat: no-repeat;
-        background-position: center center;
-
-        /* Optional: Fix the background to the viewport */
-        background-attachment: fixed;
-    }
-    
-    .container {
-        position: relative;
-        width: 100%;
-        max-height: 100vh;
-        overflow: auto;
-    }
-
-    .main_manue {
-        text-align: center;
-    }
-
-    .Startliste {
-        font-size: 24px;
-    }
-
-    .race-wrapper {
-        border-bottom: 1px solid #e0e0e0;
-        padding: 5px 10px;
-        text-align: center;
-    }
-
-
-    .driver-name {
-        font-weight: 500;
-        font-size: 22px;
-    }
-
-    .driver-club,
-    .driver-vehicle {
-        font-size: 12px;
-        color: #777;
-    }
-    .driver-container {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        position: relative; 
-    }
-
-
-    .race-id {
-        width: 20px;
-        transform: scale(1.6);
-        text-align: center;
-        font-weight: bold;
-        font-size: 16px;
-        background-color: #e0e0e0;
-        padding: 5px;
-        border-radius: 3px;
-        margin: -5px 0;
-        z-index: 1; /* Make sure it overlaps other items */
-        position: relative;
-    }
-
-    .driver-info {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        align-self: center;
-        margin-left: 10px; /* Optional: for some space between name and info */
-    }
-
-
-    .driver-info {
-        align-self: center;
-
-    }
-    /* General Styling for driver-card */
-    .driver-card {
-        flex: 1;
-        display: flex;
-        justify-content: space-between; /* Place elements at both ends */
-        align-items: center; 
-        padding: 5px;
-        border: 1px solid #e0e0e0;
-        border-radius: 3px;
-        margin: 2px;
-        background-color: #ffffff;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        transition: transform 0.2s;
-    }
-
-    /* Left Card Specific Styling */
-    .left-card .driver-name {
-        order: 2; /* This ensures name comes after info */
-        padding-right: 20px;
-    }
-
-    .left-card .driver-info {
-        order: 1; 
-        margin-right: 10px; /* Optional: for some space between name and info */
-    }
-
-    /* Right Card Specific Styling */
-    .right-card .driver-name {
-        order: 1;
-        padding-left: 20px;
-    }
-
-    .right-card .driver-info {
-        order: 2;
-        margin-left: 10px; /* Optional: for some space between name and info */
-    }
-
-
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #121212; /* Dark background */
+            color: #fff;
+            margin: 0;
+            overflow: hidden;
+        }
+        .container {
+            padding: 10px;
+        }
+        .main_menu {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        .race-wrapper {
+            display: flex;
+            justify-content: space-between;
+            background-color: #1e1e1e;
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        .driver-container {
+            display: flex;
+            align-items: center;
+        }
+        .driver-card {
+            display: flex;
+            align-items: center;
+            margin-right: 15px;
+            font-size: 14px;
+        }
+        .driver-name {
+            font-weight: 500;
+        }
+        .driver-club, .driver-vehicle {
+            color: #a0a0a0;
+            font-size: 12px;
+        }
+        .race-id {
+            background-color: #ff3b3b;
+            color: #fff;
+            border-radius: 50%;
+            padding: 5px;
+            font-size: 12px;
+            text-align: center;
+            width: 25px;
+            height: 25px;
+            line-height: 25px;
+            margin-right: 10px;
+        }
     </style>
 </head>
-
 <body>
     <div class="container">
-        <div class="main_manue">
-            <h1 id="Startliste">Startliste</h1>
-            <h2 id="main_title"></h2>
+        <div class="main_menu">
+            <h1 id="Startliste">Driver Lineup</h1>
         </div>
-
         <div id="startlist">
-            <!-- Content will be populated here via WebSocket -->
+            <!-- Content will be populated here -->
         </div>
     </div>
-
     <script>
         let currentPage = 1;
         const recordsPerPage = 20;
@@ -161,21 +87,6 @@
 
         document.addEventListener('DOMContentLoaded', (event) => {
             fetchDataFromAPI();
-        });
-
-        const socket = io.connect('http://' + document.domain + ':' + location.port);
-
-        socket.on('connect', function() {
-            console.log('Connected to the server');
-
-            socket.emit('join', { username: 'John', room: 'room1' });
-        });
-
-        socket.on('response', function(dataString) {
-            const data = JSON.parse(dataString);
-            
-            renderData(data);
-            
         });
 
         function renderData(data) {
@@ -245,42 +156,10 @@
 
             });
 
-            // Logic to display page indicator
-            const main_title = document.getElementById('main_title');
-            if (paginatedData.length < 2) {
-                main_title.innerHTML = paginatedData[0][0].race_config.TITLE_1 + " " + paginatedData[0][0].race_config.TITLE_2;
-            } else {
-                main_title.innerHTML = paginatedData[0][0].race_config.TITLE_1 + " " + paginatedData[0][0].race_config.TITLE_2 + ` (${pageNumber}/${paginatedData.length})`;
-            }
-        
-            if (pageNumber < paginatedData.length) {
-                autoSwitchPageTimeout = setTimeout(() => {
-                currentPage++;
-                displayPage(currentPage);
-            }, 100000);  // 10 seconds
-
-        } else {
-
-            // If it's the last page, loop back to the first page after the timeout
-            autoSwitchPageTimeout = setTimeout(() => {
-                currentPage = 1;
-                displayPage(currentPage);
-            }, 100000);  // 10 seconds
-        }
     }
 
-        // Add Event Listeners for page switchers
-        document.addEventListener('keyup', function(e) {
-            if (e.key === "ArrowRight" && currentPage < paginatedData.length) {
-                currentPage++;
-                displayPage(currentPage);
-            } else if (e.key === "ArrowLeft" && currentPage > 1) {
-                currentPage--;
-                displayPage(currentPage);
-            }
-        });
+
 
     </script>
 </body>
-
 </html>

@@ -744,16 +744,21 @@ async function updateDriverDisplay() {
             const rightSnomobileModels = await get_snomobile_models(right_driver_name);            
             $('#right-driver').append(display_snowmobile_models(rightSnomobileModels, driver_names));
 
+            try {
             //TOP TIME
             const top_speed_data = await get_top_driver_header(title_name);
             display_get_top_driver_header(top_speed_data)
-
+            } catch (error) {
+                console.log('Error getting top speeds for current:', error)
+            }
             // Load and append ladder data
             const leftLadderData = await get_ladder_data(left_driver_name);
             $('#left-driver').append(display_parallel_history(leftLadderData, left_driver_name, right_driver_name, 1));
 
             const rightLadderData = await get_ladder_data(right_driver_name);
             $('#right-driver').append(display_parallel_history(rightLadderData, left_driver_name, right_driver_name, 2));
+
+
         } catch (error) {
             console.error('Error updating driver display:', error);
         }
@@ -761,7 +766,7 @@ async function updateDriverDisplay() {
 }
 
 function get_top_driver_header(title_name) {
-    console.log(title_name, "asd")
+    console.log(title_name)
     return new Promise((resolve, reject) => {
         $.ajax({
             url: `/api/get_timedata/?title_1=${title_name[0]}&title_2=${title_name[1]}&heat=${title_name[2]}&single_all=true&entries_per_filter=1&unique_names=true`,
@@ -786,12 +791,16 @@ function display_get_top_driver_header(data) {
     let event = data["title_1+title_2_0"]
     let day = data["title_1_0"]
     
-    console.log(heat)
+    if (heat != undefined) {
+        document.getElementById('currentHeat').innerHTML = `<strong>Current Heat:</strong> ${heat.first_name} ${heat.last_name} - ${milliseconds_to_sec(heat.finishtime)} Sec`;
+    }
+    if (event != undefined) {
+        document.getElementById('eventTitle').innerHTML = `<strong>${event.title_2}:</strong> ${event.first_name} ${event.last_name} - ${milliseconds_to_sec(event.finishtime)} Sec`;
+    } 
 
-    document.getElementById('currentHeat').innerHTML = `<strong>Current Heat:</strong> ${heat.first_name} ${heat.last_name} - ${milliseconds_to_sec(heat.finishtime)} Sec`;
-    document.getElementById('eventTitle').innerHTML = `<strong>${event.title_2}:</strong> ${event.first_name} ${event.last_name} - ${milliseconds_to_sec(event.finishtime)} Sec`;
-    document.getElementById('dayTitle').innerHTML = `<strong>${day.title_1}:</strong> ${day.first_name} ${day.last_name} - ${milliseconds_to_sec(day.finishtime)} Sec`;
-
+    if (day != undefined) {
+        document.getElementById('dayTitle').innerHTML = `<strong>${day.title_1}:</strong> ${day.first_name} ${day.last_name} - ${milliseconds_to_sec(day.finishtime)} Sec`;
+    }
 }
 
     function get_overal_table(num) {
