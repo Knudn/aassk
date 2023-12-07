@@ -36,8 +36,14 @@ def create_tables(app):
 
         GlobalConfig_db = GetEnv()
 
-        if GlobalConfig_db["display_proxy"]:
-            manage_process("scripts/msport_display_proxy.py", "start")
+        try:
+
+            if GlobalConfig_db["display_proxy"]:
+                manage_process("scripts/msport_display_proxy.py", "start")
+        except:
+            print("Could not get value")
+
+
         try:
             active_event,active_heat = update_active_event(GlobalConfig_db)
         except:
