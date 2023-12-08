@@ -738,11 +738,17 @@ async function updateDriverDisplay() {
             $('#left-driver').append(get_overal_table(1));
             $('#right-driver').append(get_overal_table(2));
 
-            //WINNS
+            //WINS - LADDER
             const leftSnomobileModels = await get_snomobile_models(left_driver_name);
             $('#left-driver').append(display_snowmobile_models(leftSnomobileModels, driver_names));
             const rightSnomobileModels = await get_snomobile_models(right_driver_name);            
             $('#right-driver').append(display_snowmobile_models(rightSnomobileModels, driver_names));
+
+            //WINS -SINGLE
+            const leftsingle_result = await get_single_results(left_driver_name);
+            $('#left-driver').append(display_single_position(leftsingle_result, driver_names));
+            const rightsingle_result = await get_single_results(right_driver_name);            
+            $('#right-driver').append(display_single_position(rightsingle_result, driver_names));
 
             try {
             //TOP TIME
@@ -793,13 +799,20 @@ function display_get_top_driver_header(data) {
     
     if (heat != undefined) {
         document.getElementById('currentHeat').innerHTML = `<strong>Current Heat:</strong> ${heat.first_name} ${heat.last_name} - ${milliseconds_to_sec(heat.finishtime)} Sec`;
+    } else {
+        document.getElementById('currentHeat').innerHTML = `<strong>Heat:</strong> Not started`;
     }
     if (event != undefined) {
         document.getElementById('eventTitle').innerHTML = `<strong>${event.title_2}:</strong> ${event.first_name} ${event.last_name} - ${milliseconds_to_sec(event.finishtime)} Sec`;
-    } 
+    } else {
+        document.getElementById('eventTitle').innerHTML = `<strong>EVENT:</strong> Not started`
+        console.log(event)
+    }
 
     if (day != undefined) {
         document.getElementById('dayTitle').innerHTML = `<strong>${day.title_1}:</strong> ${day.first_name} ${day.last_name} - ${milliseconds_to_sec(day.finishtime)} Sec`;
+    } else {
+        document.getElementById('dayTitle').innerHTML = `<strong>DAY:</strong> Not started`;
     }
 }
 
@@ -933,6 +946,24 @@ function get_snomobile_models(driver_name) {
         });
     });
 }
+
+function get_single_results(driver_name) {
+    return new Promise((resolve, reject) => {
+        $.ajax({
+            url: `${h_server_url}/get_single_placement_sql/${driver_name}`,
+            type: 'GET',
+            success: function(data) {
+                resolve(data);
+            },
+            error: function() {
+                reject('Error fetching snowmobile models');
+            }
+        });
+    });
+}
+
+
+
 
 function display_parallel_history(data, topDriver1, topDriver2, driver_int) {
     // Group data by date and title_day
@@ -1093,7 +1124,83 @@ function display_snowmobile_models(data, driver) {
     return displayHTML;
 }
 
+function display_single_position(data, driver) {
+    // Start with an accordion container
+    var displayHTML = "<div class='accordion w-100' id='accordionExample'>"; // Ensure full width
 
+    // Accordion item
+    displayHTML += "<div class='accordion-item'>";
+
+    // Accordion header
+    displayHTML += "<h2 class='accordion-header' id='headingOne'>";
+    displayHTML += "<button class='accordion-button collapsed' type='button' data-bs-toggle='collapse' data-bs-target='#collapseOne' aria-expanded='false' aria-controls='collapseOne'>";
+    displayHTML += "<h4>SINGLE</h4>"; // Title of the accordion
+    displayHTML += "</button></h2>";
+
+    // Accordion collapse content with table
+    displayHTML += "<div id='collapseOne' class='accordion-collapse collapse' aria-labelledby='headingOne' data-bs-parent='#accordionExample'>";
+    displayHTML += "<div class='accordion-body'>";
+
+    // Table container inside a div
+    displayHTML += "<div class='container-fluid'><table class='table table-striped'>"; // Use container-fluid for full width
+
+    // Table header
+    displayHTML += "<thead class='thead-dark'><tr>";
+    displayHTML += "<th scope='col'>Date</th>";
+    displayHTML += "<th scope='col'>Titles</th>";
+    displayHTML += "<th scope='col'>Snowmobile</th>";
+    displayHTML += "<th scope='col'>Position</th>";
+    displayHTML += "</tr></thead>";
+
+    // Table body
+    displayHTML += "<tbody>";
+
+
+
+    // Iterate over each item in the data array
+    data.forEach(function(key) {
+
+        console.log(key)
+        if (key.placement == 1) {
+            color = "style=background:#FFD700"
+        } else if ( key.placement == 2 ) {
+            color = "style=background:#C0C0C0"
+        } else if ( key.placement == 3 ) {
+            color = "style=background:#CD7F32"
+        } else {
+            color = ""
+        }
+
+        displayHTML += "<tr>";
+
+        // Column for the date
+        displayHTML += "<td><b>" + key.race_date + "</b></td>";
+
+        // Column for the titles
+        displayHTML += "<td>" + key.full_race_title + "</td>";
+
+        // Column for the snowmobile
+        displayHTML += "<td>" + key.vehicle +"</td>";
+
+        // Column for the position
+        displayHTML += "<td>" + key.placement + "/" + key.totale_drivers + "</td>";
+        displayHTML += "<td " + color + ">" + " "  + "</td>";
+
+        // Close the row
+        displayHTML += "</tr>";
+    });
+
+   // Close the table and the container div
+   displayHTML += "</tbody></table></div>";
+
+// Close accordion body, item, and container
+displayHTML += "</div></div></div></div>";
+
+// Optional: horizontal rule with style
+displayHTML += "<hr class='my-4' style='border-top: 3px solid green;'>";
+
+return displayHTML;
+}
 
 
   </script>
