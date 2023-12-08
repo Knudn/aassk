@@ -230,4 +230,47 @@ ORDER BY
     rsd.date DESC;
         """.format(driver)
 
+def get_single_placement_sql(driver):
+    return """
+SELECT 
+    sub.race_date,
+    sub.full_race_title,
+    sub.race_id,
+    sub.driver_name,
+    sub.vehicle,
+    sub.finishtime,
+    sub.placement,
+    sub.total_drivers
+FROM 
+    (SELECT 
+        rd.date AS race_date,
+        rd.title || ' - ' || r.title AS full_race_title,
+        r.id AS race_id,
+        d.name AS driver_name,
+        ru.vehicle,
+        ru.finishtime,
+        RANK() OVER (PARTITION BY ru.race_id ORDER BY ru.finishtime ASC) as placement,
+        COUNT(*) OVER (PARTITION BY ru.race_id) as total_drivers
+    FROM 
+        racedays rd
+    INNER JOIN 
+        races r ON rd.id = r.raceday_id
+    INNER JOIN 
+        run ru ON r.id = ru.race_id
+    INNER JOIN 
+        drivers d ON ru.driver_id = d.id
+    WHERE 
+        r.mode = 0 AND 
+        ru.finishtime > 0 AND 
+        ru.penalty = 0) sub
+WHERE 
+    sub.driver_name = '{0}' AND 
+	sub.full_race_title NOT LIKE '%Kval%'
+ORDER BY 
+    sub.race_date, sub.race_id, sub.finishtime;
+        """.format(driver)
+
+
+
+
 

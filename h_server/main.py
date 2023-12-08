@@ -313,3 +313,25 @@ async def upload_data(request: Request):
                 db.add(new_run)
                 db.commit()
     return {"message": "Data uploaded successfully"}
+
+
+@app.get("/get_single_placement_sql/{driver_name}")
+async def get_single_placement_sql(driver_name: str, db: Session = Depends(get_db)):
+    query = queries.get_single_placement_sql(driver_name)
+    result = db.execute(text(query))
+    rows = result.fetchall()
+
+    results_list = [
+    {
+        "race_date": row[0],
+        "full_race_title": row[1],
+        "race_id": row[2],
+        "driver_name": row[3],
+        "vehicle": row[4],
+        "finishtime": row[5],
+        "placement": row[6],
+        "totale_drivers":row[7],
+    } for row in rows
+]
+
+    return results_list
