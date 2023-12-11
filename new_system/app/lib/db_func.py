@@ -69,6 +69,7 @@ def init_database(event_files, driver_db_data, g_config, init_mode=True, exclude
         with sqlite3.connect(db_location + "/" + entry["db_file"]+".sqlite") as conn:
             
             cursor = conn.cursor()
+
             if init_mode:
                 #Create index table
                 cursor.execute('''
@@ -115,6 +116,7 @@ def init_database(event_files, driver_db_data, g_config, init_mode=True, exclude
                 sql = "INSERT OR IGNORE INTO drivers (CID, FIRST_NAME, LAST_NAME, CLUB, SNOWMOBILE) VALUES (?, ?, ?, ?, ?);"
                 cursor.executemany(sql, driver_insert_data)
 
+
                 #Add all the heats
                 for a in range(0, int(entry["HEATS"])):
                     heat = (a + 1)
@@ -125,7 +127,7 @@ def init_database(event_files, driver_db_data, g_config, init_mode=True, exclude
                         FOREIGN KEY(CID) REFERENCES drivers(CID)
                     )
                     '''.format(heat))
-                    
+
                     cursor.execute('''
                     CREATE TABLE IF NOT EXISTS driver_stats_r{0} (
                         CID INTEGER PRIMARY KEY,
@@ -142,7 +144,7 @@ def init_database(event_files, driver_db_data, g_config, init_mode=True, exclude
                     '''.format(heat))
                     conn.commit()
 
-def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True):
+def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True, sync=False):
 
     from app.models import ActiveEvents
     from app import db as my_db
@@ -177,142 +179,143 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True):
 
 
         for b in range(0, int(heats)):
-            if spesific_heat != False:
-                heat = spesific_heat
-            else:
-                heat = (b + 1)
-
-            if mode == str(3):
-                heat_count = my_db.session.query(ActiveEvents).filter(ActiveEvents.event_file == a["db_file"]).count()
-                if spesific_heat == False:
-                    heat_count = (heat_count - int(heat)) +1 
+            try:
+                if spesific_heat != False:
+                    heat = spesific_heat
                 else:
-                    heat_count = (heat_count - int(heat)) +1 
-                    
-                query = f"SELECT C_NUM, C_INTER1, C_INTER2, C_INTER3, C_SPEED1, C_STATUS, C_TIME FROM TTIMEINFOS_PARF_HEAT{heat_count}_RUN1"
-            else:
-                query = f"SELECT C_NUM, C_INTER1, C_INTER2, C_INTER3, C_SPEED1, C_STATUS, C_TIME FROM TTIMEINFOS_HEAT{heat}"
+                    heat = (b + 1)
 
-            with sqlite3.connect(event_db_path) as conn:
-                cursor = conn.cursor()
-                cursor.execute(query)
-                time_data = cursor.fetchall()
-                
-            time_data_lst = [
-                {
-                    "CID": data[0], "INTER_1": data[1], "INTER_2": data[2], "INTER_3": data[3],
-                    "SPEED": data[4], "PENELTY": data[5], "FINISHTIME": data[6]
-                } 
-                for data in time_data
-            ]
-
-            with sqlite3.connect(main_db_path) as conn:
-                cursor = conn.cursor()
-                sql = "SELECT * FROM startlist_r{0};".format(heat)
-                startlist = cursor.execute(sql).fetchall()
-                startlist_lst = [g[1] for g in startlist]
-
-                tmp_driver = [l["CID"] for l in time_data_lst]
-
-                #Get the driver_list to updated the internal Flask DB
-                cursor.execute("SELECT * FROM drivers")
-                driver_list = cursor.fetchall()
-                cursor.execute("SELECT TITLE1, TITLE2 FROM db_index;")
-                event_name = cursor.fetchall()
-
-                for v in startlist_lst:
-                    if v not in tmp_driver:
-                        
-                        
-                        time_data_lst.append({
-                            "CID": v, 
-                            "INTER_1": 0, 
-                            "INTER_2": 0, 
-                            "INTER_3": 0,
-                            "SPEED": 0, 
-                            "PENELTY": 0, 
-                            "FINISHTIME": 0
-                        })
-                session_data = {}
-                if init_mode:
-
-                    timedata_tuples = [
-                        (d["INTER_1"], d["INTER_2"], d["INTER_3"], d["SPEED"], d["PENELTY"], d["FINISHTIME"], d["CID"]) 
-                        for d in time_data_lst
-                    ]
-                    
-                    for x in time_data_lst:
-                        for b in driver_list:
-                            if int(x["CID"]) == int(b[0]):
-                                session_data[b[0]] = [b[1], b[2], event_name[0][0], event_name[0][1], heat, x["FINISHTIME"], b[4], x["PENELTY"]]
-
-                    for key, value in session_data.items():
-                        record = Session_Race_Records(first_name=value[0], last_name=value[1], title_1=value[2], title_2=value[3], heat=value[4], finishtime=value[5], snowmobile=value[6], penalty=int(value[7]))
-                        my_db.session.add(record)
-
-                    my_db.session.commit()
-
-                    #sql = f"""
-                    #INSERT OR REPLACE INTO driver_stats_r{heat} 
-                    #(INTER_1, INTER_2, INTER_3, SPEED, PENELTY, FINISHTIME, CID) 
-                    #VALUES (?, ?, ?, ?, ?, ?, ?)
-                    #"""
-                    #cursor.executemany(sql, timedata_tuples)
-                else:
-                    if exclude_lst:
-                        query = f"SELECT CID from driver_stats_r{str(heat)} WHERE LOCKED = 1"
-                        cursor.execute(query)
-                        locked_cids = [item[0] for item in cursor.fetchall()]
-                        timedata_tuples = [
-                            (d["INTER_1"], d["INTER_2"], d["INTER_3"], d["SPEED"], d["PENELTY"], d["FINISHTIME"], d["CID"]) 
-                            for d in time_data_lst if d["CID"] not in locked_cids
-                        ]
-
-                        cursor.execute(f'DELETE FROM driver_stats_r{heat} WHERE LOCKED != 1;')
-                        
+                if mode == str(3):
+                    heat_count = my_db.session.query(ActiveEvents).filter(ActiveEvents.event_file == a["db_file"]).count()
+                    if spesific_heat == False:
+                        heat_count = (heat_count - int(heat)) +1 
                     else:
+                        heat_count = (heat_count - int(heat)) +1 
+                        
+                    query = f"SELECT C_NUM, C_INTER1, C_INTER2, C_INTER3, C_SPEED1, C_STATUS, C_TIME FROM TTIMEINFOS_PARF_HEAT{heat_count}_RUN1"
+                else:
+                    query = f"SELECT C_NUM, C_INTER1, C_INTER2, C_INTER3, C_SPEED1, C_STATUS, C_TIME FROM TTIMEINFOS_HEAT{heat}"
+
+                with sqlite3.connect(event_db_path) as conn:
+                    cursor = conn.cursor()
+                    cursor.execute(query)
+                    time_data = cursor.fetchall()
+                    
+                time_data_lst = [
+                    {
+                        "CID": data[0], "INTER_1": data[1], "INTER_2": data[2], "INTER_3": data[3],
+                        "SPEED": data[4], "PENELTY": data[5], "FINISHTIME": data[6]
+                    } 
+                    for data in time_data
+                ]
+
+                with sqlite3.connect(main_db_path) as conn:
+                    cursor = conn.cursor()
+                    sql = "SELECT * FROM startlist_r{0};".format(heat)
+                    startlist = cursor.execute(sql).fetchall()
+                    startlist_lst = [g[1] for g in startlist]
+
+                    tmp_driver = [l["CID"] for l in time_data_lst]
+
+                    #Get the driver_list to updated the internal Flask DB
+                    cursor.execute("SELECT * FROM drivers")
+                    driver_list = cursor.fetchall()
+                    cursor.execute("SELECT TITLE1, TITLE2 FROM db_index;")
+                    event_name = cursor.fetchall()
+
+                    for v in startlist_lst:
+                        if v not in tmp_driver:
+                            time_data_lst.append({
+                                "CID": v, 
+                                "INTER_1": 0, 
+                                "INTER_2": 0, 
+                                "INTER_3": 0,
+                                "SPEED": 0, 
+                                "PENELTY": 0, 
+                                "FINISHTIME": 0
+                            })
+
+                    session_data = {}
+                    if init_mode:
+
                         timedata_tuples = [
                             (d["INTER_1"], d["INTER_2"], d["INTER_3"], d["SPEED"], d["PENELTY"], d["FINISHTIME"], d["CID"]) 
                             for d in time_data_lst
                         ]
-                        cursor.execute(f'DELETE FROM driver_stats_r{heat}')
-                
+                        
+                        for x in time_data_lst:
+                            for b in driver_list:
+                                if int(x["CID"]) == int(b[0]):
+                                    session_data[b[0]] = [b[1], b[2], event_name[0][0], event_name[0][1], heat, x["FINISHTIME"], b[4], x["PENELTY"]]
+
+                        for key, value in session_data.items():
+                            record = Session_Race_Records(first_name=value[0], last_name=value[1], title_1=value[2], title_2=value[3], heat=value[4], finishtime=value[5], snowmobile=value[6], penalty=int(value[7]))
+                            my_db.session.add(record)
+
+                        my_db.session.commit()
+
+                        #sql = f"""
+                        #INSERT OR REPLACE INTO driver_stats_r{heat} 
+                        #(INTER_1, INTER_2, INTER_3, SPEED, PENELTY, FINISHTIME, CID) 
+                        #VALUES (?, ?, ?, ?, ?, ?, ?)
+                        #"""
+                        #cursor.executemany(sql, timedata_tuples)
+                    else:
+                        if exclude_lst:
+                            query = f"SELECT CID from driver_stats_r{str(heat)} WHERE LOCKED = 1"
+                            cursor.execute(query)
+                            locked_cids = [item[0] for item in cursor.fetchall()]
+                            timedata_tuples = [
+                                (d["INTER_1"], d["INTER_2"], d["INTER_3"], d["SPEED"], d["PENELTY"], d["FINISHTIME"], d["CID"]) 
+                                for d in time_data_lst if d["CID"] not in locked_cids
+                            ]
+
+                            cursor.execute(f'DELETE FROM driver_stats_r{heat} WHERE LOCKED != 1;')
+                            
+                        else:
+                            timedata_tuples = [
+                                (d["INTER_1"], d["INTER_2"], d["INTER_3"], d["SPEED"], d["PENELTY"], d["FINISHTIME"], d["CID"]) 
+                                for d in time_data_lst
+                            ]
+                            cursor.execute(f'DELETE FROM driver_stats_r{heat}')
+                    
 
 
-                sql = f"""
-                INSERT OR REPLACE INTO driver_stats_r{heat} 
-                (INTER_1, INTER_2, INTER_3, SPEED, PENELTY, FINISHTIME, CID) 
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-                """
-                print(timedata_tuples)
-                for x in timedata_tuples:
-                    for b in driver_list:
-                        if int(x[6]) == int(b[0]):
-                            session_data[b[0]] = [b[1], b[2], event_name[0][0], event_name[0][1], heat, x[5], b[4], x[4]]
+                    sql = f"""
+                    INSERT OR REPLACE INTO driver_stats_r{heat} 
+                    (INTER_1, INTER_2, INTER_3, SPEED, PENELTY, FINISHTIME, CID) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """
+                    print(timedata_tuples)
+                    for x in timedata_tuples:
+                        for b in driver_list:
+                            if int(x[6]) == int(b[0]):
+                                session_data[b[0]] = [b[1], b[2], event_name[0][0], event_name[0][1], heat, x[5], b[4], x[4]]
 
-                print("asdasdasd")
-                for value in session_data:
-                    # Delete existing records
-                    my_db.session.query(Session_Race_Records)\
-                        .filter(Session_Race_Records.first_name == session_data[value][0])\
-                        .filter(Session_Race_Records.last_name == session_data[value][1])\
-                        .filter(Session_Race_Records.title_1 == session_data[value][2])\
-                        .filter(Session_Race_Records.title_2 == session_data[value][3])\
-                        .filter(Session_Race_Records.heat == session_data[value][4])\
-                        .delete()
+                    for value in session_data:
+                        # Delete existing records
+                        my_db.session.query(Session_Race_Records)\
+                            .filter(Session_Race_Records.first_name == session_data[value][0])\
+                            .filter(Session_Race_Records.last_name == session_data[value][1])\
+                            .filter(Session_Race_Records.title_1 == session_data[value][2])\
+                            .filter(Session_Race_Records.title_2 == session_data[value][3])\
+                            .filter(Session_Race_Records.heat == session_data[value][4])\
+                            .delete()
 
-                    # Commit the deletion
+                        # Commit the deletion
+                        my_db.session.commit()
+
+                        # Add the new record
+                        record = Session_Race_Records(first_name=session_data[value][0], last_name=session_data[value][1], title_1=session_data[value][2], title_2=session_data[value][3], heat=session_data[value][4], finishtime=session_data[value][5], snowmobile=session_data[value][6], penalty=int(session_data[value][7]))
+                        my_db.session.add(record)
+
+                    # Commit the new records
                     my_db.session.commit()
 
-                    # Add the new record
-                    record = Session_Race_Records(first_name=session_data[value][0], last_name=session_data[value][1], title_1=session_data[value][2], title_2=session_data[value][3], heat=session_data[value][4], finishtime=session_data[value][5], snowmobile=session_data[value][6], penalty=int(session_data[value][7]))
-                    my_db.session.add(record)
-
-                # Commit the new records
-                my_db.session.commit()
-
-                cursor.executemany(sql, timedata_tuples)
-                    
+                    cursor.executemany(sql, timedata_tuples)
+            except:
+                pass
+                        
 def insert_start_list(db, g_config, init_mode=True):
     from app.models import ActiveEvents
     from app import db as my_db

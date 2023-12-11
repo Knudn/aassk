@@ -3,15 +3,43 @@
 <head>
   <meta charset="UTF-8">
   <title>Race Commentary Information</title>
-  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">    
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
 
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">    
+
+
+<script src="{{url_for('static', filename='js/jquery-3.6.0.min.js')}}"></script>
+<script src="{{url_for('static', filename='js/bootstrap.bundle.min.js')}}"></script>
+<script src="{{url_for('static', filename='js/socket.io.js')}}"></script>
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
 
 
   <style>
+.accordion-header, .accordion-button {
+    padding: 0.5rem 1rem; /* Adjust padding as needed */
+}
+
+.accordion-button {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.accordion-title {
+    margin: 0; /* Remove default margin */
+    flex-grow: 1; /* Allows the title to take up available space */
+    text-align: center; /* Center the title text */
+}
+
+.accordion-item {
+    margin-bottom: 0.5rem; /* Less space between items */
+    border: 1px solid #e7e7e7; /* Lighter border */
+}
+
+.accordion-body {
+    padding: 0.5rem 1rem; /* Slimmer padding */
+}
+
 
     .modal-dialog top_race {
     width: auto;
@@ -478,7 +506,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else if (key.includes('title_1+title_2_')&& recordCount.tab2 < 10 ) {
                     tableBody = document.querySelector('#tab2 table tbody');
                     tabTitle = event.title_2;
-                    console.log("asdasd")
                     tab = 2
                     recordCount.tab2++;
                 } else if (key.includes('title_1_')&& recordCount.tab3 < 10 ) {
@@ -487,7 +514,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     tab = 3
                     recordCount.tab3++;
                 } else {
-                    console.log()
                     return
                 }
                 // Update tab title
@@ -740,15 +766,15 @@ async function updateDriverDisplay() {
 
             //WINS - LADDER
             const leftSnomobileModels = await get_snomobile_models(left_driver_name);
-            $('#left-driver').append(display_snowmobile_models(leftSnomobileModels, driver_names));
+            $('#left-driver').append(display_snowmobile_models(leftSnomobileModels, 1));
             const rightSnomobileModels = await get_snomobile_models(right_driver_name);            
-            $('#right-driver').append(display_snowmobile_models(rightSnomobileModels, driver_names));
+            $('#right-driver').append(display_snowmobile_models(rightSnomobileModels, 2));
 
             //WINS -SINGLE
             const leftsingle_result = await get_single_results(left_driver_name);
-            $('#left-driver').append(display_single_position(leftsingle_result, driver_names));
+            $('#left-driver').append(display_single_position(leftsingle_result, 1));
             const rightsingle_result = await get_single_results(right_driver_name);            
-            $('#right-driver').append(display_single_position(rightsingle_result, driver_names));
+            $('#right-driver').append(display_single_position(rightsingle_result, 2));
 
             try {
             //TOP TIME
@@ -772,7 +798,6 @@ async function updateDriverDisplay() {
 }
 
 function get_top_driver_header(title_name) {
-    console.log(title_name)
     return new Promise((resolve, reject) => {
         $.ajax({
             url: `/api/get_timedata/?title_1=${title_name[0]}&title_2=${title_name[1]}&heat=${title_name[2]}&single_all=true&entries_per_filter=1&unique_names=true`,
@@ -824,7 +849,6 @@ function display_get_top_driver_header(data) {
                     <th scope="col">Year</th>
                     <th scope="col">Wins</th>
                     <th scope="col">loses</th>
-                    <th scope="col">Handle</th>
                 </tr>
             </thead>
             <tbody>
@@ -1056,7 +1080,6 @@ function display_parallel_history(data, topDriver1, topDriver2, driver_int) {
             <th scope="row">${key}</th>
             <td>${driver_status_year[key].d1.win}</td>
             <td>${driver_status_year[key].d1.lose}</td>
-            <td>hhhh</td>
         </tr>`);
     }
 
@@ -1064,12 +1087,74 @@ function display_parallel_history(data, topDriver1, topDriver2, driver_int) {
     return displayHTML;
 }
 
+
+function countPlacementsByYear(data) {
+    const countsByYear = {};
+
+    data.forEach(item => {
+        let record;
+        let date;
+
+        // Check if placement is undefined and set record accordingly
+        if (item.placement === undefined) {
+            record = item.position;
+            date = item.date;
+        } else {
+            record = item.placement;
+            date = item.race_date;
+        }
+
+        
+
+        // Only consider record values 1, 2, and 3
+        if (record >= 1 && record <= 3) {
+            const year = new Date(date).getFullYear();
+
+            // Initialize the year array if not already
+            if (!countsByYear[year]) {
+                countsByYear[year] = [0, 0, 0]; // Array for records 1, 2, 3
+            }
+
+            // Increment the count for the relevant record
+            countsByYear[year][record - 1]++;
+        }
+    });
+
+    return countsByYear;
+}
 function display_snowmobile_models(data, driver) {
+    let wins = countPlacementsByYear(data)
+
     // Start with a table container inside a div
+    var displayHTML = "<div class='accordion w-100' id='accordionExample'>"; // Ensure full width
 
+    // Accordion item
+    displayHTML += "<div class='accordion-item'>";
 
-    var displayHTML = "<div class='container mt-4'><table class='table table-striped'>";
+    // Accordion header
+    displayHTML += "<h2 class='accordion-header' id='headingOne'>";
+    displayHTML += `<button class='accordion-button collapsed' type='button' data-bs-toggle='collapse' data-bs-target='#parallel_accor${driver}' aria-expanded='false' aria-controls='collapseOne'>`;
+    
 
+    var string = "<h4 class='accordion-title'> Paralell: "; // Add a class for easier CSS targeting
+
+    Object.keys(wins).forEach(key => {
+        string += `${key}: `;
+        string += `<span style='color: gold;'>${wins[key][0]}</span>`; // Gold for 1st place
+        string += `-<span style='color: silver;'>${wins[key][1]}</span>`; // Silver for 2nd place
+        string += `-<span style='color: #cd7f32;'>${wins[key][2]}</span> `; // Bronze for 3rd place
+        });
+    string += "</h4>"
+    displayHTML += `${string}`;
+
+    displayHTML += "</button></h2>";
+    // Accordion collapse content with table
+    displayHTML += `<div id='parallel_accor${driver}' class='accordion-collapse collapse' aria-labelledby='headingOne' data-bs-parent='#accordionExample'>`;
+    displayHTML += "<div class='accordion-body'>";
+
+    // Table container inside a div
+    displayHTML += "<div class='container-fluid'><table class='table table-striped'>"; // Use container-fluid for full width
+        
     // Table header
     displayHTML += "<thead class='thead-dark'><tr>";
     displayHTML += "<th scope='col'>Date</th>";
@@ -1125,26 +1210,37 @@ function display_snowmobile_models(data, driver) {
 }
 
 function display_single_position(data, driver) {
-    // Start with an accordion container
-    var displayHTML = "<div class='accordion w-100' id='accordionExample'>"; // Ensure full width
+    let wins = countPlacementsByYear(data)
 
-    // Accordion item
+    var displayHTML = "<div class='accordion w-100' id='accordionExample'>";
+
     displayHTML += "<div class='accordion-item'>";
 
-    // Accordion header
     displayHTML += "<h2 class='accordion-header' id='headingOne'>";
-    displayHTML += "<button class='accordion-button collapsed' type='button' data-bs-toggle='collapse' data-bs-target='#collapseOne' aria-expanded='false' aria-controls='collapseOne'>";
-    displayHTML += "<h4>SINGLE</h4>"; // Title of the accordion
+    var string = "<h4 class='accordion-title'> Single: ";
+
+    try {
+    displayHTML += `<button class='accordion-button collapsed' type='button' data-bs-toggle='collapse' data-bs-target='#single_accor${driver}' aria-expanded='false' aria-controls='collapseOne'>`;
+        Object.keys(wins).forEach(key => {
+        string += `${key}: `;
+        string += `<span style='color: gold;'>${wins[key][0]}</span>`; 
+        string += `-<span style='color: silver;'>${wins[key][1]}</span>`; 
+        string += `-<span style='color: #cd7f32;'>${wins[key][2]}</span> `;
+        });
+    string += "</h4>"
+    displayHTML += `${string}`;
+
+    } catch {
+        console.log("Error")
+    }
+
     displayHTML += "</button></h2>";
 
-    // Accordion collapse content with table
-    displayHTML += "<div id='collapseOne' class='accordion-collapse collapse' aria-labelledby='headingOne' data-bs-parent='#accordionExample'>";
+    displayHTML += `<div id='single_accor${driver}' class='accordion-collapse collapse' aria-labelledby='headingOne' data-bs-parent='#accordionExample'>`;
     displayHTML += "<div class='accordion-body'>";
 
-    // Table container inside a div
     displayHTML += "<div class='container-fluid'><table class='table table-striped'>"; // Use container-fluid for full width
 
-    // Table header
     displayHTML += "<thead class='thead-dark'><tr>";
     displayHTML += "<th scope='col'>Date</th>";
     displayHTML += "<th scope='col'>Titles</th>";
@@ -1152,7 +1248,6 @@ function display_single_position(data, driver) {
     displayHTML += "<th scope='col'>Position</th>";
     displayHTML += "</tr></thead>";
 
-    // Table body
     displayHTML += "<tbody>";
 
 
@@ -1160,7 +1255,6 @@ function display_single_position(data, driver) {
     // Iterate over each item in the data array
     data.forEach(function(key) {
 
-        console.log(key)
         if (key.placement == 1) {
             color = "style=background:#FFD700"
         } else if ( key.placement == 2 ) {
@@ -1204,5 +1298,6 @@ return displayHTML;
 
 
   </script>
+  
 </body>
 </html>

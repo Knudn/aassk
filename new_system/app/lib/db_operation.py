@@ -6,28 +6,37 @@ from app.lib.db_func import *
 from flask import request 
 import json
 
-def delete_events(directory_path):
-    files = os.listdir(directory_path)
+def delete_events(directory_path, event=None):
+    if event != None:
+        os.remove(directory_path+event+".sqlite")
+        return
     
+    files = os.listdir(directory_path)
     for file in files:
         file_path = os.path.join(directory_path, file)
         
         if os.path.isfile(file_path):
+            print(file_path)
             os.remove(file_path)
+    
 
-
-def full_db_reload(add_intel_sort=False):
+def full_db_reload(add_intel_sort=False, sync=False, Event=None):
     from app.models import ActiveEvents, EventOrder, EventType
     from app import db
 
 
     g_config = GetEnv()
 
-    delete_events(g_config["db_location"], )
+    delete_events(g_config["db_location"], event=Event)
     
-    db_data, driver_db_data = map_database_files(g_config)
-
-    ActiveEvents.query.delete()
+    
+    if Event != None:
+        db_data, driver_db_data = map_database_files(g_config, Event=Event)
+        print(db_data, driver_db_data)
+        ActiveEvents.query.filter(ActiveEvents.event_file==Event).delete()
+    else:
+        db_data, driver_db_data = map_database_files(g_config)
+        ActiveEvents.query.delete()
 
     count = 0
     for a in db_data:

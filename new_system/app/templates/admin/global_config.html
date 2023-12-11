@@ -2,9 +2,7 @@
 {% block content %}
 
 <style>
-    #search_string1, #search_string2 {
-        display: none;
-    }
+    /* Additional custom styles can be added here */
 </style>
 
 <script>
@@ -12,7 +10,7 @@
         var checkBox = document.getElementById("enable_sorting");
         var search1 = document.getElementById("search_string1");
         var search2 = document.getElementById("search_string2");
-        
+
         if (checkBox.checked == true) {
             search1.style.display = "table-row";
             search2.style.display = "table-row";
@@ -31,61 +29,61 @@
 
 <form method="post">
     {{ form.hidden_tag() }}
-    <table class="table table-bordered">
-        <thead>
-            <tr>
-                <th>Parameter</th>
-                <th>Value</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for config in global_config %}
-            <tr>
-                <td>Session Name</td>
-                <td>{{ form.session_name(value=config.session_name) }}</td>
-            </tr>
-            <tr>
-                <td>Project Directory</td>
-                <td>{{ form.project_dir(value=config.project_dir) }}</td>
-            </tr>
-            <tr>
-                <td>Database location</td>
-                <td>{{ form.db_location(value=config.db_location) }}</td>
-            </tr>
-            <tr>
-                <td>Event Directory</td>
-                <td>{{ form.event_dir(value=config.event_dir) }}</td>
-            </tr>
-            <tr>
-                <td>Whitelist String</td>
-                <td>{{ form.wl_title(value=config.wl_title) }}</td>
-            </tr>
-            <tr>
-                <td>Use whitelist?</td>
-                <td><input type="checkbox" name="wl_bool" {% if config.wl_bool %}checked{% endif %}></td>
-            </tr>
-            <tr>
-                <td>Enable MSport display proxy?</td>
-                <td><input type="checkbox" name="display_proxy" {% if config.display_proxy %}checked{% endif %}></td>
-            </tr>
-            <tr>
-                <td>Enable Sorting</td>
-                <td><input type="checkbox" name="enable_sorting" id="enable_sorting" onchange="toggleSortingFields()" {% if config.enable_sorting %}checked{% endif %}></td>
-            </tr>
-            {% if config.enable_sorting %}
-            <tr>
-                <td>Search String 1</td>
-                <td><input type="text" name="search_string1" value="{{ config.search_string1 }}"></td>
-            </tr>
-            <tr>
-                <td>Search String 2</td>
-                <td><input type="text" name="search_string2" value="{{ config.search_string2 }}"></td>
-            </tr>
-            {% endif %}
-            {% endfor %}
-        </tbody>
-    </table>
-    {{ form.submit() }}
-    <input type="submit" name="reload" value="Reload" onclick="return confirmAction()">
+    <div class="table-responsive">
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Parameter</th>
+                    <th>Value</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for config in global_config %}
+                <tr>
+                    <td>Session Name</td>
+                    <td><input type="text" class="form-control" name="session_name" value="{{ config.session_name }}"></td>
+                </tr>
+                <tr>
+                    <td>Project Directory</td>
+                    <td><input type="text" class="form-control" name="project_dir" value="{{ config.project_dir }}"></td>
+                </tr>
+                <tr>
+                    <td>Database location</td>
+                    <td><input type="text" class="form-control" name="db_location" value="{{ config.db_location }}"></td>
+                </tr>
+                <tr>
+                    <td>Event Directory</td>
+                    <td><input type="text" class="form-control" name="event_dir" value="{{ config.event_dir }}"></td>
+                </tr>
+                <tr>
+                    <td>Whitelist String</td>
+                    <td><input type="text" class="form-control" name="wl_title" value="{{ config.wl_title }}"></td>
+                </tr>
+                <tr>
+                    <td>Use whitelist?</td>
+                    <td>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="wl_bool" {% if config.wl_bool %}checked{% endif %}>
+                        </div>
+                    </td>
+                </tr>
+
+                <tr id="search_string1" style="{% if not config.enable_sorting %}display: none{% endif %}">
+                    <td>Search String 1</td>
+                    <td><input type="text" class="form-control" name="search_string1" value="{{ config.search_string1 }}"></td>
+                </tr>
+                <tr id="search_string2" style="{% if not config.enable_sorting %}display: none{% endif %}">
+                    <td>Search String 2</td>
+                    <td><input type="text" class="form-control" name="search_string2" value="{{ config.search_string2 }}"></td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    {{ form.submit(class="btn btn-primary") }}
+    <input type="submit" name="reload" value="Reload" class="btn btn-warning" onclick="return confirmAction()">
+    <input type="submit" name="update" value="Update" class="btn btn-success">
 </form>
+
 {% endblock %}

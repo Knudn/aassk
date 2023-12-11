@@ -1,37 +1,138 @@
 
 {% extends 'admin/layout.html' %}
 {% block content %}
+
+<script src="{{url_for('static', filename='js/jquery-3.6.0.min.js')}}"></script>
+
+
+<style>
+.card-header {
+    text-align: center;
+}
+.card-body {
+    text-align: center;
+}
+</style>
+
+
 <div class="container mt-5">
     <div class="row">
-        <!-- Box 1 -->
         <div class="col-md-4">
             <div class="card">
-                <div class="card-header">Box 1</div>
+                <div class="card-header">Number of events</div>
                 <div class="card-body">
-                    <p class="card-text">This is data for box 1.</p>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Box 2 -->
-        <div class="col-md-4">
-            <div class="card">
-                <div class="card-header">Box 2</div>
-                <div class="card-body">
-                    <p class="card-text">This is data for box 2.</p>
+                    <h3 class="card-text">{{ num_events }}</h3>
                 </div>
             </div>
         </div>
 
-        <!-- Box 3 -->
         <div class="col-md-4">
             <div class="card">
-                <div class="card-header">Box 3</div>
+                <div class="card-header">Runs</div>
                 <div class="card-body">
-                    <p class="card-text">This is data for box 3.</p>
+                    <h3 class="card-text">{{ num_run }}</h3>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header">Drivers</div>
+                <div class="card-body">
+                    <h3 class="card-text">{{ drivercount }}</h3>
+                </div>
+            </div>
+        </div>
+
+        
+        <div>
+            <br>
+        </div>
+        <div class="input-group mb-3">
+            <div class="input-group-prepend">
+              <label class="input-group-text" for="inputGroupSelect01">Event</label>
+            </div>
+            
+            <select class="custom-select" id="inputGroupSelect01"> 
+              <option selected>Choose...</option>
+              {% for a in events %}
+              <option class="{{ a[2] }}" value={{ a[2] }}>{{ a[0] }}</option> 
+                
+              {% endfor %}
+            </select>
+            <button class="sync-btn btn btn-success" type="submit">Sync</button>
+            <br>
+          </div>
+          <p class="state_sync"></p>
+          <div class="col-md-2">
+            <div class="card">
+                <div class="card-header">Drivers</div>
+                <div class="card-body">
+                    <h3 class="event_drivers">0</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-2">
+            <div class="card">
+                <div class="card-header">Recorded</div>
+                <div class="card-body">
+                    <h3 class="event_recorded">0/0</h3>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-2">
+            <div class="card">
+                <div class="card-header">Penalties</div>
+                <div class="card-body">
+                    <h3 class="event_penalties">0</h3>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card">
+                <div class="card-header">Heats</div>
+                <div class="card-body">
+                    <h3 class="event_heats">0</h3>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+
+<script>
+
+$(document).ready(function() {
+    function sendRequest(event, sync, event_name) {
+        $.ajax({
+            type: "POST",
+            url: "/admin/home",
+            data: {single_event: event, sync: sync, event_name: event_name},
+            success: function(result) {
+                document.getElementsByClassName("event_drivers")[0].innerHTML = result.drivers;
+                document.getElementsByClassName("event_recorded")[0].innerHTML = (result.v_times + result.p_times) + "/" + result.all_records;
+                document.getElementsByClassName("event_penalties")[0].innerHTML = result.p_times;
+                document.getElementsByClassName("event_heats")[0].innerHTML = result.heats;
+            }
+        });
+    }
+
+    $('#inputGroupSelect01').change(function() {
+        let event = this.value;
+        sendRequest(event, false, "none");
+    });
+
+    $(".sync-btn").click(function() {
+        let event = document.getElementById('inputGroupSelect01').value;
+        let event_name = document.getElementsByClassName(event)[0].innerHTML
+        sendRequest(event, "true", event_name);
+    });
+});
+
+</script>
+
+
 {% endblock %}
+

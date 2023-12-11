@@ -33,11 +33,86 @@ def admin(tab_name):
         return "Invalid tab", 404
 
 def home_tab():
-    from app.models import ActiveDrivers
+    from app.models import ActiveDrivers, ActiveEvents, Session_Race_Records, GlobalConfig
     from app import db
+    from sqlalchemy import func
+
+    db_location = db.session.query(GlobalConfig.db_location).all()[0][0]
+
+    # Query to get distinct event names and their counts
+    enabled_events = (ActiveEvents.query
+                        .filter(ActiveEvents.enabled == 1)
+                        .group_by(ActiveEvents.event_name)
+                        .with_entities(ActiveEvents.event_name, func.count(ActiveEvents.event_name))
+                        .count())
+
+    drivers = (Session_Race_Records.query
+                      .with_entities(Session_Race_Records.first_name, Session_Race_Records.last_name)
+                      .group_by(Session_Race_Records.first_name, Session_Race_Records.last_name)
+                      .count())
+    
+    number_runs = (ActiveEvents.query.filter(ActiveEvents.enabled == 1).count())
+
+    unique_events = (
+        db.session.query(
+            ActiveEvents.event_name,
+            func.max(ActiveEvents.run).label('max_run'),
+            ActiveEvents.event_file
+        )
+        .group_by(ActiveEvents.event_name).order_by(ActiveEvents.sort_order)
+        .all()
+    )
+    
+    if request.method == "POST":
+        if "single_event" in request.form:
+            
+            if request.form.get('event_file') == "active_event":
+                active_event = get_active_event()
+                selectedEventFile = active_event[0]["db_file"]
+                selectedRun = active_event[0]["SPESIFIC_HEAT"]
+            else:
+                selectedEventFile = request.form.get('single_event')
+                sync_state = request.form.get('sync')
+                print(sync_state)
+
+            if sync_state == "true":
+                from app.lib.utils import GetEnv
+                g_config = GetEnv()
+
+                event_name = request.form.get('event_name')
+
+                #Delete local driver session entries for the spesific event
+                db.session.query(Session_Race_Records).filter((Session_Race_Records.title_1 + " " + Session_Race_Records.title_2)==event_name).delete()
+                db.session.commit()
+
+                full_db_reload(add_intel_sort=True, Event=selectedEventFile)
 
 
-    return render_template('admin/index.html')
+            print("Getting:", selectedEventFile)
+            with sqlite3.connect(db_location + selectedEventFile + ".sqlite") as con:
+                cur = con.cursor()
+                cur.execute(f"SELECT COUNT() FROM drivers;")
+                amount_drivers = cur.fetchone()
+                cur.execute(f"SELECT COUNT() FROM sqlite_master WHERE type='table' AND name LIKE 'driver\_%' ESCAPE '\\';")
+                heat_num = cur.fetchone()[0]
+                valid_recorded_times = 0
+                invalid_recorded_times = 0
+                drivers_left = 0
+ 
+                for a in range(1,heat_num+1):
+                    cur.execute("SELECT COUNT() FROM driver_stats_r{0} WHERE FINISHTIME != 0 AND PENELTY = 0;".format(a))
+                    valid_recorded_times += cur.fetchone()[0]
+
+                    cur.execute("SELECT COUNT() FROM driver_stats_r{0} WHERE PENELTY != 0;".format(a))
+                    invalid_recorded_times += cur.fetchone()[0]
+
+                    cur.execute("SELECT COUNT() FROM driver_stats_r{0} WHERE FINISHTIME = 0 AND PENELTY = 0;".format(a))
+                    drivers_left += cur.fetchone()[0]
+
+                event_config = {"all_records":(valid_recorded_times + invalid_recorded_times + drivers_left), "p_times":invalid_recorded_times, "v_times":valid_recorded_times, "l_times":drivers_left, "drivers":amount_drivers, "heats":heat_num}
+                return event_config
+
+    return render_template('admin/index.html', drivercount=drivers, num_run=number_runs, num_events=enabled_events, events=unique_events)
 
 def global_config_tab():
     from app.models import GlobalConfig, ConfigForm, ActiveDrivers, Session_Race_Records
@@ -46,6 +121,7 @@ def global_config_tab():
     global_config = GlobalConfig.query.all()
     form = ConfigForm()
     
+    print(request.form)
     if form.validate_on_submit():
         if 'submit' in request.form:            
             for config in global_config:
@@ -57,8 +133,10 @@ def global_config_tab():
                 config.wl_bool = bool(form.wl_bool.data)
                 config.display_proxy = bool(form.display_proxy.data)
                 db.session.commit()
+        elif 'update' in request.form: 
+            print("asdasd")
         else:
-            # I'm assuming this is related to the "Reload" button, but you can update as needed
+            
             db.session.query(Session_Race_Records).delete()
             print(full_db_reload(add_intel_sort=True))
             

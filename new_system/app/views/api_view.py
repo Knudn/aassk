@@ -145,6 +145,7 @@ def get_timedata():
     single_all = request.args.get('single_all', default='false', type=str)
     entries_per_filter = request.args.get('entries_per_filter', default=1, type=int)
     unique_names = request.args.get('unique_names', default='false', type=str).lower() == 'true'
+    ignore_penalty = request.args.get('ignore_penalty', default='false', type=str).lower() == 'true'
 
     if heat and heat.isdigit():
         heat = int(heat)
@@ -179,6 +180,7 @@ def get_timedata():
                     query = query.filter(Session_Race_Records.heat == heat)
 
             query = query.filter(Session_Race_Records.finishtime != 0)
+            query = query.filter(Session_Race_Records.penalty == 0)
 
             if unique_names:
                 # Subquery for unique driver names with min finishtime within each filter
