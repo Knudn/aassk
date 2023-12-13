@@ -168,8 +168,11 @@ DriverPositionInLastRun AS (
         r.vehicle,
         r.finishtime,
         r.pair_id,
+        r.penalty,
         lr.final_run_id,
         CASE 
+            WHEN r.penalty != 0 THEN
+                999 -- Assign a high number to ensure they are ranked last
             WHEN lr.final_run_id = r.run_id THEN
                 CASE 
                     WHEN r.pair_id = 1 THEN
@@ -189,6 +192,7 @@ DriverPositionInLastRun AS (
     WHERE 
         r.finishtime IS NOT NULL
 ),
+
 FilteredRaces AS (
     SELECT rs.id AS race_id
     FROM "races" rs

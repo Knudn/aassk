@@ -4,10 +4,13 @@ from models import Base, RaceDay, Race, Run, Drivers
 from sqlalchemy import create_engine, and_, text
 from sqlalchemy.orm import sessionmaker, Session
 import queries
+import hashlib
+
 
 DATABASE_URL = "sqlite:///./test.db"
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
 
 app = FastAPI()
 # Configure CORS
@@ -18,10 +21,23 @@ app.add_middleware(
     allow_methods=["*"],  # Allows all methods
     allow_headers=["*"],  # Allows all headers
 )
+
+
 # Initialize the database
 Base.metadata.create_all(bind=engine)
 
+app.state.db_cache_dict = {}
 
+def db_cache():
+    async def cache_logic(query=None, data=None):
+        b64_hash = hashlib.md5(query.encode()).hexdigest()
+        if query and b64_hash in app.state.db_cache_dict:
+            return app.state.db_cache_dict[b64_hash]
+        if data is not None:
+            app.state.db_cache_dict[b64_hash] = data
+        return None
+    return cache_logic
+    
 
 def fix_names(first_name, last_name, club):
     if "é" in first_name:
@@ -89,6 +105,7 @@ def fix_names(first_name, last_name, club):
     name = first_name + " " + last_name 
     return name, club
 
+
 def get_db():
     db = SessionLocal()
     try:
@@ -113,8 +130,13 @@ async def get_drivers(db: Session = Depends(get_db)):
     return results_list
 
 @app.get("/get_parallel_results/{driver_name}")
-async def get_drivers(driver_name: str, db: Session = Depends(get_db)):
+async def get_drivers(driver_name: str, db: Session = Depends(get_db), cache=Depends(db_cache)):
     query = queries.get_parallel_driver_results_sql(driver_name)
+
+    cache_state = await cache(query=query)
+    if cache_state:
+        print("asdasd")
+        return cache_state
 
     result = db.execute(text(query))
     rows = result.fetchall()
@@ -134,12 +156,18 @@ async def get_drivers(driver_name: str, db: Session = Depends(get_db)):
             "d2_snowmobile": row[10],
         } for row in rows
     ]
-
+    if results_list == []:
+        print("asdddd")
+        await cache(query=query, data=[])
+    await cache(query=query, data=results_list)
     return results_list
 
 @app.get("/snowmobiles/{driver_name}")
-async def snowmobiles(driver_name: str, db: Session = Depends(get_db)):
+async def snowmobiles(driver_name: str, db: Session = Depends(get_db), cache=Depends(db_cache)):
     query = queries.get_snowmobiles_sql(driver_name)
+    cache_state = await cache(query=query)
+    if cache_state:
+        return cache_state
 
     result = db.execute(text(query))
     rows = result.fetchall()
@@ -151,13 +179,19 @@ async def snowmobiles(driver_name: str, db: Session = Depends(get_db)):
             "raceday":row[3],
         } for row in rows
     ]
-    print(result)
+
+    await cache(query=query, data=results_list)
 
     return results_list
 
 @app.get("/get_ladder_results/")
-async def get_ladder_results(db: Session = Depends(get_db)):
+async def get_ladder_results(db: Session = Depends(get_db), cache=Depends(db_cache)):
     query = queries.get_ladder_results()
+
+    cache_state = await cache(query=query)
+    if cache_state:
+        return cache_state
+
     result = db.execute(text(query))
     rows = result.fetchall()
 
@@ -180,28 +214,38 @@ async def get_ladder_results(db: Session = Depends(get_db)):
             race_id[a["race_id"]].append({a["driver_name"], "2", a["race_name"]})
         else:
             race_id[a["race_id"]].append({a["driver_name"], a["position"], a["race_name"]})
-
+    
+    await cache(query=query, data=results_list)
     return race_id
 
 @app.get("/get_ladder_placement_sql/{driver_name}")
-async def get_ladder_placement_sql(driver_name: str, db: Session = Depends(get_db)):
+async def get_ladder_placement_sql(driver_name: str, db: Session = Depends(get_db), cache=Depends(db_cache)):
     query = queries.get_ladder_placement_sql(driver_name)
+
+    # Check the cache
+    cache_state = await cache(query=query)
+    if cache_state:
+        return cache_state
+
+    # If not in cache, execute the database query
     result = db.execute(text(query))
     rows = result.fetchall()
     results_list = [
-    {
-        "name": row[0],
-        "title_1": row[1],
-        "title_2": row[2],
-        "position": row[3],
-        "date": row[4],
-        "mode": row[5],
-        "snowmobile": row[6],
-        "total_drivers":row[7],
-        "finishtime":row[8],
-    } for row in rows
-]
+        {
+            "name": row[0],
+            "title_1": row[1],
+            "title_2": row[2],
+            "position": row[3],
+            "date": row[4],
+            "mode": row[5],
+            "snowmobile": row[6],
+            "total_drivers": row[7],
+            "finishtime": row[8],
+        } for row in rows
+    ]
 
+    # Update the cache with new data
+    await cache(query=query, data=results_list)
     return results_list
 
 @app.post("/upload-data/")
@@ -316,8 +360,13 @@ async def upload_data(request: Request):
 
 
 @app.get("/get_single_placement_sql/{driver_name}")
-async def get_single_placement_sql(driver_name: str, db: Session = Depends(get_db)):
+async def get_single_placement_sql(driver_name: str, db: Session = Depends(get_db), cache=Depends(db_cache)):
     query = queries.get_single_placement_sql(driver_name)
+    # Check the cache
+    cache_state = await cache(query=query)
+    if cache_state:
+        return cache_state
+
     result = db.execute(text(query))
     rows = result.fetchall()
 
@@ -333,5 +382,5 @@ async def get_single_placement_sql(driver_name: str, db: Session = Depends(get_d
         "totale_drivers":row[7],
     } for row in rows
 ]
-
+    await cache(query=query, data=results_list)
     return results_list
