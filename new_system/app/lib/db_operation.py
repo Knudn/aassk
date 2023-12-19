@@ -39,15 +39,20 @@ def full_db_reload(add_intel_sort=False, sync=False, Event=None):
         ActiveEvents.query.delete()
 
     count = 0
-    for a in db_data:
-        for b in range(1, (int(a['HEATS']) + 1)):
-            count += 1
-            event_entry = ActiveEvents(event_name=(a["TITLE1"] + " " + a["TITLE2"]), run=b, sort_order=count, event_file=a["db_file"], mode=a["MODE"])
-            db.session.add(event_entry)
 
-    db.session.commit()
+
 
     if add_intel_sort:
+
+        #I moved this indise the if statement. 
+        for a in db_data:
+            for b in range(1, (int(a['HEATS']) + 1)):
+                count += 1
+                event_entry = ActiveEvents(event_name=(a["TITLE1"] + " " + a["TITLE2"]), run=b, sort_order=count, event_file=a["db_file"], mode=a["MODE"])
+                db.session.add(event_entry)
+
+        db.session.commit()
+
         EventType.query.delete()
         EventOrder.query.delete()
         event_types = []

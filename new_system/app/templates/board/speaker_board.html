@@ -941,21 +941,6 @@ function display_get_top_driver_header(data) {
 
 
 
-function get_snomobile_models_old(driver_name) {
-    return new Promise((resolve, reject) => {
-        $.ajax({
-            url: `${h_server_url}/snowmobiles/${driver_name}`,
-            type: 'GET',
-            success: function(data) {
-                resolve(data);
-            },
-            error: function() {
-                reject('Error fetching snowmobile models');
-            }
-        });
-    });
-}
-
 function get_snomobile_models(driver_name) {
     return new Promise((resolve, reject) => {
         $.ajax({
@@ -991,7 +976,9 @@ function get_single_results(driver_name) {
 
 function display_parallel_history(data, topDriver1, topDriver2, driver_int) {
     // Group data by date and title_day
-
+    if (data[0]["None"]) {
+        return
+    }
     var groupedByDateAndTitle = data.reduce(function (acc, item) {
         var groupKey = item.date + ' - ' + item.title_day + ' ' + item.title;
         acc[groupKey] = acc[groupKey] || [];
@@ -1136,7 +1123,7 @@ function display_snowmobile_models(data, driver) {
     displayHTML += `<button class='accordion-button collapsed' type='button' data-bs-toggle='collapse' data-bs-target='#parallel_accor${driver}' aria-expanded='false' aria-controls='collapseOne'>`;
     
 
-    var string = "<h4 class='accordion-title'> Paralell: "; // Add a class for easier CSS targeting
+    var string = "<h4 class='accordion-title'> Drag: "; // Add a class for easier CSS targeting
 
     Object.keys(wins).forEach(key => {
         string += `${key}: `;
@@ -1217,7 +1204,7 @@ function display_single_position(data, driver) {
     displayHTML += "<div class='accordion-item'>";
 
     displayHTML += "<h2 class='accordion-header' id='headingOne'>";
-    var string = "<h4 class='accordion-title'> Single: ";
+    var string = "<h4 class='accordion-title'>Bakkelop: ";
 
     try {
     displayHTML += `<button class='accordion-button collapsed' type='button' data-bs-toggle='collapse' data-bs-target='#single_accor${driver}' aria-expanded='false' aria-controls='collapseOne'>`;

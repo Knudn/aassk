@@ -102,15 +102,19 @@ def init_database(event_files, driver_db_data, g_config, init_mode=True, exclude
 
                 driver_insert_data = []
 
-                for driver_data in driver_db_data[entry["db_file"]]:
-                    cid = driver_data['CID']
-                    first_name = driver_data['FIRST_NAME']
-                    last_name = driver_data['LAST_NAME']
-                    club = driver_data['CLUB']
-                    snowmobile = driver_data['SNOWMOBILE']
-                    
-                    driver_data_tuple = (cid, first_name, last_name, club, snowmobile)
-                    driver_insert_data.append(driver_data_tuple)
+                if len(driver_db_data) > 0: 
+                    try:
+                        for driver_data in driver_db_data[entry["db_file"]]:
+                            cid = driver_data['CID']
+                            first_name = driver_data['FIRST_NAME']
+                            last_name = driver_data['LAST_NAME']
+                            club = driver_data['CLUB']
+                            snowmobile = driver_data['SNOWMOBILE']
+                            
+                            driver_data_tuple = (cid, first_name, last_name, club, snowmobile)
+                            driver_insert_data.append(driver_data_tuple)
+                    except:
+                        pass
 
                 #Turning driver data into tuple
                 sql = "INSERT OR IGNORE INTO drivers (CID, FIRST_NAME, LAST_NAME, CLUB, SNOWMOBILE) VALUES (?, ?, ?, ?, ?);"

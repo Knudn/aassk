@@ -85,7 +85,7 @@ def home_tab():
                 db.session.query(Session_Race_Records).filter((Session_Race_Records.title_1 + " " + Session_Race_Records.title_2)==event_name).delete()
                 db.session.commit()
 
-                full_db_reload(add_intel_sort=True, Event=selectedEventFile)
+                full_db_reload(add_intel_sort=False, Event=selectedEventFile)
 
 
             print("Getting:", selectedEventFile)

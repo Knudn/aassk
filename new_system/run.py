@@ -5,7 +5,7 @@ import os
 from app.lib.utils import manage_process, GetEnv
 
 pwd = os.getcwd()
-
+print(pwd)
 def create_tables(app):
     with app.app_context():
         db.create_all() 
