@@ -23,6 +23,7 @@ def delete_events(directory_path, event=None):
 def full_db_reload(add_intel_sort=False, sync=False, Event=None):
     from app.models import ActiveEvents, EventOrder, EventType
     from app import db
+    from sqlalchemy import func
 
 
     g_config = GetEnv()
@@ -32,26 +33,78 @@ def full_db_reload(add_intel_sort=False, sync=False, Event=None):
     
     if Event != None:
         db_data, driver_db_data = map_database_files(g_config, Event=Event)
-        print(db_data, driver_db_data)
-        ActiveEvents.query.filter(ActiveEvents.event_file==Event).delete()
+
+        for a in db_data:
+            installed_heats = int(ActiveEvents.query.filter(ActiveEvents.event_file==Event).count())
+            gotten_heats = int(a["HEATS"])
+            hightest_heat = (
+                ActiveEvents.query.filter(ActiveEvents.event_name == a["TITLE1"] + " " + a["TITLE2"]).order_by(ActiveEvents.sort_order.desc()).first()
+            )
+
+            max_sort_order_subquery = ActiveEvents.query.with_entities(func.max(ActiveEvents.sort_order).label("max_sort_order")).subquery()
+
+            entry_range = ActiveEvents.query.filter(
+                ActiveEvents.sort_order.between(hightest_heat.sort_order, max_sort_order_subquery.c.max_sort_order)
+            ).all()
+
+
+            if gotten_heats > installed_heats:
+                sort_oder_addition = (gotten_heats - installed_heats)
+
+                entry_range = ActiveEvents.query.filter(
+                    ActiveEvents.sort_order.between((hightest_heat.sort_order)+1, max_sort_order_subquery.c.max_sort_order)
+                ).all()
+
+                for entry in entry_range:
+                    entry.sort_order += sort_oder_addition 
+
+                db.session.commit()
+
+                for k, b in enumerate(range(installed_heats, gotten_heats)):
+                    sort_value = hightest_heat.sort_order + (k + 1)
+                    event_entry = ActiveEvents(event_name=(a["TITLE1"] + " " + a["TITLE2"]), run=(b + 1), sort_order=sort_value, event_file=a["db_file"], mode=a["MODE"])
+                    db.session.add(event_entry)
+                    print("True 1")
+
+                db.session.commit()
+
+            elif gotten_heats < installed_heats:
+                sort_order_sub = (installed_heats - gotten_heats)
+                
+                for b in range(gotten_heats, installed_heats):
+                    ActiveEvents.query.filter(
+                        ActiveEvents.event_name == (a["TITLE1"] + " " + a["TITLE2"]),
+                        ActiveEvents.run == b + 1
+                    ).delete()
+
+                    print("remove:" )
+                    print("True 2")
+
+                entry_range = ActiveEvents.query.filter(
+                    ActiveEvents.sort_order.between((hightest_heat.sort_order)+1, max_sort_order_subquery.c.max_sort_order)
+                ).all()
+
+                for entry in entry_range:
+                    entry.sort_order -= sort_order_sub 
+
+                db.session.commit()
     else:
         db_data, driver_db_data = map_database_files(g_config)
         ActiveEvents.query.delete()
-
-    count = 0
-
-
-
-    if add_intel_sort:
-
+        count = 0
         #I moved this indise the if statement. 
         for a in db_data:
+
             for b in range(1, (int(a['HEATS']) + 1)):
                 count += 1
+                
                 event_entry = ActiveEvents(event_name=(a["TITLE1"] + " " + a["TITLE2"]), run=b, sort_order=count, event_file=a["db_file"], mode=a["MODE"])
                 db.session.add(event_entry)
 
         db.session.commit()
+
+    if add_intel_sort:
+
 
         EventType.query.delete()
         EventOrder.query.delete()
