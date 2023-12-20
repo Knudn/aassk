@@ -183,7 +183,8 @@ async def startup_event():
                 if existing_config:
                     existing_config.host_id = hostname
                     existing_config.approved = False
-                    db.commit()
+                    db.commit(response.text)
+                    print()
                     if not existing_config.approved:
                         print(monitor_not_approved_path)
                         #open_chromium_with_message(monitor_not_approved_path)
