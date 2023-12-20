@@ -144,7 +144,7 @@ async def receive_data(request: Request, db: Session = Depends(get_db)):
     # Insert new data
     for item in data:
         extension = item['url'].lower().split('.')[-1]
-
+        print(item['timer'])
         if "."+extension in image_extensions and "http" not in item['url'].lower():
             new_asset = Asset(name=item['name'], url=flhost+"/api/infoscreen_asset/"+item['url'], timer=item['timer'])
         else:
@@ -184,7 +184,6 @@ async def startup_event():
                     existing_config.host_id = hostname
                     existing_config.approved = False
                     db.commit()
-                    print(response.json()["Approved"])
                     if not existing_config.approved:
                         print(monitor_not_approved_path)
                         #open_chromium_with_message(monitor_not_approved_path)
