@@ -145,6 +145,8 @@ async def receive_data(request: Request, db: Session = Depends(get_db)):
     for item in data:
         extension = item['url'].lower().split('.')[-1]
         print(item['timer'])
+        if item['timer'] == "":
+            print("asdasdasd")
         if "."+extension in image_extensions and "http" not in item['url'].lower():
             new_asset = Asset(name=item['name'], url=flhost+"/api/infoscreen_asset/"+item['url'], timer=item['timer'])
         else:
