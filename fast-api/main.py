@@ -153,8 +153,10 @@ async def receive_data(request: Request, db: Session = Depends(get_db)):
             new_asset = Asset(name=item['name'], url=item['url'], timer=item['timer'])
         db.add(new_asset)
     db.commit()
-
+    
+    open_chromium_with_message(html_file_path)
     await manager.broadcast("update")
+    
 
     return {"message": "Data received, old data deleted, and new data stored"}
 
