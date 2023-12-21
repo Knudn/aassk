@@ -1,9 +1,11 @@
 from app import socketio
-from flask import Blueprint, render_template, request
+from flask import Blueprint, render_template, request, session
 from app.lib.db_operation import reload_event as reload_event_func
 from flask_socketio import join_room, send
 from app.models import SpeakerPageSettings
 from app import db
+from sqlalchemy import func
+
 
 board_bp = Blueprint('board', __name__)
 
@@ -14,6 +16,52 @@ def board():
 @board_bp.route('/board/scoreboard')
 def scoreboard():
     return render_template('board/scoreboard.html')
+
+@board_bp.route('/board/scoreboard_loop')
+def scoreboard_loop():
+
+    from app.models import Session_Race_Records, ActiveEvents
+    import random
+
+    session['index'] = session.get('index', 0) + 1
+
+    query = db.session.query(
+            Session_Race_Records.id,
+            Session_Race_Records.first_name,
+            Session_Race_Records.last_name,
+            Session_Race_Records.title_1,
+            Session_Race_Records.title_2,
+            Session_Race_Records.heat,
+            Session_Race_Records.finishtime,
+            Session_Race_Records.snowmobile,
+            Session_Race_Records.penalty
+        ).filter(
+            (Session_Race_Records.title_1 + Session_Race_Records.title_2).like('%Parallel%')
+        ).filter(
+            Session_Race_Records.finishtime != 0
+        ).group_by(
+            Session_Race_Records.title_1, Session_Race_Records.title_2
+        ).having(
+            Session_Race_Records.heat == func.max(Session_Race_Records.heat)
+        )
+
+    # Execute the query to get the results
+    results = query.all()
+    max_len = len(results)
+    event_int = random.randint(0, max_len-1)
+
+    title_combo = results[event_int][3] + " " + results[event_int][4]
+
+    query = db.session.query(ActiveEvents.event_file).filter(
+        ActiveEvents.event_name == title_combo
+    )
+
+    results = query.first()
+    print(max_len, "len")
+
+    print(results)
+    
+    return str(session['index'])
 
 @board_bp.route('/board/speaker', methods = ['GET', 'POST'])
 def speaker():

@@ -1,4 +1,5 @@
 from flask import Flask, jsonify
+from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from app.lib.db_operation import map_database_files
 from flask_socketio import SocketIO
@@ -10,7 +11,8 @@ socketio = SocketIO()
 
 def create_app():
     app = Flask(__name__)
-    
+    CORS(app)
+    app.secret_key = 'your_secret_key'
     pwd = getcwd()
     print(pwd)
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + path.join(pwd, 'site.db')

@@ -1,7 +1,7 @@
-from flask import Blueprint, render_template, request, json, send_from_directory
+from flask import Blueprint, request, send_from_directory, session
 import sqlite3
 from app.lib.db_operation import reload_event as reload_event_func
-from app.lib.db_operation import update_active_event_stats, get_active_startlist, get_active_startlist_w_timedate
+from app.lib.db_operation import update_active_event_stats, get_active_startlist, get_active_startlist_w_timedate, get_specific_event_data
 from app import socketio
 from app.lib.utils import intel_sort, update_info_screen, export_events
 from sqlalchemy import func
@@ -85,6 +85,69 @@ def get_current_startlist():
 def get_current_startlist_w_data():
     
     return get_active_startlist_w_timedate()
+
+@api_bp.route('/api/get_specific_event_data', methods=['GET'])
+def get_specific_event_data_view():
+
+    from app.models import Session_Race_Records, ActiveEvents
+    import random
+    from app import db
+    
+    event_filter = request.args.get('event_filter', default='', type=str)
+    heat_insert = request.args.get('heat', default='', type=str)
+
+    session['index'] = session.get('index', 0) + 1
+
+    query = db.session.query(
+        Session_Race_Records.id,
+        Session_Race_Records.first_name,
+        Session_Race_Records.last_name,
+        Session_Race_Records.title_1,
+        Session_Race_Records.title_2,
+        Session_Race_Records.heat,
+        Session_Race_Records.finishtime,
+        Session_Race_Records.snowmobile,
+        Session_Race_Records.penalty
+    ).filter(
+        (Session_Race_Records.title_1 + Session_Race_Records.title_2).like(f'%{event_filter}%')
+    ).filter(
+        Session_Race_Records.finishtime != 0
+    ).group_by(
+        Session_Race_Records.title_1, Session_Race_Records.title_2
+    ).having(
+        Session_Race_Records.heat == func.max(Session_Race_Records.heat)
+    )
+
+    # Execute the query to get the results
+    results = query.all()
+    max_len = len(results)
+    if max_len == 0:
+        return "None"
+    event_int = random.randint(0, max_len-1)
+    heat = []
+
+    title_combo = results[event_int][3] + " " + results[event_int][4]
+
+    query = db.session.query(ActiveEvents.event_file, ActiveEvents.run).filter(
+        ActiveEvents.event_name == title_combo
+    )
+
+    results = query.all()
+    if heat_insert == '':
+        for a in results:
+            heat.append(a[1])
+    elif heat_insert == "latest":
+        for a in results:
+            heat.append(a[1])
+        print(max(heat))
+    else:
+        heat.append(heat_insert)
+
+
+
+
+    event = [{'db_file':results[0][0], "SPESIFIC_HEAT":heat}]
+    return {"Timedata":get_specific_event_data(event_filter=event),"event_data":[title_combo]}
 
 @api_bp.route('/api/get_event_order', methods=['GET'])
 def get_event_order():

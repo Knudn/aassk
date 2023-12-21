@@ -1,7 +1,7 @@
 import sqlite3
 from sqlite3 import Error
 import os
-from app.lib.utils import GetEnv, format_startlist
+from app.lib.utils import GetEnv, format_startlist, get_event_data_all
 from app.lib.db_func import *
 from flask import request 
 import json
@@ -195,6 +195,23 @@ def get_active_startlist_w_timedate():
     event_db_file = (g_config["db_location"]+event[0]["db_file"]+".sqlite")
     event[0]["db_file"] = event_db_file
     data = format_startlist(event, include_timedata=True)
+    #data = json.dumps(format_startlist(event, include_timedata=True))
+
+    return data
+
+def get_specific_event_data(event_filter=None):
+
+    g_config = GetEnv()
+    
+    if event_filter != None:
+        event = event_filter
+    else:
+        event = get_active_event()
+
+
+    event_db_file = (g_config["db_location"]+event[0]["db_file"]+".sqlite")
+    event[0]["db_file"] = event_db_file
+    data = get_event_data_all(event)
     #data = json.dumps(format_startlist(event, include_timedata=True))
 
     return data

@@ -191,6 +191,29 @@ def intel_sort():
         db.session.add_all(new_type_dict[a])
         db.session.commit()
 
+def get_event_data_all(event):
+    import json
+
+    g_config = GetEnv()
+    print(event[0]["db_file"])
+    with sqlite3.connect(event[0]["db_file"]) as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM drivers;".format(event[0]["db_file"]))
+        drivers = cursor.fetchall()
+
+        data = {}
+
+        for a in event[0]["SPESIFIC_HEAT"]:
+            cursor.execute("SELECT * FROM driver_stats_r{0};".format(a))
+            for row in cursor.fetchall():
+                driver = next((d for d in drivers if d[0] == row[0]), None)
+                if driver:
+                    if a not in data:
+                        data[a] = []
+
+                    data[a].append(driver[:5] + row[4:7])
+    return data
+
 def format_startlist(event,include_timedata=False):
     import json
     g_config = GetEnv()
@@ -301,3 +324,6 @@ def format_startlist(event,include_timedata=False):
     else:
         logging.error(f"Active event not initiated operation")
         return "None"
+
+def get_event_order():
+    pass
