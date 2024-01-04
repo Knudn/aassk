@@ -86,17 +86,16 @@ def get_current_startlist_w_data():
     
     return get_active_startlist_w_timedate()
 
-@api_bp.route('/api/get_specific_event_data', methods=['GET'])
-def get_specific_event_data_view():
+@api_bp.route('/api/get_specific_event_data_loop', methods=['GET'])
+def get_specific_event_data_loop():
 
     from app.models import Session_Race_Records, ActiveEvents
     import random
     from app import db
-    
-    event_filter = request.args.get('event_filter', default='', type=str)
-    heat_insert = request.args.get('heat', default='', type=str)
+    from app.lib.db_operation import get_active_event
 
     session['index'] = session.get('index', 0) + 1
+    print(session['index'])
 
     query = db.session.query(
         Session_Race_Records.id,
@@ -109,7 +108,8 @@ def get_specific_event_data_view():
         Session_Race_Records.snowmobile,
         Session_Race_Records.penalty
     ).filter(
-        (Session_Race_Records.title_1 + Session_Race_Records.title_2).like(f'%{event_filter}%')
+        (Session_Race_Records.title_1 + " " + Session_Race_Records.title_2).like(f'%Stige%')
+    #Not sure why i added this filter
     ).filter(
         Session_Race_Records.finishtime != 0
     ).group_by(
@@ -123,31 +123,115 @@ def get_specific_event_data_view():
     max_len = len(results)
     if max_len == 0:
         return "None"
-    event_int = random.randint(0, max_len-1)
-    heat = []
+    if max_len <= session['index']:
+        session['index'] = 0
 
+    print(max_len, session['index'])
+
+    event_int = session['index']
+    heat = []
+    print(results[event_int][3] + " " + results[event_int][4])
     title_combo = results[event_int][3] + " " + results[event_int][4]
 
-    query = db.session.query(ActiveEvents.event_file, ActiveEvents.run).filter(
+    query = db.session.query(ActiveEvents.event_file, ActiveEvents.run, ActiveEvents.mode).filter(
         ActiveEvents.event_name == title_combo
-    )
+    )  
 
     results = query.all()
+    heat_insert = ""
+    event_mode = results[0][2]
     if heat_insert == '':
         for a in results:
             heat.append(a[1])
     elif heat_insert == "latest":
         for a in results:
             heat.append(a[1])
-        print(max(heat))
     else:
         heat.append(heat_insert)
 
+    event = [{'db_file':results[0][0], "SPESIFIC_HEAT":heat}]
+
+    return {"Timedata":get_specific_event_data(event_filter=event),"event_data":[title_combo, event_mode]}
+
+@api_bp.route('/api/get_specific_event_data', methods=['GET'])
+def get_specific_event_data_view():
+
+    from app.models import Session_Race_Records, ActiveEvents
+    import random
+    from app import db
+    from app.lib.db_operation import get_active_event
+    
+    #Event filter
+    event_filter = request.args.get('event_filter', default='', type=str)
+    print(event_filter)
+    #Spesific heat
+    heat_insert = request.args.get('heat', default='', type=str)
+
+    session['index'] = session.get('index', 0) + 1
+
+    
+    if event_filter == "":
+        active_event = get_active_event()
+        try:
+            event_filter = db.session.query(ActiveEvents.event_name).filter(ActiveEvents.event_file == active_event[0]["db_file"]).first()[0]
+        except:
+            print("No active event")
+        
+    
 
 
+    query = db.session.query(
+        Session_Race_Records.id,
+        Session_Race_Records.first_name,
+        Session_Race_Records.last_name,
+        Session_Race_Records.title_1,
+        Session_Race_Records.title_2,
+        Session_Race_Records.heat,
+        Session_Race_Records.finishtime,
+        Session_Race_Records.snowmobile,
+        Session_Race_Records.penalty
+    ).filter(
+        (Session_Race_Records.title_1 + " " + Session_Race_Records.title_2).like(f'%{event_filter}%')
+    #Not sure why i added this filter
+    #).filter(
+    #    Session_Race_Records.finishtime != 0
+    ).group_by(
+        Session_Race_Records.title_1, Session_Race_Records.title_2
+    ).having(
+        Session_Race_Records.heat == func.max(Session_Race_Records.heat)
+    )
+
+    # Execute the query to get the results
+    results = query.all()
+    max_len = len(results)
+    
+    if max_len == 0:
+        return "None"
+    
+    event_int = random.randint(0, max_len-1)
+    heat = []
+    title_combo = results[event_int][3] + " " + results[event_int][4]
+
+    query = db.session.query(ActiveEvents.event_file, ActiveEvents.run, ActiveEvents.mode).filter(
+        ActiveEvents.event_name == title_combo
+    )  
+
+    results = query.all()
+    
+    if heat_insert == '':
+        for a in results:
+            heat.append(a[1])
+    elif heat_insert == "latest":
+        for a in results:
+            heat.append(a[1])
+    else:
+        heat.append(heat_insert)
+
+    event_mode = results[0][2]
 
     event = [{'db_file':results[0][0], "SPESIFIC_HEAT":heat}]
-    return {"Timedata":get_specific_event_data(event_filter=event),"event_data":[title_combo]}
+
+    return {"Timedata":get_specific_event_data(event_filter=event),"event_data":[title_combo, event_mode]}
 
 @api_bp.route('/api/get_event_order', methods=['GET'])
 def get_event_order():

@@ -218,7 +218,7 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True, sync=Fa
                     sql = "SELECT * FROM startlist_r{0};".format(heat)
                     startlist = cursor.execute(sql).fetchall()
                     startlist_lst = [g[1] for g in startlist]
-
+                    print(startlist_lst)
                     tmp_driver = [l["CID"] for l in time_data_lst]
 
                     #Get the driver_list to updated the internal Flask DB
@@ -343,7 +343,7 @@ def insert_start_list(db, g_config, init_mode=True):
         local_event_db = db_location+a["db_file"]+".sqlite"
         ext_event_db = event_dir+a["db_file"]+"Ex.scdb"
         for b in range(0, int(heats)):
-
+            startlist_data = ""
             heat = (b + 1)
 
             with sqlite3.connect(ext_event_db) as conn:
@@ -354,11 +354,15 @@ def insert_start_list(db, g_config, init_mode=True):
                         cursor.execute("SELECT C_NUM FROM TSTARTLIST_HEAT{0};".format(heat))
 
                     elif str(mode) == "2":
+
                         cursor.execute("SELECT C_NUM FROM TSTARTLIST_PARQ2_HEAT{0};".format(heat))
 
                     elif str(mode) == "3":   
+                        
                         if spesific_heat != False:
-                            heat_inverted = (int(heats) - int(spesific_heat)) +1
+                            heat_inverted = (int(heats) - int(heat)) +1
+                            print(heats, spesific_heat)
+                            
                         else:
                             heat_inverted = (int(heats) - int(heat)) +1
 
@@ -369,6 +373,8 @@ def insert_start_list(db, g_config, init_mode=True):
                 except Error as e:
                     print(e)
                 startlist_data = cursor.fetchall()
+                print(startlist_data, heat)
+
             with sqlite3.connect(local_event_db) as conn_new_db:
                 cursor_new = conn_new_db.cursor()
                 if init_mode == False:

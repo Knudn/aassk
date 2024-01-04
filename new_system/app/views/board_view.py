@@ -17,6 +17,19 @@ def board():
 def scoreboard():
     return render_template('board/scoreboard.html')
 
+@board_bp.route('/board/ladder/')
+def ladders():
+    ladder = request.args.get('ladder', default='', type=str)
+    print(ladder)
+    if ladder == '':
+        return render_template('board/ladder/active_ladder.html')
+    else:
+        return render_template('board/ladder/teams-{0}.html'.format(ladder))
+
+@board_bp.route('/board/ladder/loop')
+def ladders_loop():
+    return render_template('board/ladder/ladder_loop.html')
+
 @board_bp.route('/board/scoreboard_loop')
 def scoreboard_loop():
 
@@ -57,9 +70,6 @@ def scoreboard_loop():
     )
 
     results = query.first()
-    print(max_len, "len")
-
-    print(results)
     
     return str(session['index'])
 

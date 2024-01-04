@@ -207,8 +207,7 @@ def get_specific_event_data(event_filter=None):
         event = event_filter
     else:
         event = get_active_event()
-
-
+    
     event_db_file = (g_config["db_location"]+event[0]["db_file"]+".sqlite")
     event[0]["db_file"] = event_db_file
     data = get_event_data_all(event)

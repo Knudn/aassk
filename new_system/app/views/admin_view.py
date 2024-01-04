@@ -73,7 +73,6 @@ def home_tab():
             else:
                 selectedEventFile = request.form.get('single_event')
                 sync_state = request.form.get('sync')
-                print(sync_state)
 
             if sync_state == "true":
                 from app.lib.utils import GetEnv

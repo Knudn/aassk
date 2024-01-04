@@ -204,14 +204,32 @@ def get_event_data_all(event):
         data = {}
 
         for a in event[0]["SPESIFIC_HEAT"]:
+            
             cursor.execute("SELECT * FROM driver_stats_r{0};".format(a))
-            for row in cursor.fetchall():
-                driver = next((d for d in drivers if d[0] == row[0]), None)
-                if driver:
-                    if a not in data:
-                        data[a] = []
+            driver_stats = cursor.fetchall()
+            
+            cursor.execute("SELECT * FROM startlist_r{0};".format(a))
+            driver_startlist = cursor.fetchall()
+            
+            for start_entry in driver_startlist:
+                for row in driver_stats:
 
-                    data[a].append(driver[:5] + row[4:7])
+                    driver = next((d for d in drivers if d[0] == row[0]), None)
+                    if driver:
+                        if driver[2] == "FILLER" or driver[1] == "FILLER":
+                            
+                            newdata = list(driver)
+                            newdata[3] = "FILLER"
+                            newdata[4] = "FILLER"
+                            driver = tuple(newdata)
+
+                        if a not in data:
+                            data[a] = []
+                        
+                        if row[0] == start_entry[1]:
+                            if (driver[:5] + row[4:7]) not in data[a]:
+                                data[a].append(driver[:5] + row[4:7])
+
     return data
 
 def format_startlist(event,include_timedata=False):
