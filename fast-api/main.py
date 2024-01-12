@@ -178,7 +178,7 @@ async def startup_event():
 
     while not connected:
         try:
-            response = requests.post(flask_app_url, json=init_msg)
+            response = requests.post(flask_app_url, json=init_msg, verify=False)
             response.raise_for_status()
             print(f"Initialization message sent successfully: {response.text}")
 
