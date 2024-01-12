@@ -220,7 +220,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run the FastAPI server")
     parser.add_argument("--host", default="0.0.0.0", type=str, help="Host IP address")
     parser.add_argument("--port", default=8000, type=int, help="Port number")
-    parser.add_argument("--flhost", default="http://192.168.1.50:7777", type=str, help="Endpoint used for to orchestrate client")
+    parser.add_argument("--flhost", default="https://192.168.1.50:7777", type=str, help="Endpoint used for to orchestrate client")
     # Parse the arguments
     args = parser.parse_args()
     flhost = args.flhost
