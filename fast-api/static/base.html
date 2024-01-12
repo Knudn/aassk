@@ -27,28 +27,30 @@
         let displayData = [];
         const iframe = document.getElementById('scoreboard');
         let loadingContent = false;
-        let socket = new WebSocket("ws://localhost:8000/ws"); // Adjust the WebSocket server URL as needed
 
-        socket.onmessage = function(event) {
-            if (event.data === "update") {
-                fetchData();
-            }
-        };
+        // Initialize WebSocket connection and setup handlers
+        function setupWebSocket() {
+            let socket = new WebSocket("ws://localhost:8000/ws");
 
-        socket.onclose = function(event) {
-            if (!event.wasClean) {
+            socket.onmessage = function(event) {
+                if (event.data === "update") {
+                    fetchData();
+                }
+            };
+
+            socket.onclose = function(event) {
                 console.error('WebSocket closed unexpectedly');
-                // Handle the disconnection here
-                // You may want to try to reconnect or display a fallback message
-            }
-        };
+                // Attempt to reconnect after a delay
+                setTimeout(setupWebSocket, 5000);
+            };
 
-        socket.onerror = function(error) {
-            console.error('WebSocket error:', error);
-            // Handle any errors that occur here
-        };
+            socket.onerror = function(error) {
+                console.error('WebSocket error:', error);
+            };
+        }
 
-        const fetchData = async () => {
+        // Fetch data from the server
+        async function fetchData() {
             try {
                 const response = await fetch('http://localhost:8000/current_assets/');
                 if (!response.ok) {
@@ -59,21 +61,18 @@
                 updateDisplay();
             } catch (error) {
                 console.error('Fetch error:', error);
+                // Retry fetching data after a delay
+                setTimeout(fetchData, 5000);
             }
-        };
+        }
 
-        const updateDisplay = () => {
+        // Update the display with new content
+        function updateDisplay() {
             if (displayData.length > 0 && !loadingContent) {
                 const item = displayData[currentIndex];
-                let url = item.url
-                console.log(url)
-                if (url.includes("loop")) {
-                    console.log("asdasd")
-                    iframe.src = item.url
-                } else {
-                    iframe.src = item.url + "?nocache=" + new Date().getTime();
-                }
-                
+                let url = item.url;
+                iframe.src = url.includes("loop") ? item.url : `${item.url}?nocache=${new Date().getTime()}`;
+
                 loadingContent = true;
                 iframe.onload = () => {
                     setTimeout(() => {
@@ -89,8 +88,12 @@
                     updateDisplay();
                 };
             }
-        };
+        }
 
+        // Initialize WebSocket connection
+        setupWebSocket();
+
+        // Fetch initial data
         fetchData();
     </script>
 </body>
