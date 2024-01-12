@@ -50,7 +50,7 @@
 
         const fetchData = async () => {
             try {
-                const response = await fetch('http://192.168.20.149:8000/current_assets/');
+                const response = await fetch('http://localhost:8000/current_assets/');
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
                 }
