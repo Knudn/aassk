@@ -65,7 +65,12 @@
         const updateDisplay = () => {
             if (displayData.length > 0 && !loadingContent) {
                 const item = displayData[currentIndex];
-                iframe.src = item.url + new Date().getTime();
+                if ("loop" in item.url) {
+                    iframe.src = item.url
+                } else {
+                    iframe.src = item.url + "?nocache=" + new Date().getTime();
+                }
+                
                 loadingContent = true;
                 iframe.onload = () => {
                     setTimeout(() => {
