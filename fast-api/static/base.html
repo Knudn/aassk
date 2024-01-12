@@ -65,7 +65,8 @@
         const updateDisplay = () => {
             if (displayData.length > 0 && !loadingContent) {
                 const item = displayData[currentIndex];
-                if ("loop" in item.url) {
+                let url = item.url
+                if (url.includes("loop")) {
                     console.log("asdasd")
                     iframe.src = item.url
                 } else {
