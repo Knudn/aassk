@@ -66,6 +66,7 @@
             if (displayData.length > 0 && !loadingContent) {
                 const item = displayData[currentIndex];
                 if ("loop" in item.url) {
+                    console.log("asdasd")
                     iframe.src = item.url
                 } else {
                     iframe.src = item.url + "?nocache=" + new Date().getTime();
