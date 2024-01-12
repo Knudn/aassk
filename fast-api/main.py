@@ -86,13 +86,13 @@ def get_db():
 
 def open_chromium_with_message(file_path):
     # Kill any existing Chromium browser instances
-    subprocess.run(["pkill", "chromium"], stderr=subprocess.DEVNULL)
+    subprocess.run(["pkill", "firefox"], stderr=subprocess.DEVNULL)
 
     # Set the DISPLAY environment variable to use the physical display
     os.environ["DISPLAY"] = ":0"
 
     # Command to open Chromium browser in fullscreen with the specified local HTML file
-    cmd = ["/usr/bin/chromium", "--start-fullscreen", file_path]
+    cmd = ["/usr/bin/firefox", "-kiosk", file_path]
 
     # Run the command in a non-blocking way
     subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
