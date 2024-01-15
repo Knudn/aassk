@@ -87,8 +87,8 @@ def get_db():
 def open_chromium_with_message(file_path):
     # Kill any existing Chromium browser instances
 
-    #subprocess.run(["pkill", "firefox"], stderr=subprocess.DEVNULL)
-    subprocess.run(["pkill", "chromium"], stderr=subprocess.DEVNULL)
+    subprocess.run(["pkill", "firefox"], stderr=subprocess.DEVNULL)
+    #subprocess.run(["pkill", "chromium"], stderr=subprocess.DEVNULL)
 
     # Set the DISPLAY environment variable to use the physical display
     os.environ["DISPLAY"] = ":0"
