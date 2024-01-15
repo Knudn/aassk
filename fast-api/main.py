@@ -95,7 +95,7 @@ def open_chromium_with_message(file_path):
 
     # Command to open Chromium browser in fullscreen with the specified local HTML file
     #cmd = ["/usr/bin/chromium", "--noerrdialogs", "--disable-infobars" ,"--kiosk", file_path]
-    cmd = ["/usr/bin/firefox", "--kiosk", "-safe-mode", file_path]
+    cmd = ["/usr/bin/firefox", "--kiosk", file_path]
 
     # Run the command in a non-blocking way
     subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
