@@ -18,19 +18,35 @@
   <script src="{{url_for('static', filename='js/ladder/custom.js')}}"></script>
   <link rel="stylesheet" href="{{url_for('static', filename='css/ladder/app.css')}}">
   <link rel="stylesheet" href="{{url_for('static', filename='css/ladder/custom.css')}}">
+  <script src="{{url_for('static', filename='js/socket.io.js')}}"></script>
 
 
 
   <script type="text/javascript">
+
+    //Connecting to websocket
     const urlParams = new URLSearchParams(window.location.search);
+    const socket = io.connect('http://' + document.domain + ':' + location.port);
+
+    socket.on('connect', function() {
+        console.log('Connected to the server');
+
+        socket.emit('join', { username: 'John', room: 'room1' });
+    });
+
+    socket.on('response', function(dataString) {
+      location.reload()
+            
+        });
     const event_filter = urlParams.get('event_filter');
     $(function () {
       var demos = ['doubleElimination']
       $.each(demos, function (i, d) {
         var demo = $('div#' + d)
-        $('<div class="demo animated fadeIn slow"></div>').appendTo(demo)
+        $('<div class="demo animated slow"></div>').appendTo(demo)
       })
     })
+
   </script>
 
 
@@ -45,6 +61,8 @@
 </div>
 
 <script type="text/javascript">
+  const useWebSocket = urlParams.get('websocket')?.toLowerCase() === 'true';
+
   function saveFn(data, userData) {
     var json = jQuery.toJSON(data)
     $('#saveOutput').text(JSON.stringify(data, null, 2))
@@ -78,7 +96,7 @@
       case "entry-no-score":
       case "entry-default-win":
       case "entry-complete":
-        container.append('<img src="dist/img/flags/' + data.flag + '.png" /> ').append(data.name).append();
+        container.append(data.name).append();
         return;
     }
   }
@@ -113,7 +131,7 @@
 
     // Check if the required data exists and is in the correct format
     if (originalData && originalData.Timedata && Array.isArray(originalData.Timedata["1"])) {
-        document.getElementById('main_title').innerHTML = "<h1>" + originalData["event_data"][0] + "</h1>";
+        document.getElementById('main_title').innerHTML = "<h1 id=main_title_title>" + originalData["event_data"][0] + "</h1>";
         for (let i = 0; i < originalData.Timedata["1"].length; i += 2) {
 
             if (i + 1 < originalData.Timedata["1"].length) {
@@ -312,10 +330,17 @@
         $('div#doubleElimination .demo').css('padding-left', 10 + '%');
 
       } else if (drivers_num == 32) {
-        teamWidth = 300
+        teamWidth = 250
         scoreWidth = 60
-        matchMargin = 100
-        roundMargin = 100
+        matchMargin = 15
+        roundMargin = 80
+        document.getElementById('main_title_title').style.marginBottom = '4px';
+        document.getElementById('main_title_title').style.marginTop = '4px';
+        var elements = document.querySelectorAll('body.render .turnament-bracket');
+        elements.forEach(function(element) {
+            element.style.padding = '5px';
+        }); 
+
       } 
 
 

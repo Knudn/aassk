@@ -46,12 +46,13 @@ def export_events():
 def update_info_screen(id):
     from app import db
     from app.models import InfoScreenAssetAssociations, InfoScreenAssets, InfoScreenInitMessage
-    id = 1
     assets = InfoScreenAssetAssociations.query.filter_by(infoscreen=id)
     infoscreen_url = InfoScreenInitMessage.query.filter_by(id=id).first()
+    print(infoscreen_url)
     port = "8000"
     infoscreen_url = f'http://{infoscreen_url.ip}:{port}/update_index'
     json_data = []
+    
     for a in assets:
         entry = {}
         asset_name = InfoScreenAssets.query.filter_by(id=a.asset).first()

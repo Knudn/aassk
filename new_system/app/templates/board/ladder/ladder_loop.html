@@ -77,7 +77,7 @@
       case "entry-no-score":
       case "entry-default-win":
       case "entry-complete":
-        container.append('<img src="dist/img/flags/' + data.flag + '.png" /> ').append(data.name).append();
+        container.append(data.name).append();
         return;
     }
   }
@@ -112,7 +112,7 @@
 
     // Check if the required data exists and is in the correct format
     if (originalData && originalData.Timedata && Array.isArray(originalData.Timedata["1"])) {
-        document.getElementById('main_title').innerHTML = "<h1>" + originalData["event_data"][0] + "</h1>";
+        document.getElementById('main_title').innerHTML = "<h1 id=main_title_title>" + originalData["event_data"][0] + "</h1>";
         for (let i = 0; i < originalData.Timedata["1"].length; i += 2) {
 
             if (i + 1 < originalData.Timedata["1"].length) {
@@ -287,9 +287,21 @@ $(function () {
           matchMargin = 60;
           roundMargin = 60;
           $('div#doubleElimination .demo').css('padding-left', '10%');
-        } // Add additional conditions if needed
+        } else if (drivers_num == 32) {
+        teamWidth = 250
+        scoreWidth = 60
+        matchMargin = 15
+        roundMargin = 80
+        $('div#doubleElimination .demo').css('padding-left', '1%');
+        document.getElementById('main_title_title').style.marginBottom = '4px';
+        document.getElementById('main_title_title').style.marginTop = '4px';
+        var elements = document.querySelectorAll('body.render .turnament-bracket');
+        elements.forEach(function(element) {
+            element.style.padding = '1px';
+        }); 
 
-        // Bracket initialization
+      } 
+
         window.br = $('div#doubleElimination .demo').bracket({
           dir: 'lr',
           teamWidth: teamWidth,
@@ -324,5 +336,4 @@ $(function () {
 </script>
 
 </body>
-
 </html>

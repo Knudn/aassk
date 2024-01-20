@@ -3,12 +3,13 @@ import sqlite3
 from app.lib.db_operation import reload_event as reload_event_func
 from app.lib.db_operation import update_active_event_stats, get_active_startlist, get_active_startlist_w_timedate, get_specific_event_data
 from app import socketio
-from app.lib.utils import intel_sort, update_info_screen, export_events
+from app.lib.utils import intel_sort, update_info_screen, export_events, GetEnv
 from sqlalchemy import func
 
 
 
 api_bp = Blueprint('api', __name__)
+
 
 @api_bp.route('/api/init', methods=['POST'])
 def receive_init():
@@ -83,8 +84,90 @@ def get_current_startlist():
 
 @api_bp.route('/api/get_current_startlist_w_data', methods=['GET'])
 def get_current_startlist_w_data():
+    upcoming = request.args.get('upcoming')
+
+    if upcoming != None:
+        if upcoming.lower() == "true":
+            return get_active_startlist_w_timedate(upcoming=True)
     
     return get_active_startlist_w_timedate()
+
+@api_bp.route('/api/get_current_startlist_w_data_loop', methods=['GET'])
+def get_current_startlist_w_data_loop():
+
+    from app.models import Session_Race_Records, ActiveEvents
+    import random
+    from app import db
+    from app.lib.db_operation import get_active_event
+
+    event_filter = request.args.get('filter', default='', type=str)
+    heat = request.args.get('heat', default='', type=str)
+    latest = request.args.get('latest', default='', type=str)
+
+
+    g_config = GetEnv()
+
+    session['index'] = session.get('index', 0) + 1
+    query = db.session.query(
+        Session_Race_Records.id,
+        Session_Race_Records.first_name,
+        Session_Race_Records.last_name,
+        Session_Race_Records.title_1,
+        Session_Race_Records.title_2,
+        Session_Race_Records.heat,
+        Session_Race_Records.finishtime,
+        Session_Race_Records.snowmobile,
+        Session_Race_Records.penalty
+    ).filter(
+        Session_Race_Records.finishtime == 0
+    ).filter(
+        Session_Race_Records.penalty == 0
+    ).group_by(
+        Session_Race_Records.title_1, Session_Race_Records.title_2
+    ).having(
+        Session_Race_Records.heat == func.max(Session_Race_Records.heat)
+    )
+
+    
+    if event_filter != "":
+        query = query.filter((Session_Race_Records.title_1 + " " + Session_Race_Records.title_2).like(f'%{event_filter}%'))
+    if latest != "":
+        #query = query.filter((Session_Race_Records.title_1 + " " + Session_Race_Records.title_2).like(f'%{event_filter}%'))
+        pass
+
+    results = query.all()
+    
+
+    max_len = len(results)
+    if max_len == 0:
+        return "None"
+    if max_len <= session['index']:
+        session['index'] = 0
+        
+    title_combo = results[session['index']].title_1 + " " + results[session['index']].title_2
+
+    query = db.session.query(ActiveEvents.event_file, ActiveEvents.run, ActiveEvents.mode).filter(
+        ActiveEvents.event_name == title_combo
+    )
+    all = query.all()
+    print(all)
+    if latest == "true":
+        event_file = all[len(all) - 1][0]
+        event_heat = all[len(all) - 1][1]
+    else:
+        event_file = all[0][0]
+        event_heat = all[0][1]
+
+    if heat != "":
+        event_heat = heat
+
+
+    event_db_file = (g_config["db_location"]+event_file+".sqlite")
+    event = [{"SPESIFIC_HEAT":event_heat, "db_file":event_db_file}]
+
+    return get_active_startlist_w_timedate(event_wl=event)
+
+
 
 @api_bp.route('/api/get_specific_event_data_loop', methods=['GET'])
 def get_specific_event_data_loop():
@@ -95,7 +178,6 @@ def get_specific_event_data_loop():
     from app.lib.db_operation import get_active_event
 
     session['index'] = session.get('index', 0) + 1
-    print(session['index'])
 
     query = db.session.query(
         Session_Race_Records.id,
@@ -126,11 +208,9 @@ def get_specific_event_data_loop():
     if max_len <= session['index']:
         session['index'] = 0
 
-    print(max_len, session['index'])
 
     event_int = session['index']
     heat = []
-    print(results[event_int][3] + " " + results[event_int][4])
     title_combo = results[event_int][3] + " " + results[event_int][4]
 
     query = db.session.query(ActiveEvents.event_file, ActiveEvents.run, ActiveEvents.mode).filter(
@@ -163,7 +243,6 @@ def get_specific_event_data_view():
     
     #Event filter
     event_filter = request.args.get('event_filter', default='', type=str)
-    print(event_filter)
     #Spesific heat
     heat_insert = request.args.get('heat', default='', type=str)
 
@@ -263,7 +342,6 @@ def api(tab_name):
     
 def reload_event():
     data = request.json
-    print(data)
     reload_event_func(data["file"], data["run"])
     return data
 

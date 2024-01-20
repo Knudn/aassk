@@ -188,12 +188,50 @@ def get_active_startlist():
     return data
 
 
-def get_active_startlist_w_timedate():
+def get_active_startlist_w_timedate(upcoming=False, event_wl=None):
+    from app.models import ActiveEvents
 
     g_config = GetEnv()
+
+    if event_wl != None:
+
+        data = format_startlist(event_wl, include_timedata=True)
+        return data
+
     event = get_active_event()
-    event_db_file = (g_config["db_location"]+event[0]["db_file"]+".sqlite")
-    event[0]["db_file"] = event_db_file
+    current_db_file = event[0]["db_file"]
+    current_heat = event[0]["SPESIFIC_HEAT"]
+
+
+    if upcoming == True:
+
+        current_entry = ActiveEvents.query.filter_by(event_file=current_db_file, run=current_heat).first()
+
+        upcoming_entry = (ActiveEvents.query
+                        .filter(ActiveEvents.sort_order > current_entry.sort_order,
+                                ActiveEvents.enabled == 1
+                                )
+                        .order_by(ActiveEvents.sort_order.asc())
+                        .first())
+        
+        
+        event_file = upcoming_entry.event_file
+        event_heat = upcoming_entry.run
+        
+        event_db_file = (g_config["db_location"]+event_file+".sqlite")
+        event[0]["SPESIFIC_HEAT"] = event_heat
+
+        event[0]["db_file"] = event_db_file
+        print(upcoming_entry)
+
+
+    else:
+        
+        
+        event_db_file = (g_config["db_location"]+event[0]["db_file"]+".sqlite")
+
+        event[0]["db_file"] = event_db_file
+
     data = format_startlist(event, include_timedata=True)
     #data = json.dumps(format_startlist(event, include_timedata=True))
 

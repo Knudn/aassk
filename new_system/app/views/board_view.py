@@ -9,9 +9,17 @@ from sqlalchemy import func
 
 board_bp = Blueprint('board', __name__)
 
-@board_bp.route('/board/test')
-def board():
-    return render_template('board/test.html')
+@board_bp.route('/board/startlist_simple')
+def startlist_simple():
+    return render_template('board/startlist_active_simple.html')
+
+@board_bp.route('/board/startlist_simple_upcoming')
+def startlist_simple_upcoming():
+    return render_template('board/startlist_active_upcoming.html')
+
+@board_bp.route('/board/startlist_simple_loop')
+def startlist_simple_loop():
+    return render_template('board/startlist_active_simple_loop.html')
 
 @board_bp.route('/board/scoreboard')
 def scoreboard():
@@ -37,7 +45,7 @@ def scoreboard_loop():
     import random
 
     session['index'] = session.get('index', 0) + 1
-
+    
     query = db.session.query(
             Session_Race_Records.id,
             Session_Race_Records.first_name,
@@ -73,10 +81,21 @@ def scoreboard_loop():
     
     return str(session['index'])
 
-@board_bp.route('/board/speaker', methods = ['GET', 'POST'])
+@board_bp.route('/board/speaker/', methods = ['GET', 'POST'])
 def speaker():
-    SpeakerPageConfig = SpeakerPageSettings.query.first()
+    from app.lib.db_operation import get_active_event
+    from app.models import ActiveEvents
+    from app import db
 
+    active_event = get_active_event()
+    query = db.session.query(ActiveEvents.event_file, ActiveEvents.run, ActiveEvents.mode).filter(
+    ActiveEvents.event_file == active_event[0]["db_file"]
+    )
+    results = query.first()
+    mode = results[2]
+
+    SpeakerPageConfig = SpeakerPageSettings.query.first()
+    
     if request.method == 'POST':
         data = request.get_json()
 
@@ -87,5 +106,7 @@ def speaker():
         print(request.get_json())
     
     SpeakerPageConfig_json = {"matching_parallel":SpeakerPageConfig.match_parrallel,"h_server_url":SpeakerPageConfig.h_server_url}
-
-    return render_template('board/speaker_board.html', SpeakerPageConfig_json=SpeakerPageConfig_json)
+    if mode == 1 or mode == 2 or mode == 3:
+        return render_template('board/speaker_board_p.html', SpeakerPageConfig_json=SpeakerPageConfig_json)
+    else:
+        return render_template('board/speaker_board_s.html', SpeakerPageConfig_json=SpeakerPageConfig_json)

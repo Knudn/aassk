@@ -120,9 +120,11 @@ def global_config_tab():
     global_config = GlobalConfig.query.all()
     form = ConfigForm()
     
+    print(form.validate_on_submit())
     print(request.form)
-    if form.validate_on_submit():
-        if 'submit' in request.form:            
+    print(request)
+    if request.method == 'POST':
+        if 'submit' in request.form:
             for config in global_config:
                 config.session_name = form.session_name.data
                 config.project_dir = form.project_dir.data
@@ -318,6 +320,7 @@ def infoscreen():
     if request.method == 'POST':
         
         content_type = request.content_type
+
         
         if content_type.startswith("multipart/form-data"):
 
@@ -357,6 +360,7 @@ def infoscreen():
             if url:                
                 return 'URL saved successfully'
             return 'No valid asset provided'
+        print(request.get_json()["operation"])
         if request.get_json()["operation"] == 1:
             print("asd")
             id = request.get_json()["id"]
@@ -390,6 +394,7 @@ def infoscreen():
         elif request.get_json()["operation"] == 3:
             data = request.get_json()
             infoscreen = data["messageID"]
+            print(data, "asbsdfbglkijsadnfglkjnsdklfjgndkljgn")
             asset_query = InfoScreenAssetAssociations.query.filter_by(infoscreen=infoscreen)
             asset_query.delete()
             for a in request.get_json()["data"]:
@@ -397,6 +402,7 @@ def infoscreen():
                 new_message = InfoScreenAssetAssociations(asset=asset.id, infoscreen=infoscreen, timer=a["timer"])
                 db.session.add(new_message)
             db.session.commit()
+            print(infoscreen, "asdasd")
             update_info_screen(infoscreen)
 
         return {"OP":"None"}

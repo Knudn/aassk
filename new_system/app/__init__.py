@@ -18,6 +18,7 @@ def create_app():
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + path.join(pwd, 'site.db')
     app.config['SECRET_KEY'] = 'your_secret_key'
 
+
     db.init_app(app)
     socketio.init_app(app)
 
