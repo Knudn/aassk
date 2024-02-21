@@ -133,6 +133,8 @@ def global_config_tab():
                 config.wl_title = form.wl_title.data
                 config.wl_bool = bool(form.wl_bool.data)
                 config.display_proxy = bool(form.display_proxy.data)
+                config.cross = bool(form.cross.data)
+                
                 db.session.commit()
         elif 'update' in request.form: 
             print("asdasd")

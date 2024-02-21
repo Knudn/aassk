@@ -14,7 +14,6 @@ def create_app():
     CORS(app)
     app.secret_key = 'your_secret_key'
     pwd = getcwd()
-    print(pwd)
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + path.join(pwd, 'site.db')
     app.config['SECRET_KEY'] = 'your_secret_key'
 
@@ -27,12 +26,14 @@ def create_app():
     from app.views.api_view import api_bp
     from app.views.vmix_view import vmix_bp
     from app.views.board_view import board_bp
+    from app.views.cross_view import cross_bp
 
     app.register_blueprint(index_bp)
     app.register_blueprint(admin_bp)
     app.register_blueprint(api_bp)
     app.register_blueprint(vmix_bp)
     app.register_blueprint(board_bp)
+    app.register_blueprint(cross_bp)
 
     app.jinja_env.filters['tojson'] = jsonify
     

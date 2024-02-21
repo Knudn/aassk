@@ -3,8 +3,8 @@
 <head>
 
   <meta charset="UTF-8">
-  <title>2023 Snowmobile Race Results</title>
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.socket.io/4.7.4/socket.io.min.js" integrity="sha384-Gr6Lu2Ajx28mzwyVR8CFkULdCU7kMlZ9UthllibdOSo6qAiN+yXNHqtgdTvFXMT4" crossorigin="anonymous"></script>
   <style>
     body {
       font-family: 'Roboto', sans-serif;
@@ -85,28 +85,38 @@
       padding: 20px;
       width: 80%;
     }
+
   </style>
   <script>
 
 $(document).ready(function() {
+  update_screen()
+})
+
+
+function update_screen() {
     $.ajax({
-    url: 'http://192.168.1.50:7777/api/get_current_startlist_w_data',
-    type: 'GET',
-    success: function(data) {
-        displayData(data);
-    },
-    error: function() {
-        console.log('Error fetching data');
-    }
+        url: 'http://192.168.1.50:7777/api/get_current_startlist_w_data',
+        type: 'GET',
+        dataType: 'json', // assuming the server responds with JSON
+        timeout: 10000, // 10 seconds timeout
+        success: function(data) {
+            displayData(data);
+            
+        },
+        error: function(jqXHR, textStatus, errorThrown) {
+            console.log('Error fetching data:', textStatus, errorThrown);
+        }
     });
+
 
   const urlParams = new URLSearchParams(window.location.search);
   const useWebSocket = urlParams.get('websocket')?.toLowerCase() === 'true';
   // f_only is true when you want to show drivers with FINISHTIME > 0
   const showFinishTimeAboveZero = urlParams.get('f_only')?.toLowerCase() === 'true';
-
-
+  
   function displayData(data) {
+    
       var allDrivers = [];
 
       // Combine all drivers into one array
@@ -135,34 +145,64 @@ $(document).ready(function() {
       html += `<td>${(driver.time_info.FINISHTIME / 1000).toFixed(2)}</td>`;
       html += '</tr>';
     });
-
+    
+    title = data[0]["race_config"]["TITLE_2"]
+    heat = data[0]["race_config"]["HEAT"]
+    heats = data[0]["race_config"]["HEATS"]
+    document.getElementById('main_title').innerHTML = '<h1>' + `${title}` + ` ${heat}/${heats}` + '</h1>';
     $('tbody').html(html);
   }
+}
 
-});
+  const socket = io.connect('http://' + document.domain + ':' + location.port);
+  socket.on('connect', function() {
+      console.log('Connected to the server');
+      socket.emit('join', { username: 'John', room: 'room1' });
+  });
+
+  socket.on('response', function(dataString) {
+    update_screen();
+  });
+
 
   </script>
 </head>
 <body>
-<div class="main">
-  <div class="center_content">
-    <h1>2023 Snowmobile Race Results</h1>
-    <hr>
-    <table>
-      <thead>
-        <tr>
-          <th>Position</th>
-          <th>Driver</th>
-          <th>Club</th>
-          <th>Vehicle</th>
-          <th>Finish Time</th>
-        </tr>
-      </thead>
-      <tbody>
-        <!-- Data will be populated from the API here -->
-      </tbody>
-    </table>
-  </div>
+
+  <div class="container">
+    <div class="main-content">
+        <div class="left-content">
+          <div class="main">
+            <div class="center_content">
+              <h1 id="main_title"></h1>
+              <hr>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Position</th>
+                    <th>Driver</th>
+                    <th>Club</th>
+                    <th>Vehicle</th>
+                    <th>Finish Time</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Data will be populated from the API here -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="vertical-line"></div>
+
+
+        <div class="right-content">
+
+        </div>
+    </div>
+
 </div>
+
 </body>
 </html>

@@ -103,6 +103,7 @@ def get_current_startlist_w_data_loop():
     event_filter = request.args.get('filter', default='', type=str)
     heat = request.args.get('heat', default='', type=str)
     latest = request.args.get('latest', default='', type=str)
+    finished = request.args.get('finished', default='', type=str)
 
 
     g_config = GetEnv()
@@ -118,53 +119,64 @@ def get_current_startlist_w_data_loop():
         Session_Race_Records.finishtime,
         Session_Race_Records.snowmobile,
         Session_Race_Records.penalty
-    ).filter(
-        Session_Race_Records.finishtime == 0
-    ).filter(
-        Session_Race_Records.penalty == 0
     ).group_by(
-        Session_Race_Records.title_1, Session_Race_Records.title_2
+    Session_Race_Records.title_1, Session_Race_Records.title_2, Session_Race_Records.heat
     ).having(
-        Session_Race_Records.heat == func.max(Session_Race_Records.heat)
+    Session_Race_Records.heat == func.max(Session_Race_Records.heat)
     )
 
-    
+    if finished != "true":
+        query = query.filter(
+            Session_Race_Records.finishtime == 0
+        ).filter(
+            Session_Race_Records.penalty == 0
+        )
+    else:
+        query = query.filter(Session_Race_Records.finishtime != 0)
+
     if event_filter != "":
         query = query.filter((Session_Race_Records.title_1 + " " + Session_Race_Records.title_2).like(f'%{event_filter}%'))
-    if latest != "":
-        #query = query.filter((Session_Race_Records.title_1 + " " + Session_Race_Records.title_2).like(f'%{event_filter}%'))
-        pass
 
     results = query.all()
-    
 
-    max_len = len(results)
+    entries = []
+
+    for a in results:
+        if a.title_1 + " " + a.title_2 not in entries:
+            entries.append(a.title_1 + " " + a.title_2)
+
+    max_len = len(entries)
     if max_len == 0:
         return "None"
     if max_len <= session['index']:
         session['index'] = 0
         
-    title_combo = results[session['index']].title_1 + " " + results[session['index']].title_2
+    title_combo = entries[session['index']]
+    print(session['index'])
 
     query = db.session.query(ActiveEvents.event_file, ActiveEvents.run, ActiveEvents.mode).filter(
         ActiveEvents.event_name == title_combo
     )
-    all = query.all()
-    print(all)
-    if latest == "true":
-        event_file = all[len(all) - 1][0]
-        event_heat = all[len(all) - 1][1]
-    else:
-        event_file = all[0][0]
-        event_heat = all[0][1]
 
-    if heat != "":
-        event_heat = heat
+    all = query.all()
+    event_file = all[0][0]
+    heat = 0
+
+    for a in results:
+        if a.title_1 + " " + a.title_2 == title_combo:
+
+            if heat == 0:
+                heat = a.heat
+            if latest != "":
+                if heat < a.heat:
+                    heat = a.heat
+            else:
+                if heat > a.heat:
+                    heat = a.heat
 
 
     event_db_file = (g_config["db_location"]+event_file+".sqlite")
-    event = [{"SPESIFIC_HEAT":event_heat, "db_file":event_db_file}]
-
+    event = [{"SPESIFIC_HEAT":heat, "db_file":event_db_file}]
     return get_active_startlist_w_timedate(event_wl=event)
 
 
@@ -247,7 +259,6 @@ def get_specific_event_data_view():
     heat_insert = request.args.get('heat', default='', type=str)
 
     session['index'] = session.get('index', 0) + 1
-
     
     if event_filter == "":
         active_event = get_active_event()

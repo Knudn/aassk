@@ -19,9 +19,18 @@
                 <li class="nav-item">
                     <a class="nav-link {% if active_tab == 'home' %}active{% endif %}" href="{{ url_for('admin.admin', tab_name='home') }}">Home</a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link {% if active_tab == 'global-config' %}active{% endif %}" href="{{ url_for('admin.admin', tab_name='global-config') }}">Global Config</a>
+
+
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle {% if active_tab == 'active_events' %}active{% endif %}" href="#" id="activeEventsDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        Config
+                    </a>
+                    <div class="dropdown-menu" aria-labelledby="activeEventsDropdown">
+                        <a class="nav-link {% if active_tab == 'global-config' %}active{% endif %}" href="{{ url_for('admin.admin', tab_name='global-config') }}">Global Config</a>
+                        <a class="dropdown-item" href="{{ url_for('admin.admin', tab_name='cross') }}">Cross/Watercross</a>
+                    </div>
                 </li>
+
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle {% if active_tab == 'active_events' %}active{% endif %}" href="#" id="activeEventsDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                         Active Events

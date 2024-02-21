@@ -140,99 +140,40 @@ def get_snowmobiles_sql(driver):
         WHERE d.name = '{0}' AND r.vehicle <> '';
     """.format(driver)
 
-def get_ladder_placement_sql(driver):
+def get_race_entries_for_driver(driver):
     return """
-WITH DriverLastRun AS (
-    SELECT 
-        driver_id, 
-        race_id, 
-        MAX(run_id) AS last_run_id
-    FROM 
-        "run"
-    GROUP BY 
-        driver_id, race_id
-),
-LastRunIdPerRace AS (
-    SELECT
-        race_id,
-        MAX(run_id) AS final_run_id
-    FROM
-        "run"
-    GROUP BY
-        race_id
-),
-DriverPositionInLastRun AS (
-    SELECT 
-        r.driver_id,
-        r.race_id,
-        r.vehicle,
-        r.finishtime,
-        r.pair_id,
-        r.penalty,
-        lr.final_run_id,
-        CASE 
-            WHEN r.penalty != 0 THEN
-                999 -- Assign a high number to ensure they are ranked last
-            WHEN lr.final_run_id = r.run_id THEN
-                CASE 
-                    WHEN r.pair_id = 1 THEN
-                        RANK() OVER (PARTITION BY r.race_id, r.run_id ORDER BY r.finishtime ASC)
-                    WHEN r.pair_id = 2 THEN
-                        RANK() OVER (PARTITION BY r.race_id, r.run_id ORDER BY r.finishtime ASC) + 2
-                END
-            ELSE
-                DENSE_RANK() OVER (PARTITION BY r.race_id ORDER BY r.run_id DESC, r.finishtime ASC) + 4
-        END as raw_position
-    FROM 
-        "run" r
-    INNER JOIN 
-        DriverLastRun dlr ON r.driver_id = dlr.driver_id AND r.race_id = dlr.race_id AND r.run_id = dlr.last_run_id
-    INNER JOIN
-        LastRunIdPerRace lr ON r.race_id = lr.race_id
-    WHERE 
-        r.finishtime IS NOT NULL
-),
-
-FilteredRaces AS (
-    SELECT rs.id AS race_id
-    FROM "races" rs
-    JOIN "racedays" rsd ON rs.raceday_id = rsd.id
-    WHERE rs.mode = 3
-),
-RankedPositions AS (
-    SELECT
-        *,
-        DENSE_RANK() OVER (PARTITION BY race_id ORDER BY raw_position ASC) as final_position
-    FROM
-        DriverPositionInLastRun
-)
 SELECT 
-    d."name" AS "driver_name", 
-    rsd.title AS "raceday_title", 
-    rs.title AS "race_title", 
-    rp.final_position,
-    rsd.date,
-    rs.mode,
-    rp.vehicle,
-    (SELECT COUNT(DISTINCT driver_id) FROM "run" WHERE race_id = fr.race_id) AS total_drivers,
-    rp.finishtime
-FROM 
-    FilteredRaces fr
-JOIN 
-    "races" rs ON fr.race_id = rs.id
-JOIN 
-    "racedays" rsd ON rs.raceday_id = rsd.id
-LEFT JOIN 
-    DriverLastRun dlr ON fr.race_id = dlr.race_id
-LEFT JOIN 
-    "drivers" d ON dlr.driver_id = d.id
-LEFT JOIN 
-    RankedPositions rp ON d.id = rp.driver_id AND dlr.race_id = rp.race_id
-WHERE 
-    d."name" = '{0}'
-ORDER BY  
-    rsd.date DESC;
-        """.format(driver)
+    r.id AS race_id, 
+    r.title AS race_title, 
+    rd.id AS raceday_id, 
+    rd.title AS raceday_title, 
+    ru.pair_id,
+    ru.driver_id, 
+    d.name AS driver_name,
+    ru.finishtime,
+    ru.penalty,
+    ru.run_id,
+    ru.pair_id,
+    ru.vehicle,
+    rd.date
+
+FROM races r
+JOIN run ru ON r.id = ru.race_id
+JOIN drivers d ON ru.driver_id = d.id
+JOIN racedays rd ON r.raceday_id = rd.id
+WHERE r.id IN (
+    SELECT race_id 
+    FROM run 
+    WHERE driver_id = (
+        SELECT id 
+        FROM drivers 
+        WHERE name = '{0}'
+    )
+) and r.mode = 3
+ORDER BY r.id, ru.pair_id, ru.finishtime;
+
+""".format(driver)
+
 
 def get_single_placement_sql(driver):
     return """

@@ -68,6 +68,14 @@
                     </td>
                 </tr>
 
+                <tr>
+                    <td>Snowcross/Watercross?</td>
+                    <td>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="cross" {% if config.cross %}checked{% endif %}>
+                        </div>
+                    </td>
+                </tr>
                 <tr id="search_string1" style="{% if not config.enable_sorting %}display: none{% endif %}">
                     <td>Search String 1</td>
                     <td><input type="text" class="form-control" name="search_string1" value="{{ config.search_string1 }}"></td>

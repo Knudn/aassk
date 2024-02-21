@@ -25,6 +25,10 @@ def startlist_simple_loop():
 def scoreboard():
     return render_template('board/scoreboard.html')
 
+@board_bp.route('/board/scoreboard_c')
+def scoreboard_columns():
+    return render_template('board/scoreboard_columns.html')
+
 @board_bp.route('/board/ladder/')
 def ladders():
     ladder = request.args.get('ladder', default='', type=str)
@@ -39,13 +43,12 @@ def ladders_loop():
     return render_template('board/ladder/ladder_loop.html')
 
 @board_bp.route('/board/scoreboard_loop')
-def scoreboard_loop():
+def scoreboard_loop_old():
 
     from app.models import Session_Race_Records, ActiveEvents
     import random
 
-    session['index'] = session.get('index', 0) + 1
-    
+    session['index'] = session.get('index', 0) + 1    
     query = db.session.query(
             Session_Race_Records.id,
             Session_Race_Records.first_name,
@@ -57,7 +60,7 @@ def scoreboard_loop():
             Session_Race_Records.snowmobile,
             Session_Race_Records.penalty
         ).filter(
-            (Session_Race_Records.title_1 + Session_Race_Records.title_2).like('%Parallel%')
+            (Session_Race_Records.title_1 + Session_Race_Records.title_2).like('%Kvalifisering%')
         ).filter(
             Session_Race_Records.finishtime != 0
         ).group_by(
@@ -70,7 +73,6 @@ def scoreboard_loop():
     results = query.all()
     max_len = len(results)
     event_int = random.randint(0, max_len-1)
-
     title_combo = results[event_int][3] + " " + results[event_int][4]
 
     query = db.session.query(ActiveEvents.event_file).filter(

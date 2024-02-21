@@ -44,12 +44,21 @@ def create_tables(app):
                 ["Ladder loop 15", "http://192.168.1.50:7777/board/ladder/loop?timer=15"],
                 ["Startlist active upcoming", "http://192.168.1.50:7777/board/startlist_simple_upcoming"],
                 ["Startlist active", "http://192.168.1.50:7777/board/startlist_simple"],
-                ["Startlist loop 8", "http://192.168.1.50:7777/board/startlist_simple_loop?timer=8"],
+                ["Startlist loop stige 8", "http://192.168.1.50:7777/board/startlist_simple_loop?event_filter=Stige&timer=8"],
+                ["Startlist loop stige 15", "http://192.168.1.50:7777/board/startlist_simple_loop?event_filter=Stige&timer=15"],
+                ["Startlist loop kval 8", "http://192.168.1.50:7777/board/startlist_simple_loop?event_filter=Kvalifisering&timer=8"],
+                ["Startlist loop kval 15", "http://192.168.1.50:7777/board/startlist_simple_loop?event_filter=Kvalifisering&timer=15"],
+                ["Scoreboard active", "http://192.168.1.50:7777/board/scoreboard"],
+                ["Scoreboard loop 8", "http://192.168.1.50:7777/board/scoreboard_c?columns=3&timer=8"],
+                ["Scoreboard loop 15", "http://192.168.1.50:7777/board/scoreboard_c?columns=3&timer=15"]
+                
             ]
-            default_config = SpeakerPageSettings(
-                match_parrallel = False,
-            )
-            db.session.add(default_config)
+            for a in assets:
+                new_entry = InfoScreenAssets(
+                    name = a[0],
+                    asset = a[1]
+                )
+                db.session.add(new_entry)
             db.session.commit()
 
         GlobalConfig_db = GetEnv()

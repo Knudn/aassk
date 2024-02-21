@@ -5,7 +5,7 @@ from sqlalchemy import create_engine, and_, text
 from sqlalchemy.orm import sessionmaker, Session
 import queries
 import hashlib
-
+import math
 
 DATABASE_URL = "sqlite:///./test.db"
 engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
@@ -28,10 +28,13 @@ Base.metadata.create_all(bind=engine)
 
 app.state.db_cache_dict = {}
 
+
 def db_cache():
     async def cache_logic(query=None, data=None):
         b64_hash = hashlib.md5(query.encode()).hexdigest()
         if query and b64_hash in app.state.db_cache_dict:
+            if app.state.db_cache_dict[b64_hash] == []:
+                return [{"None":"None"}]
             return app.state.db_cache_dict[b64_hash]
         if data is not None:
             app.state.db_cache_dict[b64_hash] = data
@@ -119,7 +122,6 @@ async def get_drivers(db: Session = Depends(get_db)):
     
     result = db.execute(text(query))
     rows = result.fetchall()
-    print(rows)
     # Convert each tuple into a dictionary
     results_list = [
         {
@@ -131,16 +133,24 @@ async def get_drivers(db: Session = Depends(get_db)):
 
 @app.get("/get_parallel_results/{driver_name}")
 async def get_drivers(driver_name: str, db: Session = Depends(get_db), cache=Depends(db_cache)):
+    if "é" in driver_name:
+        driver_name = driver_name.replace("é","e")
+        
     query = queries.get_parallel_driver_results_sql(driver_name)
-
     cache_state = await cache(query=query)
     if cache_state:
-        print("asdasd")
         return cache_state
+
+
 
     result = db.execute(text(query))
     rows = result.fetchall()
+
+
+
     # Convert each tuple into a dictionary
+    
+    
     results_list = [
         {
             "d1_name": row[0],
@@ -156,10 +166,9 @@ async def get_drivers(driver_name: str, db: Session = Depends(get_db), cache=Dep
             "d2_snowmobile": row[10],
         } for row in rows
     ]
-    if results_list == []:
-        print("asdddd")
-        await cache(query=query, data=[])
+
     await cache(query=query, data=results_list)
+    #return "None"
     return results_list
 
 @app.get("/snowmobiles/{driver_name}")
@@ -218,36 +227,121 @@ async def get_ladder_results(db: Session = Depends(get_db), cache=Depends(db_cac
     await cache(query=query, data=results_list)
     return race_id
 
+
+def calculate_position(race_results, driver_id, heats, drivername):
+    highest_heat = 0
+    heats = heats
+    driver_pair = 0
+
+    exclude_lst = []
+
+    highest_heat = 0
+    for b in race_results:
+
+        if isinstance(b, int):
+            if driver_id in race_results[b]:
+                
+                if b > highest_heat:
+                    highest_heat = b
+                    driver_pair = race_results[b][driver_id][2]
+                    snowmobile = race_results[b][driver_id][3]
+                    date_run = race_results[b][driver_id][4]
+
+     
+    sorted_results = sorted(race_results[highest_heat].items(), 
+                            key=lambda x: (x[1][0] != 0, x[1][2] if highest_heat == heats else float('inf'), x[1][1]))   
+
+
+    if highest_heat != heats:
+        for t in sorted_results:
+            if t[0] in race_results[highest_heat + 1]:
+                exclude_lst.append(t[0])
+
+    elif highest_heat == heats:
+        if driver_pair == 1: 
+            sorted_results = [item for item in sorted_results if item[1][2] != 2]
+        if driver_pair == 2:
+            sorted_results = [item for item in sorted_results if item[1][2] != 1]
+    count = 0
+
+    filtered_list = [item for item in sorted_results if item[0] not in exclude_lst]
+    for b in filtered_list:
+
+        count += 1
+        if b[0] == driver_id:
+            break
+
+    if highest_heat == heats:
+        if driver_pair == 2:
+            placement = (count + len(exclude_lst) + 2)
+        else:
+            placement = (count + len(exclude_lst))
+    else:
+        placement = (count + len(exclude_lst))
+    
+    res = {
+            "name": drivername,
+            "title_1": race_results["title1"],
+            "title_2": race_results["title2"],
+            "position": placement,
+            "date": date_run,
+            "mode": 3,
+            "snowmobile": snowmobile,
+            "total_drivers": race_results["drivers"],
+            #"finishtime": row[8],
+        } 
+    
+
+
+    return res
+
+
 @app.get("/get_ladder_placement_sql/{driver_name}")
 async def get_ladder_placement_sql(driver_name: str, db: Session = Depends(get_db), cache=Depends(db_cache)):
-    query = queries.get_ladder_placement_sql(driver_name)
+    if "é" in driver_name:
+        driver_name = driver_name.replace("é","e")
 
+    query = queries.get_race_entries_for_driver(driver_name)
+    
+
+    
+    print(driver_name)
+    
     # Check the cache
     cache_state = await cache(query=query)
     if cache_state:
         return cache_state
 
-    # If not in cache, execute the database query
     result = db.execute(text(query))
     rows = result.fetchall()
-    results_list = [
-        {
-            "name": row[0],
-            "title_1": row[1],
-            "title_2": row[2],
-            "position": row[3],
-            "date": row[4],
-            "mode": row[5],
-            "snowmobile": row[6],
-            "total_drivers": row[7],
-            "finishtime": row[8],
-        } for row in rows
-    ]
+    events = {}
+    driver_id = ""
+    results_list = []
 
-    # Update the cache with new data
+    for a in rows:        
+        
+        if a[0] not in events:
+            events[a[0]] = {"drivers":0, "title1":a[3], "title2": a[1]}
+
+        if a[6] == driver_name:
+            driver_id = a[5]
+
+        if a[9] == 1:
+            events[a[0]]["drivers"] += 1
+
+        if a[9] not in events[a[0]]:
+            events[a[0]][a[9]] = {}
+
+
+        events[a[0]][a[9]][a[5]] = [a[8],a[7],a[10],a[11],a[12]]
+        
+    for b in events:
+        
+        results_list.append(calculate_position(events[b], driver_id, math.ceil(math.log2(events[b]["drivers"])),driver_name))
+
     await cache(query=query, data=results_list)
     return results_list
-
+    
 @app.post("/upload-data/")
 async def upload_data(request: Request):
     deletes_entries = []
@@ -361,8 +455,12 @@ async def upload_data(request: Request):
 
 @app.get("/get_single_placement_sql/{driver_name}")
 async def get_single_placement_sql(driver_name: str, db: Session = Depends(get_db), cache=Depends(db_cache)):
+    if "é" in driver_name:
+        driver_name = driver_name.replace("é","e")
+
     query = queries.get_single_placement_sql(driver_name)
     # Check the cache
+
     cache_state = await cache(query=query)
     if cache_state:
         return cache_state

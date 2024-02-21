@@ -81,7 +81,7 @@ def data_clean(data):
     if name_1:
         if d_history != name_1:
             driver_index = 0
-
+        print(name_1, "Name1")
         data_sock["Driver1"]["name"] = name_1
         data_sock["Driver1"]["time"] = 0
         if "FILLER" in name_1:
@@ -89,6 +89,7 @@ def data_clean(data):
             if driver_index >= 2:
                 update_field = True
     if name_2:
+        print(name_2, "Name2")
         data_sock["Driver2"]["name"] = name_2
         data_sock["Driver2"]["time"] = 0
         if "FILLER" in name_2:

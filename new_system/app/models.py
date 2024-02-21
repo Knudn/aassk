@@ -57,6 +57,7 @@ class ConfigForm(FlaskForm):
     wl_title = StringField('Whitelist Title')
     wl_bool = BooleanField('Use Whitelist')
     display_proxy = BooleanField('Use MSport display proxy')
+    cross = BooleanField('Watercross/Snowcross')
     submit = SubmitField('Save')
     reload = SubmitField('Reload local DB')
 
@@ -69,6 +70,7 @@ class GlobalConfig(db.Model):
     wl_title = db.Column(db.String(100), nullable=True, default="Watercross")
     infoscreen_asset_path = db.Column(db.String(128), nullable=True, default="/app/static/assets/infoscreen")
     wl_bool = db.Column(db.Boolean, default=True)
+    cross = db.Column(db.Boolean, default=False)
     display_proxy = db.Column(db.Boolean, default=True)
     Smart_Sorting = db.Column(db.Boolean, default=False)
 

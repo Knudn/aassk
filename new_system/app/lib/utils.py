@@ -42,6 +42,19 @@ def export_events():
 
     return data
 
+def convert_microseconds_to_time(microseconds):
+    # convert microseconds to seconds
+    seconds = microseconds / 1_000_000
+
+    # calculate each unit and the remainder
+    hours, rem = divmod(seconds, 3600)
+    minutes, rem = divmod(rem, 60)
+    seconds, rem = divmod(rem, 1)
+    milliseconds = rem * 1000
+
+    # return a string in the format "hours:minutes:seconds.milliseconds"
+    return "{:02d}:{:02d}:{:02d}.{:03d}".format(int(hours), int(minutes), int(seconds), int(milliseconds))
+
 
 def update_info_screen(id):
     from app import db
