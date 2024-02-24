@@ -5,6 +5,7 @@ import signal
 import sys
 import sqlite3
 import requests
+import psutil
 
 def object_to_dict(obj):
     return {attr: getattr(obj, attr) for attr in dir(obj) if not attr.startswith('_') and not callable(getattr(obj, attr))}
@@ -87,41 +88,54 @@ def GetEnv():
 
     return row_dict
 
+def is_process_running(program_name: str) -> bool:
+    """Check if there is any running process that contains the given name."""
+    for proc in psutil.process_iter(['name', 'cmdline']):
+        try:
+            # Check if process name or the command line matches the program name
+            if program_name in proc.info['name'] or program_name in ' '.join(proc.info['cmdline']):
+                return True
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            pass
+    return False
+
 def manage_process(python_program_path: str, operation: str) -> None:
     from app.models import GlobalConfig
+    import time
 
     global_config = GlobalConfig.query.get(1)
-    python_program_path = global_config.project_dir+python_program_path
+    python_program_path = global_config.project_dir + "/scripts/" + python_program_path
     python_executable = sys.executable
-    pid_file_path = f"{python_program_path}.pid"
+
+    # Extract the base name of the program to use as a check
+    program_name = os.path.basename(python_program_path)
 
     if operation == 'start':
-        if os.path.exists(pid_file_path):
-            logging.error(f"PID file {pid_file_path} already exists. Process may already be running.")
+        if is_process_running(program_name):
+            logging.error(f"Process {program_name} may already be running.")
             return
         
-        with open(pid_file_path, 'w') as pid_file:
-            process = subprocess.Popen([python_executable, python_program_path], preexec_fn=os.setpgrp)
-            pid_file.write(str(process.pid))
-            
+        process = subprocess.Popen([python_executable, python_program_path], preexec_fn=os.setpgrp)
         logging.info(f"Process started with PID {process.pid}")
         
     elif operation == 'stop':
-        if not os.path.exists(pid_file_path):
-            logging.error(f"PID file {pid_file_path} does not exist. Process may not be running.")
+        if not is_process_running(program_name):
+            logging.error(f"Process {program_name} may not be running.")
             return
         
-        with open(pid_file_path, 'r') as pid_file:
-            pid = int(pid_file.read())
-            os.killpg(pid, signal.SIGTERM)
-            os.remove(pid_file_path)
-        
-        logging.info(f"Process with PID {pid} stopped")
+        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
+            try:
+                if program_name in proc.info['name'] or program_name in ' '.join(proc.info['cmdline']):
+                    os.killpg(proc.pid, signal.SIGTERM)
+                    logging.info(f"Process with PID {proc.pid} stopped")
+            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+                continue
         
     elif operation == 'restart':
-        if os.path.exists(pid_file_path):
+        if is_process_running(program_name):
             manage_process(python_program_path, 'stop')
-        manage_process(python_program_path, 'start')
+            time.sleep(1)
+        manage_process(program_name, 'start')
         
     else:
         logging.error(f"Unsupported operation: {operation}")

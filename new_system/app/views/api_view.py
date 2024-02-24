@@ -350,6 +350,25 @@ def api(tab_name):
     else:
         return "Invalid tab", 404
 
+
+
+@api_bp.route('/api/restart', methods=['GET','POST'])
+def restart():
+    from app.lib.utils import manage_process, GetEnv, is_process_running
+    print(manage_process("cross_clock_server.py", "restart"))
+    return "data"
+
+@api_bp.route('/api/stop', methods=['GET','POST'])
+def stop():
+    from app.lib.utils import manage_process, GetEnv, is_process_running
+    print(manage_process("cross_clock_server.py", "stop"))
+    return "data"
+
+@api_bp.route('/api/start', methods=['GET','POST'])
+def start():
+    from app.lib.utils import manage_process, GetEnv, is_process_running
+    print(manage_process("cross_clock_server.py", "start"))
+    return "data"
     
 def reload_event():
     data = request.json

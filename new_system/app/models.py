@@ -143,4 +143,10 @@ class Session_Drivers(db.Model):
     def __repr__(self):
         return f"<EventOrder(id={self.id}, first_name='{self.first_name}', last_name='{self.last_name}')>"
 
-
+class MicroServices(db.Model):
+    __tablename__ = 'session_drivers'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(64), nullable=False)
+    state = db.Column(db.Boolean, nullable=False, default=False)
+    def __repr__(self):
+        return f"<EventOrder(id={self.id}, name='{self.name}', state='{self.state}')>"

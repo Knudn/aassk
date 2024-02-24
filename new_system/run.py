@@ -2,7 +2,7 @@ from app import create_app, db, socketio  # Notice the added socketio import
 from app.models import GlobalConfig, ActiveDrivers, SpeakerPageSettings, InfoScreenAssets
 from app.lib.db_operation import update_active_event
 import os
-from app.lib.utils import manage_process, GetEnv
+from app.lib.utils import manage_process, GetEnv, is_process_running
 
 pwd = os.getcwd()
 

@@ -162,7 +162,6 @@
                     $("#seconds_" + id).val(g_data[2]);
                     $("#milliseconds_" + id).val(Math.floor(g_data[3]));
 
-                    
                     let data_send = `${g_data[0]}h${g_data[1]}:${g_data[2]}.${g_data[3]}`;
                     $(this).data('finalTimestamp', data_send);
             });
@@ -178,17 +177,14 @@
         var id = $(this).data('id');
         var base_time = $(this).attr('data-base-time');
 
-        // Retrieve input values
         var hours = $('#hours_' + driverId).val();
         var minutes = $('#minutes_' + driverId).val();
         var seconds = $('#seconds_' + driverId).val();
         var milliseconds = $('#milliseconds_' + driverId).val();
 
-        // Construct timestamp data
         var timestamp = `${hours}h${minutes}:${seconds}.${milliseconds}`;
         
         timestamp_post = timestampToMicroseconds(timestamp)
-        // Example: Post timestamp data to an endpoint
         console.log(`Submitting timestamp for driver ${driverId}: ${timestamp}`);
         
         $.post('/cross/submit_timestamp', {id: id, timestamp: timestamp_post, basetime: base_time}, function(data) {
@@ -315,16 +311,14 @@
                     })
             } catch (error) {
                 console.error('There was a problem with your fetch operation:', error);
-                // Handle the error or return an error state/data structure
-                data = null; // Example error handling
+                data = null; 
             }
         }
         if (!Array.isArray(data)) {
             console.error('Expected data to be an array, but got:', typeof data);
-            return; // Exit the function if data is not an array
+            return;
         }
 
-        // Ensure data is not null before proceeding
         if (!data) return;
 
         const container = document.querySelector('.row');
@@ -408,17 +402,18 @@
                         dataId = driver.id
                         baseTime = driver.time_info.INTER_1
                         var element = document.querySelector('.driver-div[data-id="' + dataId + '"]');
+                        var quick_submit_element = document.querySelector('.additional-info[data-id="' + dataId + '"]');
+
                         if (element) {
                             console.log("Updated basetime")
                             element.setAttribute('data-base-time', baseTime);
+                            quick_submit_element.setAttribute('data-base-time', baseTime);
                         } else {
                             console.log('Element with data-id ' + dataId + ' not found.');
                         }
 
                         var button = document.querySelector('button.timestamp-button[data-id="' + dataId + '"]');
-                        // Check if the button exists
                         if (button) {
-                            // Set the data-base-time attribute to the specified value
                             button.setAttribute('data-base-time', baseTime);
                         } else {
                             console.log('Button with data-id ' + dataId + ' not found.');
