@@ -19,41 +19,36 @@
         margin-left: 10px;
     }
     .status-indicator {
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        background-color: grey;
-        margin-left: 10px;
+        padding-left: 10px;
     }
 </style>
+
+
 
 <div class="container mt-5">
     <!-- Service Cards with Icons -->
     <div class="row">
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body d-flex align-items-center">
-                    Msport Proxy 
-                    <i class="bi bi-play-fill text-success ml-2 action-icon" onclick="changeStatus(this, 'start')"></i>
-                    <i class="bi bi-stop-fill text-danger ml-2 action-icon" onclick="changeStatus(this, 'stop')"></i>
-                    <i class="bi bi-arrow-clockwise text-warning ml-2 action-icon" onclick="changeStatus(this, 'restart')"></i>
+        {% for d in microservices %}
+        {% set state = d.state | string() %}
+        {% set name_json = d.name %}
+            <div class="col-md-3">
+                <div class="card">
+                    <div class="card-body d-flex align-items-center">
+                        {{ d.name }}
+                        <i class="bi bi-play-fill text-success ml-2 action-icon" onclick="changeStatus(this, 'start', '{{ name_json }}')"></i>
+                        <i class="bi bi-stop-fill text-danger ml-2 action-icon" onclick="changeStatus(this, 'stop', '{{ name_json }}')"></i>
+                        {% if state == "False" %}
+                            <span class="status-indicator" style="color: rgb(202, 0, 0);">Stopped</span>
+                        {% else %}
+                            <span class="status-indicator" style="color: rgb(0, 189, 9);">Running</span>
+                        {% endif %}
+                    </div>
+                    
                 </div>
             </div>
-            
-        </div>
-        <div class="col-md-3">
-            <div class="card">
-                <div class="card-body d-flex align-items-center">
-                    Cross Timing Server 
-                    <i class="bi bi-play-fill text-success ml-2 action-icon" onclick="changeStatus(this, 'start')"></i>
-                    <i class="bi bi-stop-fill text-danger ml-2 action-icon" onclick="changeStatus(this, 'stop')"></i>
-                    <i class="bi bi-arrow-clockwise text-warning ml-2 action-icon" onclick="changeStatus(this, 'restart')"></i>
-                    <span class="status-indicator ml-auto"></span>
-                </div>
-            </div>
-            
-        </div>
+        {% endfor %}
     </div>
+
 </div>
 
 <div class="container mt-5">
@@ -96,9 +91,11 @@
             
             <select class="custom-select" id="inputGroupSelect01"> 
               <option selected>Choose...</option>
+
               {% for a in events %}
-                <option class="{{ a[2] }}" value={{ a[2] }}>{{ a[0] }}</option> 
+                    <option class="{{ a[2] }}" value={{ a[2] }}>{{ a[0] }}</option> 
               {% endfor %}
+
             </select>
             <button class="sync-btn btn btn-success" type="submit">Sync</button>
             <br>
@@ -143,24 +140,37 @@
 
 
 <script>
-    
-    // Assuming jQuery is already included
-    function changeStatus(element, action) {
-        // Placeholder for actual status change logic
-        var indicator = $(element).siblings('.status-indicator');
-        switch(action) {
-            case 'start':
-                indicator.css('background-color', 'green');
-                break;
-            case 'stop':
-                indicator.css('background-color', 'red');
-                break;
-            case 'restart':
-                indicator.css('background-color', 'orange');
-                break;
-        }
-    }
 
+function changeStatus(element, action, service) {
+    console.log(service);
+    // Find the closest parent with the class 'card-body' and then find the '.status-indicator' within it
+    var indicator = $(element).closest('.card-body').find('.status-indicator');
+    switch(action) {
+        case 'start':
+            indicator.css('color', 'rgb(0, 189, 9)').text('Running'); // Use the green color for 'Running'
+            break;
+        case 'stop':
+            indicator.css('color', 'rgb(209, 0, 0)').text('Stopped'); // Use the red color for 'stopped'
+            break;
+        case 'restart':
+            // Assuming you want to add a restart case
+            indicator.css('color', 'orange').text('restarting');
+            break;
+    }
+    change_microservice_state(action, service);
+}
+
+
+function change_microservice_state(state, service) {
+    $.ajax({
+        type: "POST",
+        url: "/admin/home",
+        data: {service_state: state, service_name: service},
+        success: function(result) {
+            console.log("ssssssssss")
+        }
+    });
+}
 
 $(document).ready(function() {
     function sendRequest(event, sync, event_name) {
@@ -176,6 +186,8 @@ $(document).ready(function() {
             }
         });
     }
+
+
 
     $('#inputGroupSelect01').change(function() {
         let event = this.value;

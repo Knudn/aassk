@@ -63,6 +63,7 @@
         cursor: pointer;
         border-radius: 16px;
     }
+    
 </style>
 
 <h2>Event Setup</h2>
@@ -96,9 +97,9 @@
                                     <span class="input-group-text order-number">{{ event_type.order }}</span>
                                 </div>
                                 <input type="text" class="form-control" value="{{ event_type.name }}" name="eventTypeNames[]">
-                                <div class="toggle-container">
+                                <div class="toggle-container" style="padding-right: 10px; padding-left: 10px;">
                                     <input type="checkbox" class="form-check-input" {% if event_type.finish_heat %}checked{% endif %} name="finishHeatToggles[]">
-                                    <label class="form-check-label toggle-label">Finish heat</label>
+                                    <label class="form-check-label toggle-label">Non-linear heats </label>
                                 </div>
                                 <div class="input-group-append">
                                     <button type="button" class="btn btn-outline-danger">Remove</button>

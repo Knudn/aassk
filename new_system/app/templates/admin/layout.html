@@ -27,7 +27,7 @@
                     </a>
                     <div class="dropdown-menu" aria-labelledby="activeEventsDropdown">
                         <a class="nav-link {% if active_tab == 'global-config' %}active{% endif %}" href="{{ url_for('admin.admin', tab_name='global-config') }}">Global Config</a>
-                        <a class="dropdown-item" href="{{ url_for('admin.admin', tab_name='cross') }}">Cross/Watercross</a>
+                        <a class="dropdown-item" href="{{ url_for('admin.admin', tab_name='cross_config') }}">Cross/Watercross</a>
                     </div>
                 </li>
 
@@ -38,7 +38,6 @@
                     <div class="dropdown-menu" aria-labelledby="activeEventsDropdown">
                         <a class="dropdown-item" href="{{ url_for('admin.admin', tab_name='active_events') }}">Current Events</a>
                         <a class="dropdown-item" href="{{ url_for('admin.admin', tab_name='active_events_driver_data') }}">Driver Data</a>
-                        <a class="dropdown-item" href="{{ url_for('admin.admin', tab_name='a') }}">Event 3</a>
                     </div>
                 </li>
                 <li class="nav-item">

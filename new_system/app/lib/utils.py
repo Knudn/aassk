@@ -88,55 +88,62 @@ def GetEnv():
 
     return row_dict
 
-def is_process_running(program_name: str) -> bool:
-    """Check if there is any running process that contains the given name."""
-    for proc in psutil.process_iter(['name', 'cmdline']):
-        try:
-            # Check if process name or the command line matches the program name
-            if program_name in proc.info['name'] or program_name in ' '.join(proc.info['cmdline']):
-                return True
-        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-            pass
-    return False
+def is_screen_session_running(session_name: str) -> bool:
+    """Check if a Screen session with the given name is running."""
+    try:
+        # Command to list all Screen sessions
+        list_sessions_cmd = "screen -ls"
+        # Execute the command and decode the output
+        sessions_output = subprocess.check_output(list_sessions_cmd, shell=True).decode()
+        # Check if the session name is in the output
+        return session_name in sessions_output
+    except subprocess.CalledProcessError:
+        # If the screen command fails, assume the session is not running
+        return False
 
-def manage_process(python_program_path: str, operation: str) -> None:
+def manage_process_screen(python_program_path: str, operation: str) -> None:
     from app.models import GlobalConfig
-    import time
+    import time, subprocess, shlex, logging
 
     global_config = GlobalConfig.query.get(1)
     python_program_path = global_config.project_dir + "/scripts/" + python_program_path
     python_executable = sys.executable
-
-    # Extract the base name of the program to use as a check
     program_name = os.path.basename(python_program_path)
+    screen_session_name = f"session_{program_name}"
+
+    def is_screen_session_running(session_name: str) -> bool:
+        """Check if a Screen session with the given name is running."""
+        try:
+            list_sessions_cmd = "screen -ls"
+            sessions_output = subprocess.check_output(list_sessions_cmd, shell=True).decode()
+            return session_name in sessions_output
+        except subprocess.CalledProcessError:
+            return False
 
     if operation == 'start':
-        if is_process_running(program_name):
-            logging.error(f"Process {program_name} may already be running.")
+        if is_screen_session_running(screen_session_name):
+            logging.error(f"Screen session {screen_session_name} may already be running.")
             return
-        
-        process = subprocess.Popen([python_executable, python_program_path], preexec_fn=os.setpgrp)
-        logging.info(f"Process started with PID {process.pid}")
-        
+
+        start_cmd = f"screen -dmS {screen_session_name} {python_executable} {shlex.quote(python_program_path)}"
+        subprocess.Popen(start_cmd, shell=True)
+        logging.info(f"Screen session {screen_session_name} started with program {program_name}")
+
     elif operation == 'stop':
-        if not is_process_running(program_name):
-            logging.error(f"Process {program_name} may not be running.")
+        if not is_screen_session_running(screen_session_name):
+            logging.error(f"Screen session {screen_session_name} may not be running.")
             return
-        
-        for proc in psutil.process_iter(['pid', 'name', 'cmdline']):
-            try:
-                if program_name in proc.info['name'] or program_name in ' '.join(proc.info['cmdline']):
-                    os.killpg(proc.pid, signal.SIGTERM)
-                    logging.info(f"Process with PID {proc.pid} stopped")
-            except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
-                continue
-        
+
+        stop_cmd = f"screen -S {screen_session_name} -X quit"
+        subprocess.Popen(stop_cmd, shell=True)
+        logging.info(f"Screen session {screen_session_name} stopped")
+
     elif operation == 'restart':
-        if is_process_running(program_name):
-            manage_process(python_program_path, 'stop')
-            time.sleep(1)
-        manage_process(program_name, 'start')
-        
+        if is_screen_session_running(screen_session_name):
+            manage_process_screen(python_program_path, 'stop')
+            time.sleep(1)  # Wait a bit for the session to be fully stopped
+        manage_process_screen(python_program_path, 'start')
+
     else:
         logging.error(f"Unsupported operation: {operation}")
 

@@ -6,6 +6,9 @@
 </style>
 
 <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleCrossWhitelist();
+    });
     function toggleSortingFields() {
         var checkBox = document.getElementById("enable_sorting");
         var search1 = document.getElementById("search_string1");
@@ -23,6 +26,32 @@
     function confirmAction() {
         return confirm("ALL CURRENT RACE DATA WILL BE RELOADED");
     }
+
+
+    function toggleModal() {
+    var modal = document.getElementById("crossProfileModal");
+    modal.style.display = modal.style.display === "none" ? "block" : "none";
+    }
+
+    function closeModal() {
+        toggleModal();
+        // Additional logic to handle the checkbox state if needed
+    }
+
+    function toggleCrossWhitelist() {
+        var crossCheckbox = document.getElementById("cross_checkbox");
+        var wlCrossTitleInput = document.getElementById("wl_cross_title");
+
+        // Disable the input field if the checkbox is not checked
+        if (!crossCheckbox.checked) {
+            wlCrossTitleInput.disabled = true;
+        } else {
+            wlCrossTitleInput.disabled = false;
+        }
+    }
+
+
+
 </script>
 
 <h3>Global Config</h3>
@@ -64,6 +93,7 @@
                     <td>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="wl_bool" {% if config.wl_bool %}checked{% endif %}>
+                            <i class="form-text text-muted">Whitelisting based on the title of the event (should be used)</i>
                         </div>
                     </td>
                 </tr>
@@ -72,9 +102,14 @@
                     <td>Snowcross/Watercross?</td>
                     <td>
                         <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="cross" {% if config.cross %}checked{% endif %}>
+                            <input class="form-check-input" type="checkbox" name="cross" id="cross_checkbox" {% if config.cross %}checked{% endif %} onclick="toggleCrossWhitelist();">
+                            <i class="form-text text-muted">If enabled, make sure you have configured the <a href="/admin/cross_config" class="your-optional-class-for-styling">cross profile</a> <b>before</b> reloading</i>
                         </div>
                     </td>
+                </tr>
+                <tr>
+                    <td>Cross Whitelist</td>
+                    <td><input type="text" class="form-control" name="wl_cross_title" id="wl_cross_title" value="{{ config.wl_cross_title }}"></td>
                 </tr>
                 <tr id="search_string1" style="{% if not config.enable_sorting %}display: none{% endif %}">
                     <td>Search String 1</td>
@@ -88,7 +123,7 @@
             </tbody>
         </table>
     </div>
-    
+
     {{ form.submit(class="btn btn-primary") }}
     <input type="submit" name="reload" value="Reload" class="btn btn-warning" onclick="return confirmAction()">
     <input type="submit" name="update" value="Update" class="btn btn-success">

@@ -55,6 +55,7 @@ class ConfigForm(FlaskForm):
     db_location = StringField('Database Location')
     event_dir = StringField('Event Directory')
     wl_title = StringField('Whitelist Title')
+    wl_cross_title = StringField('Whitelist Cross Title')
     wl_bool = BooleanField('Use Whitelist')
     display_proxy = BooleanField('Use MSport display proxy')
     cross = BooleanField('Watercross/Snowcross')
@@ -73,6 +74,7 @@ class GlobalConfig(db.Model):
     cross = db.Column(db.Boolean, default=False)
     display_proxy = db.Column(db.Boolean, default=True)
     Smart_Sorting = db.Column(db.Boolean, default=False)
+    wl_cross_title = db.Column(db.String(100), nullable=True)
 
 
 class ActiveEvents(db.Model):
@@ -133,6 +135,7 @@ class Session_Race_Records(db.Model):
     finishtime = db.Column(db.Integer, nullable=False)
     snowmobile = db.Column(db.String(84), nullable=True)
     penalty = db.Column(db.Integer, nullable=False)
+    points = db.Column(db.Integer, nullable=False, default=0)
     
 
 class Session_Drivers(db.Model):
@@ -144,9 +147,25 @@ class Session_Drivers(db.Model):
         return f"<EventOrder(id={self.id}, first_name='{self.first_name}', last_name='{self.last_name}')>"
 
 class MicroServices(db.Model):
-    __tablename__ = 'session_drivers'
+    __tablename__ = 'microservices'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     name = db.Column(db.String(64), nullable=False)
+    path = db.Column(db.String(84), nullable=False)
     state = db.Column(db.Boolean, nullable=False, default=False)
     def __repr__(self):
-        return f"<EventOrder(id={self.id}, name='{self.name}', state='{self.state}')>"
+        return f"<Microservices(id={self.id}, name='{self.name}', state='{self.state}')>"
+
+class CrossConfig(db.Model):
+    __tablename__ = 'crossconfig'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    dnf_point = db.Column(db.Integer, nullable=False, default=0)
+    dsq_point = db.Column(db.Integer, nullable=False, default=0)
+    dns_point = db.Column(db.Integer, nullable=False, default=0)
+    invert_score = db.Column(db.Boolean, nullable=False, default=False)
+
+    #This dict will be used to also get the amount the drivers
+    driver_scores = db.Column(db.JSON, nullable=True, default=lambda: {1: 8, 2: 16})
+
+    def __repr__(self):
+        return f"<CrossConfig(id={self.id}, dnf_point={self.dnf_point}, dsq_point={self.dsq_point}, dns_point={self.dns_point}, invert_score={self.invert_score}, driver_scores={self.driver_scores})>"
+

@@ -19,6 +19,8 @@ def admin(tab_name):
         return home_tab()
     elif tab_name == 'global-config':
         return global_config_tab()
+    elif tab_name == 'cross_config':
+        return cross_config_tab()
     elif tab_name == 'infoscreen':
         return infoscreen()
     elif tab_name == 'active_events':
@@ -33,11 +35,12 @@ def admin(tab_name):
         return "Invalid tab", 404
 
 def home_tab():
-    from app.models import ActiveDrivers, ActiveEvents, Session_Race_Records, GlobalConfig
+    from app.models import ActiveDrivers, ActiveEvents, Session_Race_Records, GlobalConfig, MicroServices
     from app import db
     from sqlalchemy import func
 
     db_location = db.session.query(GlobalConfig.db_location).all()[0][0]
+
 
     # Query to get distinct event names and their counts
     enabled_events = (ActiveEvents.query
@@ -50,7 +53,10 @@ def home_tab():
                       .with_entities(Session_Race_Records.first_name, Session_Race_Records.last_name)
                       .group_by(Session_Race_Records.first_name, Session_Race_Records.last_name)
                       .count())
+
+    services = (MicroServices.query.all())
     
+
     number_runs = (ActiveEvents.query.filter(ActiveEvents.enabled == 1).count())
 
     unique_events = (
@@ -62,8 +68,9 @@ def home_tab():
         .group_by(ActiveEvents.event_name).order_by(ActiveEvents.sort_order)
         .all()
     )
-    
+
     if request.method == "POST":
+
         if "single_event" in request.form:
             
             if request.form.get('event_file') == "active_event":
@@ -110,19 +117,102 @@ def home_tab():
 
                 event_config = {"all_records":(valid_recorded_times + invalid_recorded_times + drivers_left), "p_times":invalid_recorded_times, "v_times":valid_recorded_times, "l_times":drivers_left, "drivers":amount_drivers, "heats":heat_num}
                 return event_config
+            
+        elif "service_state" in request.form:
+            from app.lib.utils import GetEnv, is_screen_session_running, manage_process_screen
+            
+            from time import sleep
 
-    return render_template('admin/index.html', drivercount=drivers, num_run=number_runs, num_events=enabled_events, events=unique_events)
+            service_name = request.form.get('service_name')
+            service_state = request.form.get('service_state')
+            
+            service_object = db.session.query(MicroServices).filter((MicroServices.name == service_name)).first()
+
+            if service_object is not None:
+                if bool(service_object.state) == False and service_state == "start":
+                    service_object.state = True
+                    db.session.commit()
+                    
+                    manage_process_screen(service_object.path, "start")
+                    sleep(1)
+                    if is_screen_session_running(service_object.path) == True:
+                        return "True"
+                    else:
+                        return "False"
+                    
+                elif bool(service_object.state) == True and service_state == "stop":
+                    service_object.state = False
+                    db.session.commit()
+
+                    manage_process_screen(service_object.path, "stop")
+                    sleep(1)
+                    if is_screen_session_running(service_object.path) == False:
+                        return "True"
+                    else:
+                        return "False"
+                    
+                elif bool(service_object.state) == True and service_state == "restart":
+                    print("Restart")
+
+    return render_template('admin/index.html', drivercount=drivers, num_run=number_runs, num_events=enabled_events, events=unique_events, microservices=services)
+
+def cross_config_tab():
+    from app.models import CrossConfig, db
+    from flask import Markup
+
+
+    cross_config = CrossConfig.query.first()
+
+    if request.method == 'POST':
+
+        # Extract form data
+        dnf_point = request.form.get('dnf_point', type=int)
+        dns_point = request.form.get('dns_point', type=int)
+        dsq_point = request.form.get('dsq_point', type=int)
+        invert_score = request.form.get('invert_score') == 'true'
+        num_drivers = request.form.get('num_drivers', type=int)
+        
+        # Prepare driver_scores dictionary
+        driver_scores = {}
+        for i in range(1, num_drivers + 1):
+            score = request.form.get(f'driver_scores[{i}]', type=int)
+            if score is not None:
+                driver_scores[i] = score
+
+        # If there's no existing config, create a new one
+        if not cross_config:
+            cross_config = CrossConfig()
+
+        # Update cross_config with form values
+        cross_config.dnf_point = dnf_point
+        cross_config.dns_point = dns_point
+        cross_config.dsq_point = dsq_point
+        cross_config.invert_score = invert_score
+        cross_config.driver_scores = driver_scores
+
+        # Add to session and commit if new, otherwise just commit the changes
+        if not CrossConfig.query.first():
+            db.session.add(cross_config)
+        db.session.commit()
+
+
+        # Redirect to avoid form resubmission issues
+        return redirect(url_for('admin.admin', tab_name='cross_config'))
+
+    # Render template at the end of the function, passing the cross_config
+    print(cross_config)
+    driver_scores_json = json.dumps(cross_config.driver_scores)
+    return render_template('admin/cross_config_tab.html', cross_config=cross_config, driver_scores_json=driver_scores_json)
 
 def global_config_tab():
-    from app.models import GlobalConfig, ConfigForm, ActiveDrivers, Session_Race_Records
+    from app.models import GlobalConfig, ConfigForm, ActiveDrivers, Session_Race_Records, MicroServices
     from app import db
+    from app.lib.utils import manage_process_screen
+
 
     global_config = GlobalConfig.query.all()
     form = ConfigForm()
     
-    print(form.validate_on_submit())
-    print(request.form)
-    print(request)
     if request.method == 'POST':
         if 'submit' in request.form:
             for config in global_config:
@@ -134,6 +224,11 @@ def global_config_tab():
                 config.wl_bool = bool(form.wl_bool.data)
                 config.display_proxy = bool(form.display_proxy.data)
                 config.cross = bool(form.cross.data)
+                config.wl_cross_title = form.wl_cross_title.data
+                if bool(form.cross.data):
+                    db.session.query(MicroServices).filter(MicroServices.name == "Cross Clock Server").update({"state": True})
+                    db.session.commit()
+                    manage_process_screen("cross_clock_server.py", "start")
                 
                 db.session.commit()
         elif 'update' in request.form: 

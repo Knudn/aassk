@@ -5,6 +5,8 @@ import os
 from app.lib.utils import GetEnv
 from typing import List, Dict, Union, Tuple
 from datetime import datetime, timedelta
+import traceback
+
 
 def timevalue_convert(dateint):
 
@@ -157,11 +159,13 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True, sync=Fa
 
     from app.models import ActiveEvents
     from app import db as my_db
-    from app.models import Session_Race_Records
+    from app.models import Session_Race_Records, CrossConfig
 
 
     event_dir = g_config["event_dir"]
     db_location = g_config["db_location"]
+    
+    current_title = None
     try:
         for a in db:
             if "SPESIFIC_HEAT" in a.keys():
@@ -319,7 +323,6 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True, sync=Fa
                             for b in driver_list:
                                 if int(x["CID"]) == int(b[0]):
                                     session_data[b[0]] = [b[1], b[2], event_name[0][0], event_name[0][1], heat, x["FINISHTIME"], b[4], x["PENELTY"]]
-
                         for key, value in session_data.items():
                             record = Session_Race_Records(first_name=value[0], last_name=value[1], title_1=value[2], title_2=value[3], heat=value[4], finishtime=value[5], snowmobile=value[6], penalty=int(value[7]))
                             my_db.session.add(record)
@@ -365,6 +368,66 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True, sync=Fa
                             if int(x[6]) == int(b[0]):
                                 session_data[b[0]] = [b[1], b[2], event_name[0][0], event_name[0][1], heat, x[5], b[4], x[4]]
 
+                    current_title = session_data[list(session_data.keys())[0]][2] + " " + session_data[list(session_data.keys())[0]][3]
+                    
+
+                    if mode == str(0) and g_config["cross"] and g_config["wl_cross_title"] in current_title:
+                         cross_config = CrossConfig.query.first()
+                         driver_scores = cross_config.driver_scores
+                         dnf_score = cross_config.dnf_point
+                         dns_score = cross_config.dns_point
+                         dsq_score = cross_config.dsq_point
+                         invert_score = cross_config.invert_score
+
+                         sorted_drivers = sorted(session_data.items(), key=lambda x: x[1][5])
+                         if not invert_score:
+                            finished_drivers = 0
+                            for index in sorted_drivers:
+                                if index[1][5] != 0 and index[1][7] == 0:
+                                    finished_drivers += 1
+
+                         if len(cross_config.driver_scores) >= len(session_data):
+
+                            penalty_points = {'3': dsq_score, '1': dns_score, '2': dnf_score}
+
+                            for driver_id, driver_info in session_data.items():
+                                penalty_code = driver_info[7]
+
+                                if str(penalty_code) in str(penalty_points):
+                                    driver_info.append(penalty_points[str(penalty_code)])
+                                else:
+                                    driver_info[7] = 0
+
+
+                            sorted_drivers = sorted(session_data.items(), key=lambda x: (x[1][-1] != 0, x[1][5]))
+
+                            position = 1
+
+                            for driver_id, driver_info in sorted_drivers:
+                                if driver_info[7] == 0 and driver_info[5] != 0:
+                                    position_str = str(position)
+
+                                    if position_str in driver_scores:
+                                        if not invert_score:
+
+                                            driver_info.append(driver_scores[str(len(driver_scores) - int(finished_drivers))])
+                                            print(driver_scores[str(finished_drivers)])
+                                            finished_drivers -= 1
+                                        else:
+                                            driver_info.append(driver_scores[position_str])
+                                    else:
+                                        driver_info.append(0)
+                                    position += 1 
+                                elif driver_info[5] == 0 and driver_info[7] == 0:
+                                    driver_info.append(0)
+
+                                session_data[driver_id] = driver_info
+
+                            print("")
+                            for driver_id, driver_info in session_data.items():
+                                print(driver_id, driver_info)  
+                            
+                    
                     for value in session_data:
                         # Delete existing records
                         my_db.session.query(Session_Race_Records)\
@@ -385,10 +448,12 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True, sync=Fa
                     # Commit the new records
                     my_db.session.commit()
 
+
                     cursor.executemany(sql, timedata_tuples)
 
     except Exception as e:
-        print(e)
+        print("An exception occurred:", str(e))
+        traceback.print_exc()
 
                         
 def insert_start_list(db, g_config, init_mode=True):

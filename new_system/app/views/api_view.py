@@ -354,20 +354,21 @@ def api(tab_name):
 
 @api_bp.route('/api/restart', methods=['GET','POST'])
 def restart():
-    from app.lib.utils import manage_process, GetEnv, is_process_running
-    print(manage_process("cross_clock_server.py", "restart"))
+    from app.lib.utils import GetEnv, is_screen_session_running, manage_process_screen
+    
+    print(manage_process_screen("cross_clock_server.py", "restart"))
     return "data"
 
 @api_bp.route('/api/stop', methods=['GET','POST'])
 def stop():
-    from app.lib.utils import manage_process, GetEnv, is_process_running
-    print(manage_process("cross_clock_server.py", "stop"))
+    from app.lib.utils import GetEnv, is_screen_session_running, manage_process_screen
+    print(manage_process_screen("cross_clock_server.py", "stop"))
     return "data"
 
 @api_bp.route('/api/start', methods=['GET','POST'])
 def start():
-    from app.lib.utils import manage_process, GetEnv, is_process_running
-    print(manage_process("cross_clock_server.py", "start"))
+    from app.lib.utils import GetEnv, is_screen_session_running, manage_process_screen
+    print(manage_process_screen("cross_clock_server.py", "start"))
     return "data"
     
 def reload_event():
