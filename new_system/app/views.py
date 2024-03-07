@@ -6,6 +6,7 @@ from app.models import ConfigForm, Configuration, db
 @app.route("/")
 def index():
     services = Configuration.query.all()
+    print("asdasdasdasdasd")
     return render_template("index.html", services=services)
 
 @app.route("/global_configuration")

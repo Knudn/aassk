@@ -85,8 +85,8 @@
                     <td><input type="text" class="form-control" name="event_dir" value="{{ config.event_dir }}"></td>
                 </tr>
                 <tr>
-                    <td>Whitelist String</td>
-                    <td><input type="text" class="form-control" name="wl_title" value="{{ config.wl_title }}"></td>
+                    <td>Whitelist Filter</td>
+                    <td><input type="text" class="form-control" name="wl_title" value="{{ config.wl_title }}" placeholder="Optional"></td>
                 </tr>
                 <tr>
                     <td>Use whitelist?</td>
@@ -109,7 +109,7 @@
                 </tr>
                 <tr>
                     <td>Cross Whitelist</td>
-                    <td><input type="text" class="form-control" name="wl_cross_title" id="wl_cross_title" value="{{ config.wl_cross_title }}"></td>
+                    <td><input type="text" class="form-control" name="wl_cross_title" id="wl_cross_title" value="{{ config.wl_cross_title }}" placeholder="Additional filter (Optional)"></td>
                 </tr>
                 <tr id="search_string1" style="{% if not config.enable_sorting %}display: none{% endif %}">
                     <td>Search String 1</td>

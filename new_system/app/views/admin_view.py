@@ -200,7 +200,6 @@ def cross_config_tab():
         return redirect(url_for('admin.admin', tab_name='cross_config'))
 
     # Render template at the end of the function, passing the cross_config
-    print(cross_config)
     driver_scores_json = json.dumps(cross_config.driver_scores)
     return render_template('admin/cross_config_tab.html', cross_config=cross_config, driver_scores_json=driver_scores_json)
 
@@ -216,6 +215,8 @@ def global_config_tab():
     if request.method == 'POST':
         if 'submit' in request.form:
             for config in global_config:
+                if not form.wl_cross_title.data:
+                    form.wl_cross_title.data = ""
                 config.session_name = form.session_name.data
                 config.project_dir = form.project_dir.data
                 config.db_location = form.db_location.data
@@ -225,6 +226,7 @@ def global_config_tab():
                 config.display_proxy = bool(form.display_proxy.data)
                 config.cross = bool(form.cross.data)
                 config.wl_cross_title = form.wl_cross_title.data
+
                 if bool(form.cross.data):
                     db.session.query(MicroServices).filter(MicroServices.name == "Cross Clock Server").update({"state": True})
                     db.session.commit()

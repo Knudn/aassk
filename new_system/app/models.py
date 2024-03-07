@@ -74,7 +74,7 @@ class GlobalConfig(db.Model):
     cross = db.Column(db.Boolean, default=False)
     display_proxy = db.Column(db.Boolean, default=True)
     Smart_Sorting = db.Column(db.Boolean, default=False)
-    wl_cross_title = db.Column(db.String(100), nullable=True)
+    wl_cross_title = db.Column(db.String(100), nullable=False, default="")
 
 
 class ActiveEvents(db.Model):

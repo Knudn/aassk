@@ -14,7 +14,8 @@
 <body>
     <div class="container">
         <div class="admin-dashboard">
-            <h1>Admin Dashboard</h1>
+            <img src="{{ url_for('static', filename='assets/logo.jpg') }}" width="50" height="50" class="d-inline-block align-top" alt="">
+            <h1 style="display: inline-block;">Aassk Dashboard</h1>
             <ul class="nav nav-tabs" id="adminTabs">
                 <li class="nav-item">
                     <a class="nav-link {% if active_tab == 'home' %}active{% endif %}" href="{{ url_for('admin.admin', tab_name='home') }}">Home</a>
@@ -45,11 +46,15 @@
                 </li>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle {% if active_tab == 'active_events' %}active{% endif %}" href="#" id="activeEventsDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        Microservices
+                        Links
                     </a>
                     <div class="dropdown-menu" aria-labelledby="activeEventsDropdown">
-                        <a class="dropdown-item" href="{{ url_for('admin.admin', tab_name='active_events') }}">PDF converter</a>
-                        <a class="dropdown-item" href="{{ url_for('admin.admin', tab_name='active_events') }}">Msport Serial Proxy</a>
+                        <a class="dropdown-item" href="/board/speaker/">Speaker page</a>
+                        <a class="dropdown-item" href="/cross/clock">Cross Clock Page</a>
+                        <a class="dropdown-item" href="/admin/export">Event Export</a>
+                        <a class="dropdown-item" href="/board/startlist_simple_upcoming">Startlist & upcoming</a>
+                        <a class="dropdown-item" href="/board/scoreboard">Scoreboard</a>
+                        <a class="dropdown-item" href="/board/scoreboard_c?columns=3">Scoreboard X3 columns</a>
                     </div>
                 </li>
 

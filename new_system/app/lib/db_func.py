@@ -22,6 +22,9 @@ def map_database_files(global_config, Event=None, event_only=False):
     event_dir = global_config["event_dir"]
     wh_check = global_config["wl_bool"]
     wh_title = global_config["wl_title"]
+    cross_check = global_config["cross"]
+    cross_title = global_config["wl_cross_title"]
+
 
     if Event != None:
         events = [Event+".scdb"]
@@ -52,16 +55,36 @@ def map_database_files(global_config, Event=None, event_only=False):
                     cursor.execute("SELECT C_NUM, C_FIRST_NAME, C_LAST_NAME, C_CLUB, C_TEAM FROM TCOMPETITORS;")
                     driver_rows = cursor.fetchall()
                     if len(rows) >= 4:
-                        if wh_check == False:
+                        
+                        if cross_check and str(rows[2][0]) == "0" and cross_title.upper() in str(rows[3][0] + " " + rows[4][0]).upper():
+                            if wh_check and wh_title.upper() in str(rows[3][0]).upper():
+                                datevalue = timevalue_convert(int(rows[0][0]))
+                                db_data.append({"db_file":filename[:-5],"MODE":rows[2][0],"TITLE1":rows[3][0],"TITLE2":rows[4][0],"HEATS":rows[1][0], "DATE":datevalue})
+                                if driver_rows:
+                                    for b in driver_rows:
+                                        driver_db_data.setdefault(filename[:-5], []).append({"CID": b[0], "FIRST_NAME": b[1], "LAST_NAME": b[2], "CLUB": b[3], "SNOWMOBILE": b[4]})
+                                else:
+                                    pass
+                            elif wh_check == False:
+
+                                datevalue = timevalue_convert(int(rows[0][0]))
+                                db_data.append({"db_file":filename[:-5],"MODE":rows[2][0],"TITLE1":rows[3][0],"TITLE2":rows[4][0],"HEATS":rows[1][0], "DATE":datevalue})
+                                if driver_rows:
+                                    for b in driver_rows:
+                                        driver_db_data.setdefault(filename[:-5], []).append({"CID": b[0], "FIRST_NAME": b[1], "LAST_NAME": b[2], "CLUB": b[3], "SNOWMOBILE": b[4]})
+                                else:
+                                    pass
+
+                        elif wh_check == False and cross_check == False:
                             datevalue = timevalue_convert(int(rows[0][0]))
-                            print(filename)
                             db_data.append({"db_file":filename[:-5],"MODE":rows[2][0],"TITLE1":rows[3][0],"TITLE2":rows[4][0],"HEATS":rows[1][0], "DATE":datevalue})
                             if driver_rows:
                                 for b in driver_rows:
                                     driver_db_data.setdefault(filename[:-5], []).append({"CID": b[0], "FIRST_NAME": b[1], "LAST_NAME": b[2], "CLUB": b[3], "SNOWMOBILE": b[4]})
                             else:
                                 pass
-                        elif wh_title.upper() in str(rows[3][0]).upper():
+
+                        elif wh_title.upper() in str(rows[3][0]).upper() and cross_check == False:
                             datevalue = timevalue_convert(int(rows[0][0]))
                             db_data.append({"db_file":filename[:-5],"MODE":rows[2][0],"TITLE1":rows[3][0],"TITLE2":rows[4][0],"HEATS":rows[1][0], "DATE":datevalue})
                             if driver_rows and event_only == False:
@@ -389,11 +412,9 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True, sync=Fa
                          if len(cross_config.driver_scores) >= len(session_data):
 
                             penalty_points = {'3': dsq_score, '1': dns_score, '2': dnf_score}
-
                             for driver_id, driver_info in session_data.items():
                                 penalty_code = driver_info[7]
-
-                                if str(penalty_code) in str(penalty_points):
+                                if str(penalty_code) in str(penalty_points.keys()):
                                     driver_info.append(penalty_points[str(penalty_code)])
                                 else:
                                     driver_info[7] = 0
@@ -402,17 +423,20 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True, sync=Fa
                             sorted_drivers = sorted(session_data.items(), key=lambda x: (x[1][-1] != 0, x[1][5]))
 
                             position = 1
-
+                            first = True
                             for driver_id, driver_info in sorted_drivers:
                                 if driver_info[7] == 0 and driver_info[5] != 0:
                                     position_str = str(position)
 
                                     if position_str in driver_scores:
                                         if not invert_score:
-
                                             driver_info.append(driver_scores[str(len(driver_scores) - int(finished_drivers))])
-                                            print(driver_scores[str(finished_drivers)])
-                                            finished_drivers -= 1
+                                            if first:
+                                                finished_drivers -= 2
+                                                first = False
+                                            else:
+                                                finished_drivers -= 1
+
                                         else:
                                             driver_info.append(driver_scores[position_str])
                                     else:
@@ -423,9 +447,8 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True, sync=Fa
 
                                 session_data[driver_id] = driver_info
 
-                            print("")
                             for driver_id, driver_info in session_data.items():
-                                print(driver_id, driver_info)  
+                                print(driver_id, driver_info)
                             
                     
                     for value in session_data:
