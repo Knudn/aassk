@@ -25,6 +25,9 @@ def Get_active_drivers(g_config, event_data_dict):
         if event_data_dict["MODE"] == 3 or event_data_dict["MODE"] == 2:
             active_drivers_sql = cursor.execute("SELECT D1, D2 FROM active_drivers").fetchall()
             active_drivers = {"D1":active_drivers_sql[0][0],"D2":active_drivers_sql[0][1]}
+        else:
+            active_drivers_sql = cursor.execute("SELECT D1 FROM active_drivers").fetchall()
+            active_drivers = {"D1":active_drivers_sql[0][0]}
 
     return active_drivers
 
@@ -298,13 +301,13 @@ def format_startlist(event,include_timedata=False):
                     driver_entries.append((b+1, startlist_data[count][1],startlist_data[count+1][1]))
                     count = count+2   
             else:
+                active_drivers = Get_active_drivers(g_config, event_data_dict)
                 driver_entries = []
                 count = 0
 
                 for b in range(0,int(len(startlist_data))):
                     driver_entries.append((b+1, startlist_data[count][1]))
                     count = count + 1
-                active_drivers = {"D1":"None"}
                 
             for race in driver_entries:
                 race_id = race[0]

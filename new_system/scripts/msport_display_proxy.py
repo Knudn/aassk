@@ -41,7 +41,6 @@ d_history = ""
 
 def update_driver(D1=None, D2=None):
     
-
     with sqlite3.connect(DB_PATH) as con:
         cur = con.cursor()
         if D1 is not None and D2 is not None:

@@ -10,32 +10,14 @@
 <script src="{{url_for('static', filename='js/jquery-3.6.0.min.js')}}"></script>
 <script src="{{url_for('static', filename='js/bootstrap.bundle.min.js')}}"></script>
 <script src="{{url_for('static', filename='js/socket.io.js')}}"></script>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
 
 <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
 
 
   <style>
-
-.custom-btn {
-    padding: 10px 15px;
-    font-size: 12px;
-
-}
-
-.custom-icon {
-    font-size: 1.5em; /* Adjust based on the button's font size */
-}
-body, html {
-  overflow-x: hidden; /* Prevent horizontal scrolling */
-  max-width: 100vw; /* Prevent width changes */
-  font-size: 14px; /* Adjust base font size to make text smaller */
-}
 .accordion-header, .accordion-button {
-    padding: 0.5rem 0.8rem; /* Adjust padding as needed */
+    padding: 0.5rem 1rem; /* Adjust padding as needed */
 }
-
 
 .accordion-button {
     display: flex;
@@ -47,8 +29,6 @@ body, html {
     margin: 0; /* Remove default margin */
     flex-grow: 1; /* Allows the title to take up available space */
     text-align: center; /* Center the title text */
-    font-size: 18px;
-    font-family: Tahoma, sans-serif;
 }
 
 .accordion-item {
@@ -80,22 +60,15 @@ body, html {
       justify-content: space-between;
       align-items: flex-start;
     }
-    .table-responsive {
-    overflow-x: auto;
-}
     .driver {
       width: 48%;
-      border-top: 1px solid black;
+      border: 1px solid black;
       padding: 10px;
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      flex-shrink: 0;
-      flex-grow: 0;
-
-      
     }
     .driver-info {
       text-align: center;
@@ -183,7 +156,6 @@ body, html {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    max-width: 10px;
 }
 
 .arrow-buttons {
@@ -192,6 +164,10 @@ body, html {
     padding-right: 50%;
 }
 
+.driver {
+    width: 49%;
+    /* Other styles for driver */
+}
 
 #arrow-right {
     margin-top: 5px;
@@ -243,7 +219,7 @@ body, html {
         <h2 class="header_title"></h2>
       </div>
       
-    <div class="alert alert-warning" role="alert" style="padding:5px; font-size: 15px;" id="top_driver_bar">
+    <div class="alert alert-warning" role="alert" style="padding:5px; font-size: larger;" id="top_driver_bar">
         <span id="currentHeat"></span>
         <span id="eventTitle"></span>
         <span id="dayTitle"></span>
@@ -278,12 +254,12 @@ body, html {
 
             </button>
     
-            <div class="arrow-buttons" style="padding-top: 20px;">
-                <button id="arrow-left" class="btn btn-secondary custom-btn">
-                    <i class="bi bi-arrow-left custom-icon"></i>
+            <div class="arrow-buttons">
+                <button id="arrow-left" class="btn btn-secondary">
+                    <i class="bi bi-arrow-left"></i>
                 </button>
-                <button id="arrow-right" class="btn btn-secondary custom-btn">
-                    <i class="bi bi-arrow-right custom-icon"></i>
+                <button id="arrow-right" class="btn btn-secondary">
+                    <i class="bi bi-arrow-right"></i>
                 </button>
             </div>
 
@@ -452,27 +428,12 @@ body, html {
 
 <script>
     h_server_url = "{{ SpeakerPageConfig_json.h_server_url }}"
-    
+    function milliseconds_to_sec(ms) {
+        return (ms / 1000).toFixed(3)
+    }
 </script>
   <script>
-function add_websocket_live_timer() {
-    const ws = new WebSocket("ws://192.168.1.50:4444/");
-    var x;
-    var arr = [];
 
-    function update_live_data(newData) {
-        console.log(newData)
-        document.getElementsByClassName("T1")[0].innerHTML = newData.Driver1.time;
-        document.getElementsByClassName("T2")[0].innerHTML = newData.Driver2.time;
-    }
-    
-    ws.onmessage = function(event){
-        var arr = JSON.parse(event.data);
-        setTimeout(() => {
-            update_live_data(arr);
-        }, 1);
-    };
-}
 document.getElementById('loadDataButton').addEventListener('click', function() {
     fetch('/api/get_event_order')
         .then(response => response.json())
@@ -607,21 +568,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   </script>
   
-  <script>
 
-    var x;
-    var arr = [];
-
-    function updateContent(newData) {
-        document.getElementsByClassName("T1")[0].innerHTML = newData.Driver1.time;
-        document.getElementsByClassName("T2")[0].innerHTML = newData.Driver2.time;
-        var D1_name = newData.Driver1.name
-        var D2_name = newData.Driver2.name
-    }
-    
-
-
-  </script>
 
   <script>
     //Save changes inserted to model
@@ -694,7 +641,57 @@ document.addEventListener('DOMContentLoaded', function() {
     let array_checksum = ""
     var old_results = ""
     let title_name = []
+    function score_table(data) {
+        //console.log(data)
+        let table = `<table class="table table-striped table-bordered table-hover">
+                    <thead class="thead-dark">
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>Snowmobile</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
 
+        let drivers = []
+        for (var key in data) {
+            if (!(data[key]["race_config"])) {
+                console.log(data[key]["drivers"][0])
+                snowmobile = data[key]["drivers"][0]["vehicle"]
+                name = (data[key]["drivers"][0]["first_name"] + " " + data[key]["drivers"][0]["last_name"])
+                penalty = data[key]["drivers"][0]["time_info"]["PENELTY"]
+                time = data[key]["drivers"][0]["time_info"]["FINISHTIME"]
+
+                drivers.push({"Name":name, "snowmobile":snowmobile, "time":time, "penalty":penalty})
+            }
+            
+        }
+
+        drivers.sort((a, b) => {
+            if (a.penalty !== 0) return 1;
+            if (b.penalty !== 0) return -1;
+            return a.time - b.time;
+        });
+
+
+        count = 0
+        drivers.forEach(item => {
+            count += 1
+        table += `<tr>
+                    <td>${count}</td>
+                    <td>${item.Name}</td>
+                    <td>${item.snowmobile}</td>
+                    <td>${item.time !== 0 ? milliseconds_to_sec(item.time) : ''}</td>
+                    <td>${item.penalty !== 0 ? 'DNF' : (item.time === 0 ? 'Not Started' : 'Finished')}</td>
+                  </tr>`;
+        });
+        table += "</tbody></table>";
+
+        $('#right-driver').html(table);
+
+    }
 
     $(document).ready(function() {
         // API call to fetch initial data
@@ -705,6 +702,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 old_mode = data[0]["race_config"]["MODE"]
                 validate_mode(data)
                 displayActiveDrivers(data);
+                score_table(data)
+                
                 document.getElementsByClassName("header_title")[0].innerHTML = data[0]["race_config"]["TITLE_1"] + "-" + data[0]["race_config"]["TITLE_2"] + " (" + data[0]["race_config"]["HEAT"] + "/" + data[0]["race_config"]["HEATS"]+")";
                 title_name = [data[0]["race_config"]["TITLE_1"], data[0]["race_config"]["TITLE_2"], data[0]["race_config"]["HEAT"]]
                 
@@ -716,15 +715,13 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         const socket = io.connect('http://' + document.domain + ':' + location.port);
-        console.log(location.port)
 
         socket.on('connect', function() {
             console.log('Connected to the server');
-            
 
             socket.emit('join', { username: 'John', room: 'room1' });
         });
-        add_websocket_live_timer()
+
         socket.on('response', function(dataString) {
             const data = JSON.parse(dataString);
             new_title = data[0]["race_config"]["TITLE_1"] + "-" + data[0]["race_config"]["TITLE_2"] + " (" + data[0]["race_config"]["HEAT"] + "/" + data[0]["race_config"]["HEATS"]+")";
@@ -734,6 +731,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (!(new_result == old_results)) {
                 displayActiveDrivers(data);
+                score_table(data)
                 validate_mode(data)
                 title_name = [data[0]["race_config"]["TITLE_1"], data[0]["race_config"]["TITLE_2"], data[0]["race_config"]["HEAT"]]
                 document.getElementsByClassName("header_title")[0].innerHTML = new_title;
@@ -783,6 +781,10 @@ document.getElementById('arrow-right').addEventListener('click', function() {
 
 let driver_names = []
 
+function append_all_results_right(data) {
+    console.log()
+}
+
 async function updateDriverDisplay() {
     if (driverPairs[currentPairIndex] && driverPairs[currentPairIndex].drivers) {
         const drivers = driverPairs[currentPairIndex].drivers;
@@ -807,26 +809,22 @@ async function updateDriverDisplay() {
         driver_names.push(left_driver_name)
         driver_names.push(right_driver_name)
 
+        console.log(drivers)
+
         // Update the HTML content of the driver divs
         $('#left-driver').html(websocket_driver_data(leftDriver, 1));
-        $('#right-driver').html(websocket_driver_data(rightDriver, 2));
         try {
             
             // Load and append snowmobile models
             $('#left-driver').append(get_overal_table(1));
-            $('#right-driver').append(get_overal_table(2));
 
             //WINS - LADDER
             const leftSnomobileModels = await get_snomobile_models(left_driver_name);
             $('#left-driver').append(display_snowmobile_models(leftSnomobileModels, 1));
-            const rightSnomobileModels = await get_snomobile_models(right_driver_name);            
-            $('#right-driver').append(display_snowmobile_models(rightSnomobileModels, 2));
 
             //WINS -SINGLE
             const leftsingle_result = await get_single_results(left_driver_name);
             $('#left-driver').append(display_single_position(leftsingle_result, 1));
-            const rightsingle_result = await get_single_results(right_driver_name);            
-            $('#right-driver').append(display_single_position(rightsingle_result, 2));
 
             try {
             //TOP TIME
@@ -839,8 +837,6 @@ async function updateDriverDisplay() {
             const leftLadderData = await get_ladder_data(left_driver_name);
             $('#left-driver').append(display_parallel_history(leftLadderData, left_driver_name, right_driver_name, 1));
 
-            const rightLadderData = await get_ladder_data(right_driver_name);
-            $('#right-driver').append(display_parallel_history(rightLadderData, left_driver_name, right_driver_name, 2));
 
 
         } catch (error) {
@@ -864,9 +860,7 @@ function get_top_driver_header(title_name) {
     });
 }
 
-function milliseconds_to_sec(ms) {
-    return (ms / 1000).toFixed(3)
-}
+
 
 function display_get_top_driver_header(data) {
     let heat = data["title_1+title_2+heat_0"]
@@ -874,18 +868,18 @@ function display_get_top_driver_header(data) {
     let day = data["title_1_0"]
     
     if (heat != undefined) {
-        document.getElementById('currentHeat').innerHTML = `<strong>Current Heat:</strong> ${heat.first_name} ${heat.last_name} - ${milliseconds_to_sec(heat.finishtime)}`;
+        document.getElementById('currentHeat').innerHTML = `<strong>Current Heat:</strong> ${heat.first_name} ${heat.last_name} - ${milliseconds_to_sec(heat.finishtime)} Sec`;
     } else {
         document.getElementById('currentHeat').innerHTML = `<strong>Heat:</strong> Not started`;
     }
     if (event != undefined) {
-        document.getElementById('eventTitle').innerHTML = `<strong>${event.title_2}:</strong> ${event.first_name} ${event.last_name} - ${milliseconds_to_sec(event.finishtime)}`;
+        document.getElementById('eventTitle').innerHTML = `<strong>${event.title_2}:</strong> ${event.first_name} ${event.last_name} - ${milliseconds_to_sec(event.finishtime)} Sec`;
     } else {
         document.getElementById('eventTitle').innerHTML = `<strong>EVENT:</strong> Not started`
     }
 
     if (day != undefined) {
-        document.getElementById('dayTitle').innerHTML = `<strong>${day.title_1}:</strong> ${day.first_name} ${day.last_name} - ${milliseconds_to_sec(day.finishtime)}`;
+        document.getElementById('dayTitle').innerHTML = `<strong>${day.title_1}:</strong> ${day.first_name} ${day.last_name} - ${milliseconds_to_sec(day.finishtime)} Sec`;
     } else {
         document.getElementById('dayTitle').innerHTML = `<strong>DAY:</strong> Not started`;
     }
@@ -920,17 +914,14 @@ function display_get_top_driver_header(data) {
         let finish_time_sec= (driver.time_info.FINISHTIME / 1000).toFixed(3) + " Sec";
         var table_color = "" 
         if (driver.status == "0") {
-            var status = "Ikke Fullført" 
+            var status = "Ikke Startet" 
             table_color = "bg-info p-2 text-dark bg-opacity-25"
 
-        } else if (driver.status == "1") {
-            var status = "Vinner"
+        } else if (driver.time_info.FINISHTIME > 0) {
+            var status = "Ferdig"
             table_color = "bg-success p-2 text-dark bg-opacity-25"
         }
-        else if (driver.status == "2") {
-            var status = "Taper"
-            table_color = "bg-danger p-2 text-dark bg-opacity-25"
-        }
+
         if (driver.time_info.PENELTY == "0") {
             var penelty = "" 
         } else if (driver.time_info.PENELTY == "2") {
@@ -949,7 +940,6 @@ function display_get_top_driver_header(data) {
         return `<div class="driver-info">
                     <div id=drivername>
                     <h3 class=active_drivers>${driver.first_name} ${driver.last_name}</h3>
-                    <h4 class="T${num}">0</h4>
                     </div>
                     <div class="driver-details">
                     </div>
@@ -1087,8 +1077,8 @@ function display_parallel_history(data, topDriver1, topDriver2, driver_int) {
             
             var rowClass = isTopDriverMatch ? 'top-driver-match' : '';
 
-            let d1_finishtime_str= (item.d1_finishtime / 1000).toFixed(3);
-            let d2_finishtime_str= (item.d2_finishtime / 1000).toFixed(3);
+            let d1_finishtime_str= (item.d1_finishtime / 1000).toFixed(3) + " sec";
+            let d2_finishtime_str= (item.d2_finishtime / 1000).toFixed(3) + " sec";
 
             displayHTML += "<div class='race-entry " + rowClass + "'>";
             displayHTML += "<div class='driver-details'>";
@@ -1177,9 +1167,9 @@ function display_snowmobile_models(data, driver) {
 
     Object.keys(wins).forEach(key => {
         string += `${key}: `;
-        string += `<span style='color: gold; font-weight: bold'>${wins[key][0]}</span>`; // Gold for 1st place
-        string += `-<span style='color: silver; font-weight: bold'>${wins[key][1]}</span>`; // Silver for 2nd place
-        string += `-<span style='color: #cd7f32; font-weight: bold'>${wins[key][2]}</span> `; // Bronze for 3rd place
+        string += `<span style='color: gold;'>${wins[key][0]}</span>`; // Gold for 1st place
+        string += `-<span style='color: silver;'>${wins[key][1]}</span>`; // Silver for 2nd place
+        string += `-<span style='color: #cd7f32;'>${wins[key][2]}</span> `; // Bronze for 3rd place
         });
     string += "</h4>"
     displayHTML += `${string}`;
@@ -1260,9 +1250,9 @@ function display_single_position(data, driver) {
     displayHTML += `<button class='accordion-button collapsed' type='button' data-bs-toggle='collapse' data-bs-target='#single_accor${driver}' aria-expanded='false' aria-controls='collapseOne'>`;
         Object.keys(wins).forEach(key => {
         string += `${key}: `;
-        string += `<span style='color: gold;font-weight: bold;'>${wins[key][0]}</span>`; 
-        string += `-<span style='color: silver;font-weight: bold;'>${wins[key][1]}</span>`; 
-        string += `-<span style='color: #cd7f32;font-weight: bold;'>${wins[key][2]}</span> `;
+        string += `<span style='color: gold;'>${wins[key][0]}</span>`; 
+        string += `-<span style='color: silver;'>${wins[key][1]}</span>`; 
+        string += `-<span style='color: #cd7f32;'>${wins[key][2]}</span> `;
         });
     string += "</h4>"
     displayHTML += `${string}`;

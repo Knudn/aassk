@@ -19,6 +19,8 @@ def admin(tab_name):
         return home_tab()
     elif tab_name == 'global-config':
         return global_config_tab()
+    elif tab_name == 's_set_active_driver':
+        return s_set_active_driver()
     elif tab_name == 'cross_config':
         return cross_config_tab()
     elif tab_name == 'infoscreen':
@@ -33,6 +35,23 @@ def admin(tab_name):
         return export_data()
     else:
         return "Invalid tab", 404
+
+def s_set_active_driver():
+
+    DB_PATH = "site.db"
+    if request.method == "POST":
+        active_driver_id = request.json["driverId"]
+        print(active_driver_id)
+        with sqlite3.connect(DB_PATH) as con:
+            cur = con.cursor()
+            cur.execute("UPDATE active_drivers SET D1 = ?;", (active_driver_id,))
+            print(cur.execute("SELECT * FROM active_drivers").fetchall())
+        requests.get("http://192.168.1.50:7777/api/active_event_update")
+
+        con.commit()
+        return {"synced":"True"}
+
+    return render_template('admin/s_set_active_driver.html') 
 
 def home_tab():
     from app.models import ActiveDrivers, ActiveEvents, Session_Race_Records, GlobalConfig, MicroServices
