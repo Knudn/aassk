@@ -32,7 +32,6 @@ def scoreboard_columns():
 @board_bp.route('/board/ladder/')
 def ladders():
     ladder = request.args.get('ladder', default='', type=str)
-    print(ladder)
     if ladder == '':
         return render_template('board/ladder/active_ladder.html')
     else:
@@ -88,6 +87,9 @@ def speaker():
     from app.lib.db_operation import get_active_event
     from app.models import ActiveEvents
     from app import db
+    from app.lib.utils import GetEnv
+    g_config = GetEnv()
+
 
     active_event = get_active_event()
     query = db.session.query(ActiveEvents.event_file, ActiveEvents.run, ActiveEvents.mode).filter(
@@ -105,10 +107,14 @@ def speaker():
         SpeakerPageConfig.h_server_url = data["h_server_url"]
 
         db.session.commit()
-        print(request.get_json())
     
     SpeakerPageConfig_json = {"matching_parallel":SpeakerPageConfig.match_parrallel,"h_server_url":SpeakerPageConfig.h_server_url}
-    if mode == 1 or mode == 2 or mode == 3:
+    cross_state = g_config["cross"]
+    if str(cross_state) == "True":
+        return render_template('board/speaker_board_cross.html', SpeakerPageConfig_json=SpeakerPageConfig_json)
+    
+    elif mode == 1 or mode == 2 or mode == 3:
         return render_template('board/speaker_board_p.html', SpeakerPageConfig_json=SpeakerPageConfig_json)
     else:
         return render_template('board/speaker_board_s.html', SpeakerPageConfig_json=SpeakerPageConfig_json)
+    

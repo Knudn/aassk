@@ -273,14 +273,14 @@ def get_event_data_all(event):
 def format_startlist(event,include_timedata=False):
     import json
     g_config = GetEnv()
-    print(event)
+    print(g_config)
     if Check_Event(event) == True:
         with sqlite3.connect(event[0]["db_file"]) as conn:
             cursor = conn.cursor()
             cursor.execute("SELECT * FROM startlist_r{0};".format(event[0]["SPESIFIC_HEAT"]))
             startlist_data = cursor.fetchall()
             event_data = cursor.execute("SELECT MODE, RUNS, TITLE1, TITLE2, DATE FROM db_index;").fetchall()
-            event_data_dict={"MODE":event_data[0][0],"HEATS":event_data[0][1], "HEAT":int(event[0]["SPESIFIC_HEAT"]),"TITLE_1":event_data[0][2], "TITLE_2":event_data[0][3], "DATE":event_data[0][4]}
+            event_data_dict={"MODE":event_data[0][0],"HEATS":event_data[0][1], "HEAT":int(event[0]["SPESIFIC_HEAT"]),"TITLE_1":event_data[0][2], "TITLE_2":event_data[0][3], "DATE":event_data[0][4], "CROSS":g_config["cross"]}
 
             cursor.execute("SELECT * FROM drivers")
             drivers_data = cursor.fetchall()

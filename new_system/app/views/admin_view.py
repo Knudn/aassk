@@ -41,7 +41,6 @@ def s_set_active_driver():
     DB_PATH = "site.db"
     if request.method == "POST":
         active_driver_id = request.json["driverId"]
-        print(active_driver_id)
         with sqlite3.connect(DB_PATH) as con:
             cur = con.cursor()
             cur.execute("UPDATE active_drivers SET D1 = ?;", (active_driver_id,))
@@ -257,7 +256,7 @@ def global_config_tab():
         else:
             
             db.session.query(Session_Race_Records).delete()
-            print(full_db_reload(add_intel_sort=True))
+            full_db_reload(add_intel_sort=True)
             
         return redirect(url_for('admin.admin', tab_name='global-config'))
 
@@ -277,7 +276,6 @@ def active_events():
         if table_data:
             try:
                 table_data = json.loads(table_data)
-                print(table_data)
                 for k, row in enumerate(table_data):
                     k += 1
                     event = ActiveEvents.query.get(row['id'])
@@ -512,7 +510,6 @@ def infoscreen():
         elif request.get_json()["operation"] == 3:
             data = request.get_json()
             infoscreen = data["messageID"]
-            print(data, "asbsdfbglkijsadnfglkjnsdklfjgndkljgn")
             asset_query = InfoScreenAssetAssociations.query.filter_by(infoscreen=infoscreen)
             asset_query.delete()
             for a in request.get_json()["data"]:
@@ -580,7 +577,6 @@ def export_data():
         
         try:
             response = requests.get(archive_params.hostname+"/get_drivers")
-            print(response)
             current_driver = response.json()
             status = "0"
         except:

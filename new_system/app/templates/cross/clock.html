@@ -9,6 +9,29 @@
 
 
     <style>
+        #overlay {
+            position: fixed; /* Cover the whole page */
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            background: rgba(0, 0, 0, 0.5); /* Gray out effect */
+            z-index: 2; /* Ensure it's on top */
+            display: flex;
+            justify-content: center;
+            align-items: center; /* Center the text horizontally and vertically */
+        }
+
+        #text {
+            color: white;
+            font-size: 24px;
+            z-index: 3;
+        }
+
+        #content {
+            position: relative;
+            z-index: 1; /* Ensure the content is below the overlay */
+        }
         .driver-div {
             margin-bottom: 10px;
             width: 100%;
@@ -39,8 +62,20 @@
     </style>
     <script>
 
+
+
     drivers_cache = []
     drivers_cache_new = []
+
+
+    function toggleOverlay() {
+        var overlay = document.getElementById('overlay');
+        if (overlay.style.display === "none") {
+            overlay.style.display = "flex";
+        } else {
+            overlay.style.display = "none";
+        }
+    }
 
     function appendToTable(driverId, name, snowmobile, time) {
         var tbody = document.querySelector('#scoreboard tbody');
@@ -173,6 +208,7 @@
     });
 
     $(document).on('click', '.timestamp-button', function() {
+        //toggleOverlay()
         var driverId = $(this).attr('data-id');
         var id = $(this).data('id');
         var base_time = $(this).attr('data-base-time');
@@ -291,7 +327,8 @@
         }
 
     async function loadDriversData(data_update) {
-        let data; // Declare data here to use it throughout the function scope
+        let data;
+        let ignore_entry = "";
         if (data_update != "None") {
             data = JSON.parse(data_update);
         } else {
@@ -322,6 +359,7 @@
         if (!data) return;
 
         const container = document.querySelector('.row');
+
         data.forEach(item => {
             if (item.drivers) {
                 item.drivers.forEach(driver => {
@@ -391,6 +429,9 @@
                             </div>
                         `;
                         container.innerHTML += driverHTML;
+                        
+ 
+
                     } else {
                         // For existing driverDiv, only update necessary text content
 
@@ -424,9 +465,22 @@
             } else if (item.race_config) {
                 const title = item.race_config["TITLE_1"] + " " + item.race_config["TITLE_2"];
                 document.getElementById("title").innerHTML = title;
+                if (item.race_config["CROSS"] == false) {
+                    
+                    ignore_entry = `
+                    <div id="overlay">
+                        <div id="text" style="font-size: 50px; ">EVENT NOT CONFIGURED TO BE CROSS</div>
+                    </div>`;
+                    var currentContent = document.getElementById('content').innerHTML;
+                    document.getElementById('content').innerHTML = currentContent + ignore_entry
+                }
+
              }
+
             });
+            
         }
+        
 
         $(document).ready(function() {
             loadDriversData("None");
@@ -462,7 +516,9 @@
 
 </head>
 <body>
+
     <div><h1 id="title" style="text-align: center;">Title</h1></div>
+    <div id="content">
     <div class="container">
         <div class="row">
             <!-- Driver data will be inserted here by the loadDriversData function -->
@@ -482,5 +538,7 @@
             </tbody>
         </table>
     </div>
+</div>
+
 </body>
 </html>

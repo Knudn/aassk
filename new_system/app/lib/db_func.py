@@ -449,9 +449,11 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True, sync=Fa
 
                             for driver_id, driver_info in session_data.items():
                                 print(driver_id, driver_info)
-                            
-                    
+
                     for value in session_data:
+                        if len(session_data[value]) == 8:
+                            session_data[value].append("0")
+
                         # Delete existing records
                         my_db.session.query(Session_Race_Records)\
                             .filter(Session_Race_Records.first_name == session_data[value][0])\
@@ -463,9 +465,8 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True, sync=Fa
 
                         # Commit the deletion
                         my_db.session.commit()
-
                         # Add the new record
-                        record = Session_Race_Records(first_name=session_data[value][0], last_name=session_data[value][1], title_1=session_data[value][2], title_2=session_data[value][3], heat=session_data[value][4], finishtime=session_data[value][5], snowmobile=session_data[value][6], penalty=int(session_data[value][7]))
+                        record = Session_Race_Records(first_name=session_data[value][0], last_name=session_data[value][1], title_1=session_data[value][2], title_2=session_data[value][3], heat=session_data[value][4], finishtime=session_data[value][5], snowmobile=session_data[value][6], penalty=int(session_data[value][7]), points=int(session_data[value][8]))
                         my_db.session.add(record)
 
                     # Commit the new records

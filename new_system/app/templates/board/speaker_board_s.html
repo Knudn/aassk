@@ -16,7 +16,7 @@
 
   <style>
 .accordion-header, .accordion-button {
-    padding: 0.5rem 1rem; /* Adjust padding as needed */
+    padding: 0.5rem 0.8rem; /* Adjust padding as needed */
 }
 
 .accordion-button {
@@ -62,13 +62,15 @@
     }
     .driver {
       width: 48%;
-      border: 1px solid black;
+      border-top: 1px solid black;
       padding: 10px;
       box-sizing: border-box;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
+      flex-shrink: 0;
+      flex-grow: 0;
     }
     .driver-info {
       text-align: center;
@@ -156,6 +158,7 @@
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    max-width: 10px;
 }
 
 .arrow-buttons {
@@ -164,10 +167,6 @@
     padding-right: 50%;
 }
 
-.driver {
-    width: 49%;
-    /* Other styles for driver */
-}
 
 #arrow-right {
     margin-top: 5px;
@@ -209,7 +208,19 @@
     padding-right: 2%;
 }
 
+.custom-icon {
+    font-size: 1.5em; /* Adjust based on the button's font size */
+}
+body, html {
+  overflow-x: hidden; /* Prevent horizontal scrolling */
+  max-width: 100vw; /* Prevent width changes */
+  font-size: 14px; /* Adjust base font size to make text smaller */
+}
+.custom-btn {
+    padding: 10px 15px;
+    font-size: 12px;
 
+}
 
   </style>
 </head>
@@ -219,7 +230,7 @@
         <h2 class="header_title"></h2>
       </div>
       
-    <div class="alert alert-warning" role="alert" style="padding:5px; font-size: larger;" id="top_driver_bar">
+    <div class="alert alert-warning" role="alert" style="padding:5px; font-size: 15px;" id="top_driver_bar">
         <span id="currentHeat"></span>
         <span id="eventTitle"></span>
         <span id="dayTitle"></span>
@@ -868,18 +879,18 @@ function display_get_top_driver_header(data) {
     let day = data["title_1_0"]
     
     if (heat != undefined) {
-        document.getElementById('currentHeat').innerHTML = `<strong>Current Heat:</strong> ${heat.first_name} ${heat.last_name} - ${milliseconds_to_sec(heat.finishtime)} Sec`;
+        document.getElementById('currentHeat').innerHTML = `<strong>Current Heat:</strong> ${heat.first_name} ${heat.last_name} - ${milliseconds_to_sec(heat.finishtime)}`;
     } else {
         document.getElementById('currentHeat').innerHTML = `<strong>Heat:</strong> Not started`;
     }
     if (event != undefined) {
-        document.getElementById('eventTitle').innerHTML = `<strong>${event.title_2}:</strong> ${event.first_name} ${event.last_name} - ${milliseconds_to_sec(event.finishtime)} Sec`;
+        document.getElementById('eventTitle').innerHTML = `<strong>${event.title_2}:</strong> ${event.first_name} ${event.last_name} - ${milliseconds_to_sec(event.finishtime)}`;
     } else {
         document.getElementById('eventTitle').innerHTML = `<strong>EVENT:</strong> Not started`
     }
 
     if (day != undefined) {
-        document.getElementById('dayTitle').innerHTML = `<strong>${day.title_1}:</strong> ${day.first_name} ${day.last_name} - ${milliseconds_to_sec(day.finishtime)} Sec`;
+        document.getElementById('dayTitle').innerHTML = `<strong>${day.title_1}:</strong> ${day.first_name} ${day.last_name} - ${milliseconds_to_sec(day.finishtime)}`;
     } else {
         document.getElementById('dayTitle').innerHTML = `<strong>DAY:</strong> Not started`;
     }
