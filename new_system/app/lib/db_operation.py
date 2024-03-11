@@ -6,6 +6,7 @@ from app.lib.db_func import *
 from flask import request 
 import json
 
+
 def delete_events(directory_path, event=None):
     if event != None:
         os.remove(directory_path+event+".sqlite")
@@ -222,7 +223,6 @@ def get_active_startlist_w_timedate(upcoming=False, event_wl=None):
         event[0]["SPESIFIC_HEAT"] = event_heat
 
         event[0]["db_file"] = event_db_file
-        print(upcoming_entry)
 
 
     else:
@@ -289,3 +289,15 @@ def update_active_event(g_conf):
 
     except:
         print("Could not access event files")
+
+def get_active_event_name():
+    event = get_active_event()
+    db_location = GetEnv()["db_location"]
+    heat = event[0]["SPESIFIC_HEAT"]
+    with sqlite3.connect(db_location + event[0]["db_file"]+".sqlite") as conn:
+        cursor = conn.cursor()
+        event_data = cursor.execute("SELECT MODE, RUNS, TITLE1, TITLE2, DATE FROM db_index;").fetchall()
+
+    event_data = {"title_1":event_data[0][2], "title_2":event_data[0][3], "heat":str(heat) + "/" + str(event_data[0][1])}
+    return event_data
+

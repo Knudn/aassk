@@ -273,7 +273,6 @@ def get_event_data_all(event):
 def format_startlist(event,include_timedata=False):
     import json
     g_config = GetEnv()
-    print(g_config)
     if Check_Event(event) == True:
         with sqlite3.connect(event[0]["db_file"]) as conn:
             cursor = conn.cursor()
@@ -381,5 +380,6 @@ def format_startlist(event,include_timedata=False):
         logging.error(f"Active event not initiated operation")
         return "None"
 
-def get_event_order():
+def get_active_event_name():
+    
     pass

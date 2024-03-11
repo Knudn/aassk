@@ -152,7 +152,6 @@ def get_current_startlist_w_data_loop():
         session['index'] = 0
         
     title_combo = entries[session['index']]
-    print(session['index'])
 
     query = db.session.query(ActiveEvents.event_file, ActiveEvents.run, ActiveEvents.mode).filter(
         ActiveEvents.event_name == title_combo
@@ -439,7 +438,6 @@ def get_timedata():
             query = query.filter(Session_Race_Records.penalty == 0)
 
             if unique_names:
-                # Subquery for unique driver names with min finishtime within each filter
                 subquery = query.with_entities(
                     Session_Race_Records.first_name,
                     Session_Race_Records.last_name,
@@ -447,9 +445,8 @@ def get_timedata():
                 ).group_by(
                     Session_Race_Records.first_name, 
                     Session_Race_Records.last_name
-                ).subquery()  # Create a subquery object
+                ).subquery()
 
-                # Main query joins with the subquery
                 query = Session_Race_Records.query.join(
                     subquery,
                     (Session_Race_Records.first_name == subquery.c.first_name) &
@@ -457,11 +454,9 @@ def get_timedata():
                     (Session_Race_Records.finishtime == subquery.c.min_finishtime)
                 )
 
-            # Apply order_by and then limit
             query = query.order_by(Session_Race_Records.finishtime.asc())
             query = query.limit(entries_per_filter)
 
-            # Fetch and process records
             records = query.all()
             for i, record in enumerate(records):
                 event_data[f"{combo_name}_{i}"] = format_db_rsp(record)
@@ -479,7 +474,6 @@ def get_timedata():
         query = query.filter(Session_Race_Records.finishtime != 0)
 
         if unique_names:
-            # Subquery for unique names with min finishtime
             subquery = query.with_entities(
                 Session_Race_Records.first_name,
                 Session_Race_Records.last_name,
@@ -489,7 +483,6 @@ def get_timedata():
                 Session_Race_Records.last_name
             )
 
-            # Main query joins with the subquery
             query = Session_Race_Records.query.join(
                 subquery.subquery(),
                 (Session_Race_Records.first_name == subquery.c.first_name) &
@@ -497,11 +490,9 @@ def get_timedata():
                 (Session_Race_Records.finishtime == subquery.c.min_finishtime)
             )
 
-        # Apply order_by and then limit
         query = query.order_by(Session_Race_Records.finishtime.asc())
         query = query.limit(entries_per_filter)
 
-        # Fetch and process records
         event_order = query.all()
 
         for k, a in enumerate(event_order):
@@ -516,40 +507,31 @@ def get_timedata_cross():
     import json
 
     query = Session_Race_Records.query
-
-    # Sorting by points descending and then by finishtime ascending
     query = query.order_by(Session_Race_Records.points.desc(), Session_Race_Records.finishtime.asc())
 
-    # Filtering by title_1 if it's in query params
     title_1 = request.args.get('title_1')
     if title_1:
         query = query.filter(Session_Race_Records.title_1.ilike(f"%{title_1}%"))
 
-    # Filtering by title_2 if it's in query params
     title_2 = request.args.get('title_2')
     if title_2:
         query = query.filter(Session_Race_Records.title_2.ilike(f"%{title_2}%"))
 
-    # Filtering by heat if it's in query params
     heat = request.args.get('heat')
     if heat:
         query = query.filter(Session_Race_Records.heat == heat)
 
-    # Filtering by name (a combination of first_name and last_name)
     name = request.args.get('name')
     if name:
-        # This approach assumes name could be part of either first_name or last_name
         query = query.filter(db.or_(
             db.and_(Session_Race_Records.first_name + " " + Session_Race_Records.last_name).ilike(f"%{name}%"),
             db.and_(Session_Race_Records.last_name + " " + Session_Race_Records.first_name).ilike(f"%{name}%")
         ))
 
-    # Limiting the number of results
     limit = request.args.get('limit', type=int)
     if limit:
         query = query.limit(limit)
 
-    # Execute the query and return the results
     records = query.all()
     results = [
         {
@@ -572,8 +554,7 @@ def get_timedata_cross():
 def get_driver_points():
     from app.models import Session_Race_Records
     from app import db
-    # Base query with aggregation
-    # Base query with aggregation
+
     query = db.session.query(
         Session_Race_Records.first_name,
         Session_Race_Records.last_name,
@@ -586,39 +567,29 @@ def get_driver_points():
         ).label('lowest_finishtime')
     ).filter(Session_Race_Records.penalty == 0)
 
-    # Apply filters as before...
-
-    # Group by driver name
     query = query.group_by(Session_Race_Records.first_name, Session_Race_Records.last_name)
 
-    # Order by total points descending, then by lowest finish time ascending
     query = query.order_by(func.sum(Session_Race_Records.points).desc(), func.min(Session_Race_Records.finishtime).asc())
 
-    # Filtering by title_1 if it's in query params
     title_1 = request.args.get('title_1')
     if title_1:
         query = query.filter(Session_Race_Records.title_1.ilike(f"%{title_1}%"))
 
-    # Filtering by title_2 if it's in query params
     title_2 = request.args.get('title_2')
     if title_2:
         query = query.filter(Session_Race_Records.title_2.ilike(f"%{title_2}%"))
 
-    # Filtering by heat if it's in query params
     heat = request.args.get('heat')
     if heat:
         query = query.filter(Session_Race_Records.heat == heat)
 
-    # Filtering by name (a combination of first_name and last_name)
     name = request.args.get('name')
     if name:
-        # This approach assumes name could be part of either first_name or last_name
         query = query.filter(db.or_(
             db.and_(Session_Race_Records.first_name + " " + Session_Race_Records.last_name).ilike(f"%{name}%"),
             db.and_(Session_Race_Records.last_name + " " + Session_Race_Records.first_name).ilike(f"%{name}%")
         ))
 
-    # Execute the query
     results = query.all()
     output = [
         {
