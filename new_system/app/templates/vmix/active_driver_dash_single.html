@@ -1,19 +1,47 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/2.1.3/jquery.min.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+  <script src="{{url_for('static', filename='js/socket.io.js')}}"></script>
+
 
 <script>
-    var x;
-    var arr = [];
-    console.log(ws)
+function fetchAndUpdateContent() {
+    // Perform a GET request to your API
+    $.get("http://192.168.1.50:7777/vmix/get_active_driver_single", function(data) {
 
-    function updateContent(newData) {
-        document.getElementsByClassName("D1")[0].innerHTML = newData.Driver1.name;
-        document.getElementsByClassName("T1")[0].innerHTML = newData.Driver1.time;
-        document.getElementsByClassName("S1")[0].innerHTML = newData.Driver1.snowmobile;
+        $(".D1").eq(0).html(data.NAME); 
+        $(".T1").eq(0).html(data.FINISHTIME); 
+        $(".S1").eq(0).html(data.SNOWMOBILE); 
+    })
+    .fail(function() {
+        alert("error fetching data");
+    });
+}
+fetchAndUpdateContent();
+const socket = io.connect('http://' + document.domain + ':' + location.port);
+
+socket.on('connect', function() {
+    console.log('Connected to the server');
+    socket.emit('join', { username: 'John', room: 'room1' });
+});
+socket.on('response', function(dataString) {
+  const data = JSON.parse(dataString);
+  data.forEach(race => {
+    if (Array.isArray(race.drivers) && race.drivers.length > 0) {
+      if (race.drivers[0].active == true) {
+        $(".D1").eq(0).html(race.drivers[0].first_name); 
+        $(".T1").eq(0).html(race.drivers[0].time_info.FINISHTIME / 1000); 
+        $(".S1").eq(0).html(race.drivers[0].vehicle
+); 
+      }
+    } else {
+      console.log("No drivers found for this race:", race);
     }
-    
+  });
+
+});
+
     
 </script>
 
@@ -25,6 +53,7 @@
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  scale: 1.3;
 }
 
 body {

@@ -88,7 +88,7 @@ def results_event_p_loop():
 
     records_new = Session_Race_Records.query.filter(
         Session_Race_Records.finishtime > 0,
-        Session_Race_Records.title_2 == "850 Stock - Kvalifisering",
+        Session_Race_Records.title_2 == event_entry[1],
         Session_Race_Records.heat == event_entry[2]
     ).order_by(
         # Adjusted case statement to comply with SQLAlchemy's current API
@@ -104,7 +104,7 @@ def results_event_p_loop():
         entry_count += 1
         results.append([str(entry_count),t.first_name + " " + t.last_name, t.finishtime, t.penalty, t.snowmobile])
 
-    if count > 20:
+    if count > 15:
         count_data = count//2
         results2 = results[count_data:]
         results = results[:count_data]
@@ -257,3 +257,39 @@ def get_active_driver_single():
     driver_data = {"NAME":driver_name, "SNOWMOBILE":snowmobile, "FINISHTIME":finishtime/1000}
     
     return driver_data
+@vmix_bp.route('/vmix/get_event_order_vmix', methods=['GET'])
+def get_event_order_vmix():
+    from app.models import ActiveEvents
+    from app.lib.db_operation import get_active_event
+    event_order = ActiveEvents.query.order_by(ActiveEvents.sort_order).all()
+    current_active_event = get_active_event()[0]
+
+    data = []
+    for a in event_order:
+
+        if str(a.event_file) == str(current_active_event["db_file"]) and str(current_active_event["SPESIFIC_HEAT"]) == str(a.run):
+            state = True
+        else:
+            state = False
+        if state == 1:
+            state = True
+        else:
+            state = False
+        data.append({"Order":a.sort_order, "Event":a.event_name, "Enabled":a.enabled, "Heat":a.run, "active":state})
+
+    count = len(data)
+
+    if count > 20:
+        count_data = count // 2
+        if count % 2 != 0:
+            count_data += 1
+
+        results = data[:count_data]
+        results2 = data[count_data:]
+    else:
+        results = data
+        results2 = []
+
+    print(results)
+    return render_template('vmix/get_event_order_vmix.html', events=results, events2=results2)
+    return data
