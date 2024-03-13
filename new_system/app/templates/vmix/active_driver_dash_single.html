@@ -30,7 +30,7 @@ socket.on('response', function(dataString) {
   data.forEach(race => {
     if (Array.isArray(race.drivers) && race.drivers.length > 0) {
       if (race.drivers[0].active == true) {
-        $(".D1").eq(0).html(race.drivers[0].first_name); 
+        $(".D1").eq(0).html(race.drivers[0].first_name + " " + race.drivers[0].last_name); 
         $(".T1").eq(0).html(race.drivers[0].time_info.FINISHTIME / 1000); 
         $(".S1").eq(0).html(race.drivers[0].vehicle
 ); 

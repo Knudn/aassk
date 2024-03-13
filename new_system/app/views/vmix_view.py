@@ -13,6 +13,11 @@ from sqlalchemy import func, and_
 vmix_bp = Blueprint('vmix', __name__)
 
 
+@vmix_bp.route('/vmix/active_driver_dash_cross', methods=['GET'])
+def active_driver_dash_cross():
+    
+    return render_template('vmix/active_driver_dash_cross.html')
+
 @vmix_bp.route('/vmix/active_driver_stats', methods=['GET'])
 def active_driver_stats():
     
@@ -146,6 +151,134 @@ def results_event():
     
     return render_template('vmix/results_event.html', results=results, results2=results2, title=title)
 
+@vmix_bp.route('/vmix/drivers_stats_cross', methods=['GET'])
+def drivers_stats_cross():
+    from app.models import Session_Race_Records
+    from app import db
+    import json
+
+    loop = request.args.get('loop')
+    heat = request.args.get('heat')
+    active = request.args.get('active')
+    all_event = request.args.get('all')
+
+    query = Session_Race_Records.query
+    query = query.order_by(Session_Race_Records.points.desc(), Session_Race_Records.finishtime.asc())
+    
+    if all_event:
+        title = get_active_event_name()["title_1"]
+        records = query.all()
+
+
+    if active == "true":
+        data = get_active_event_name()
+        title_2 = data["title_2"]
+        query = query.filter(Session_Race_Records.title_2.ilike(f"%{title_2}%"))
+        
+
+        if heat == "true":
+            heat == data["heat"]
+            heat_new = get_active_event()[0]["SPESIFIC_HEAT"]
+            query = query.filter(Session_Race_Records.heat == heat_new)
+            title = title_2 + " " + data["heat"]
+        else:
+            title = title_2
+
+        records = query.all()
+    
+    if loop:
+        session['index'] = session.get('index', 0) + 1
+        results_orgin = db.session.query(
+            Session_Race_Records.title_1,
+            Session_Race_Records.title_2,
+            func.max(Session_Race_Records.heat).label('max_heat')
+        ).filter(
+            and_(
+                Session_Race_Records.finishtime != 0,
+                Session_Race_Records.penalty == 0
+            )
+        ).group_by(
+            Session_Race_Records.title_1,
+            Session_Race_Records.title_2
+        ).all()
+
+        event_count = len(results_orgin)
+        if event_count < session['index']:
+                session['index'] = 1
+
+        event_entry = results_orgin.pop(session['index'] - 1)
+
+        if heat:
+            title = event_entry[1] + " " + "Heat: " + str(event_entry[2])
+        else:
+            title = event_entry[1]
+
+        query = query.filter(Session_Race_Records.title_2.ilike(f"%{event_entry[1]}%"))
+        
+        if heat:
+            query = query.filter(Session_Race_Records.heat == event_entry[2])
+
+        records = query.all()
+
+
+    results = [
+        {
+            "id": record.id,
+            "first_name": record.first_name,
+            "last_name": record.last_name,
+            "title_1": record.title_1,
+            "title_2": record.title_2,
+            "heat": record.heat,
+            "finishtime": record.finishtime / 1_000,
+            "snowmobile": record.snowmobile,
+            "penalty": record.penalty,
+            "points": record.points
+        } for record in records
+    ]
+
+    combined_results = {}
+
+    for record in results:
+        name_key = f"{record['first_name']} {record['last_name']}"
+        
+        if name_key not in combined_results:
+            combined_results[name_key] = {
+                "first_name": record['first_name'],
+                "last_name": record['last_name'],
+                "snowmobile": record['snowmobile'],
+                "points": record['points'],
+                "finishtime": record['finishtime'] if record['finishtime'] != 0 else float('inf')
+            }
+        else:
+            combined_results[name_key]['points'] += record['points']
+            if 0 < record['finishtime'] < combined_results[name_key]['finishtime']:
+                combined_results[name_key]['finishtime'] = record['finishtime']
+
+    for key, value in combined_results.items():
+        if value['finishtime'] == float('inf'):
+            value['finishtime'] = 0
+    
+    sorted_combined_results = sorted(combined_results.values(), key=lambda x: x['points'], reverse=True)
+
+
+    sorted_combined_results_new = []
+    counter = 1
+    for a in sorted_combined_results:
+        a["number"] = counter
+        sorted_combined_results_new.append(a)
+        counter += 1
+
+    count = len(sorted_combined_results_new)
+    if count > 20:
+        count_data = count//2
+        combined_results3 = sorted_combined_results_new[count_data:]
+        combined_results2 = sorted_combined_results_new[:count_data]
+    else:
+        combined_results3 = []
+        combined_results2 = sorted_combined_results_new
+
+    return render_template('vmix/drivers_stats_cross.html', results=combined_results2, results2=combined_results3, title=title)
+
 @vmix_bp.route('/vmix/get_startlist', methods=['GET'])
 def get_startlist():
     from app.lib.utils import GetEnv
@@ -160,26 +293,41 @@ def get_startlist():
 
     with sqlite3.connect(db_location + event[0]["db_file"]+".sqlite") as conn:
         cursor = conn.cursor()
+        mode = cursor.execute("SELECT MODE FROM db_index;".format(heat)).fetchall()
         startlist_cid = cursor.execute("SELECT * FROM startlist_r{0};".format(heat)).fetchall()
         drivers = cursor.execute("SELECT * FROM drivers").fetchall()
 
+    
     count = 0
     driver1 = ""
     driver2 = ""
 
-    for b in range(0,int(len(startlist_cid)/2)):
-        for m in drivers:
-            if int(startlist_cid[count][1]) == int(m[0]):
-                driver1 = m
-        for m in drivers:
-            if int(startlist_cid[count+1][1]) == int(m[0]):
-                driver2 = m
-        driver_entries.append((driver1,driver2))
-        count = count+2 
-    
-    title = event_name["title_2"] + " " + event_name["heat"]
+    if int(mode[0][0]) == int(0):
+        for b in startlist_cid:
+            for m in drivers:
+                if int(startlist_cid[count][1]) == int(m[0]):
+                    driver1 = m
 
-    return render_template('vmix/startlist_p.html', results=driver_entries, title=title)
+            driver_entries.append((driver1))
+            count = count + 1 
+        title = event_name["title_2"] + " " + event_name["heat"]
+        return render_template('vmix/startlist_s.html', results=driver_entries, title=title)
+
+    else:
+        for b in range(0,int(len(startlist_cid)/2)):
+            for m in drivers:
+                if int(startlist_cid[count][1]) == int(m[0]):
+                    driver1 = m
+            for m in drivers:
+                if int(startlist_cid[count+1][1]) == int(m[0]):
+                    driver2 = m
+            driver_entries.append((driver1,driver2))
+            count = count+2 
+        title = event_name["title_2"] + " " + event_name["heat"]
+        return render_template('vmix/startlist_p.html', results=driver_entries, title=title)
+    
+
+    
 
 @vmix_bp.route('/vmix/get_startlist_loop', methods=['GET'])
 def get_startlist_loop():
@@ -204,10 +352,11 @@ def get_startlist_loop():
 
     db_file = event[0]
     heat = event[1]
-    title = event.event_name + " Heat: " + str(heat)
+    
 
     with sqlite3.connect(db_location + db_file +".sqlite") as conn:
         cursor = conn.cursor()
+        mode = cursor.execute("SELECT MODE FROM db_index;".format(heat)).fetchall()
         startlist_cid = cursor.execute("SELECT * FROM startlist_r{0};".format(heat)).fetchall()
         drivers = cursor.execute("SELECT * FROM drivers").fetchall()
 
@@ -215,18 +364,30 @@ def get_startlist_loop():
     driver1 = ""
     driver2 = ""
 
-    for b in range(0,int(len(startlist_cid)/2)):
-        for m in drivers:
-            if int(startlist_cid[count][1]) == int(m[0]):
-                driver1 = m
-        for m in drivers:
-            if int(startlist_cid[count+1][1]) == int(m[0]):
-                driver2 = m
-        driver_entries.append((driver1,driver2))
-        count = count+2 
-    
+    if int(mode[0][0]) == int(0):
+        for b in startlist_cid:
+            for m in drivers:
+                if int(startlist_cid[count][1]) == int(m[0]):
+                    driver1 = m
+
+            driver_entries.append((driver1))
+            count = count + 1 
+        title = event.event_name + " Heat: " + str(heat)
+        return render_template('vmix/startlist_s_loop.html', results=driver_entries, title=title)
+    else:
+        for b in range(0,int(len(startlist_cid)/2)):
+            for m in drivers:
+                if int(startlist_cid[count][1]) == int(m[0]):
+                    driver1 = m
+            for m in drivers:
+                if int(startlist_cid[count+1][1]) == int(m[0]):
+                    driver2 = m
+            driver_entries.append((driver1,driver2))
+            count = count+2 
+            title = event.event_name + " Heat: " + str(heat)
+        return render_template('vmix/startlist_p_loop.html', results=driver_entries, title=title)
     #return "{0}{1}".format(session['index'],event_count)
-    return render_template('vmix/startlist_p_loop.html', results=driver_entries, title=title)
+    
 
 @vmix_bp.route('/vmix/get_active_driver_single', methods=['GET'])
 def get_active_driver_single():
@@ -257,11 +418,12 @@ def get_active_driver_single():
     driver_data = {"NAME":driver_name, "SNOWMOBILE":snowmobile, "FINISHTIME":finishtime/1000}
     
     return driver_data
+
 @vmix_bp.route('/vmix/get_event_order_vmix', methods=['GET'])
 def get_event_order_vmix():
     from app.models import ActiveEvents
     from app.lib.db_operation import get_active_event
-    event_order = ActiveEvents.query.order_by(ActiveEvents.sort_order).all()
+    event_order = ActiveEvents.query.order_by(ActiveEvents.sort_order).filter(ActiveEvents.enabled == True).all()
     current_active_event = get_active_event()[0]
 
     data = []
@@ -290,6 +452,4 @@ def get_event_order_vmix():
         results = data
         results2 = []
 
-    print(results)
     return render_template('vmix/get_event_order_vmix.html', events=results, events2=results2)
-    return data

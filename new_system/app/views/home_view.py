@@ -2,6 +2,9 @@
 from flask import Blueprint, render_template, request
 import sqlite3
 from app.lib.db_operation import reload_event as reload_event_func
+from app.lib.db_operation import get_active_event
+from app.models import ActiveEvents, Session_Race_Records
+from app.lib.utils import get_active_events_sorted
 
 
 home_bp = Blueprint('home', __name__)
@@ -11,9 +14,17 @@ home_bp = Blueprint('home', __name__)
 def homepage():
     return render_template('home/index.html')
 
-@home_bp.route('/home/cross', methods=['GET'])
+@home_bp.route('/home/cross_resultat', methods=['GET'])
 def home_cross():
-    return render_template('home/cross.html')
+    events = get_active_events_sorted()
+
+    grouped_events = {}
+    for event in events:
+        event_name = event['Event'].rsplit(' - ', 1)[0] # Split to remove the "Finale" part and get the base event name
+        if event_name not in grouped_events:
+            grouped_events[event_name] = []
+        grouped_events[event_name].append(event)
+    return render_template('home/cross_resultat.html', grouped_events=grouped_events)
 
 @home_bp.route('/home/startlist', methods=['GET'])
 def home_startlist():

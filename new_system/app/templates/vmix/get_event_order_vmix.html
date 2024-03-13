@@ -124,16 +124,12 @@ tbody tr:hover {
 var urlParams = new URLSearchParams(window.location.search);
 var scale = urlParams.get('scale');
 
-// Ensure 'scale' is a number; use 1 as default if it's null or invalid
 scale = scale === null || isNaN(scale) ? 1 : Number(scale);
 
-// Apply the scaling to the body of the page
 document.body.style.transform = `scale(${scale})`;
-// Optional: Adjust the width and height of the body based on the scale to ensure the full page is visible
 document.body.style.width = `${100 / scale}%`;
 document.body.style.height = `${100 / scale}%`;
-// Optional: Adjust the transform-origin to top left or center based on preference
-document.body.style.transformOrigin = 'top left'; // or '50% 50%' for center
+document.body.style.transformOrigin = 'top left'; 
 </script>
 </body>
 </html>

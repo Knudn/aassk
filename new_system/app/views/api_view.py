@@ -509,6 +509,12 @@ def get_timedata_cross():
     query = Session_Race_Records.query
     query = query.order_by(Session_Race_Records.points.desc(), Session_Race_Records.finishtime.asc())
 
+    title_combo = request.args.get('title_combo')
+    if title_combo:
+        
+        query = query.filter((Session_Race_Records.title_1 + " " + Session_Race_Records.title_2).ilike(f"%{title_combo}%"))
+
+
     title_1 = request.args.get('title_1')
     if title_1:
         query = query.filter(Session_Race_Records.title_1.ilike(f"%{title_1}%"))
@@ -541,7 +547,7 @@ def get_timedata_cross():
             "title_1": record.title_1,
             "title_2": record.title_2,
             "heat": record.heat,
-            "finishtime": record.finishtime / 1_000_000,
+            "finishtime": record.finishtime / 1_000,
             "snowmobile": record.snowmobile,
             "penalty": record.penalty,
             "points": record.points

@@ -270,6 +270,25 @@ def get_event_data_all(event):
 
     return data
 
+def get_active_events_sorted():
+
+    from app.models import ActiveEvents
+    from app.lib.db_operation import get_active_event
+    event_order = ActiveEvents.query.order_by(ActiveEvents.sort_order).all()
+    current_active_event = get_active_event()[0]
+
+    data = []
+    
+    for a in event_order:
+
+        if str(a.event_file) == str(current_active_event["db_file"]) and str(current_active_event["SPESIFIC_HEAT"]) == str(a.run):
+            state = True
+        else:
+            state = False
+        data.append({"Order":a.sort_order, "Event":a.event_name, "Enabled":a.enabled, "Heat":a.run, "Active":state, "Mode":a.mode})
+        
+    return data
+
 def format_startlist(event,include_timedata=False):
     import json
     g_config = GetEnv()
