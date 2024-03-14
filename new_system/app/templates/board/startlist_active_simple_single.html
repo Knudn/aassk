@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Startliste</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <style>
+        body {
+            background-color: #f4f6f9;
+            font-family: Arial, sans-serif;
+        }
+        .container {
+            margin-top: 50px;
+        }
+        h1, h2 {
+            color: #343a40;
+        }
+        h2 {
+            margin-top: 30px;
+        }
+        table {
+            margin-bottom: 50px;
+            background-color: #ffffff;
+            box-shadow: 0px 0px 15px rgba(0,0,0,0.1);
+        }
+        th {
+            background-color: #343a40;
+            color: #ffffff;
+        }
+        td, th {
+            padding: 15px;
+            text-align: center;
+            border-bottom: 1px solid #dee2e6;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+    </style>
+</head>
+<body>
+    <div class="container"></div>
+
+    <script>
+        var urlParams = new URLSearchParams(window.location.search);
+        var up = urlParams.get('upcoming')
+        if (up == null) {
+            up = false
+        } else {
+            up = true
+        }
+
+        const apiUrl = 'http://192.168.1.50:7777/api/get_current_startlist_w_data';
+
+        const fetchAndUpdate = () => {
+            Promise.all([
+                fetch(apiUrl).then(response => response.json()),
+                fetch(`${apiUrl}?upcoming=true`).then(response => response.json())
+            ])
+            .then(([currentData, upcomingData]) => {
+                const container = document.querySelector('.container');
+                container.innerHTML = ''; // Clear existing content
+                
+                function createTable(titleText, data) {
+                    if (!data || data.length === 0) {
+                        console.log(`${titleText} has no data.`);
+                        return; // Skip if data is empty or undefined
+                    }
+
+                    let title = document.createElement('h2');
+                    title.textContent = titleText;
+                    container.appendChild(title);
+
+                    let table = document.createElement('table');
+                    table.className = "table";
+                    table.innerHTML = `
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>ID</th>
+                                <th>Navn</th>
+                                <th>Klubb</th>
+                                <th>Kjøretøy</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        </tbody>
+                    `;
+                    container.appendChild(table);
+
+                    // Assuming each 'drivers' list is to be displayed
+                    count = 0
+                    data.forEach(item => {
+                        if (item.drivers) {
+                            item.drivers.forEach(driver => {
+                                count += 1
+                                let row = document.createElement('tr');
+                                row.innerHTML = `
+                                    <td>${count}</td>
+                                    <td>${driver.id}</td>
+                                    <td>${driver.first_name} ${driver.last_name}</td>
+                                    <td>${driver.club}</td>
+                                    <td>${driver.vehicle}</td>
+                                `;
+                                table.querySelector('tbody').appendChild(row);
+                            });
+                        }
+                    });
+                }
+
+                // Handle data
+                curr_title = currentData[0]["race_config"]["TITLE_2"] + " " + currentData[0]["race_config"]["HEAT"] + "/" + currentData[0]["race_config"]["HEATS"]
+                up_title = upcomingData[0]["race_config"]["TITLE_2"] + " " + upcomingData[0]["race_config"]["HEAT"] + "/" + upcomingData[0]["race_config"]["HEATS"]
+                if (up == true) {
+                    createTable("Pågående Event: " + curr_title, currentData);
+                    createTable("Kommende Event: " + up_title, upcomingData);
+                } else {
+                    createTable("Pågående Event: " + curr_title, currentData);
+                }
+
+            })
+            .catch(error => console.error('Error:', error));
+        };
+
+        fetchAndUpdate();
+    </script>
+</body>
+</html>

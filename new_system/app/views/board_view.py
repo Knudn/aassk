@@ -119,3 +119,141 @@ def speaker():
     else:
         return render_template('board/speaker_board_s.html', SpeakerPageConfig_json=SpeakerPageConfig_json)
     
+
+    
+
+@board_bp.route('/board/startlist_active_simple_single')
+def startlist_active_simple_single():
+    return render_template('board/startlist_active_simple_single.html')
+
+@board_bp.route('/board/scoreboard_cross', methods=['GET'])
+def scoreboard_cross():
+    from app.models import Session_Race_Records
+    from app import db
+    import json
+    from app.lib.db_operation import get_active_event, get_active_event_name
+    from sqlalchemy import func, and_
+
+
+
+    loop = request.args.get('loop')
+    heat = request.args.get('heat')
+    active = request.args.get('active')
+    all_event = request.args.get('all')
+
+    query = Session_Race_Records.query
+    query = query.order_by(Session_Race_Records.points.desc(), Session_Race_Records.finishtime.asc())
+    
+    if all_event:
+        title = get_active_event_name()["title_1"]
+        records = query.all()
+
+
+    if active == "true":
+        data = get_active_event_name()
+        title_2 = data["title_2"]
+        query = query.filter(Session_Race_Records.title_2.ilike(f"%{title_2}%"))
+        
+
+        if heat == "true":
+            heat == data["heat"]
+            heat_new = get_active_event()[0]["SPESIFIC_HEAT"]
+            query = query.filter(Session_Race_Records.heat == heat_new)
+            title = title_2 + " " + data["heat"]
+        else:
+            title = title_2
+
+        records = query.all()
+    
+    if loop:
+        session['index'] = session.get('index', 0) + 1
+        results_orgin = db.session.query(
+            Session_Race_Records.title_1,
+            Session_Race_Records.title_2,
+            func.max(Session_Race_Records.heat).label('max_heat')
+        ).filter(
+            and_(
+                Session_Race_Records.finishtime != 0,
+                Session_Race_Records.penalty == 0
+            )
+        ).group_by(
+            Session_Race_Records.title_1,
+            Session_Race_Records.title_2
+        ).all()
+
+        event_count = len(results_orgin)
+        if event_count < session['index']:
+                session['index'] = 1
+
+        event_entry = results_orgin.pop(session['index'] - 1)
+
+        if heat:
+            title = event_entry[1] + " " + "Heat: " + str(event_entry[2])
+        else:
+            title = event_entry[1]
+
+        query = query.filter(Session_Race_Records.title_2.ilike(f"%{event_entry[1]}%"))
+        
+        if heat:
+            query = query.filter(Session_Race_Records.heat == event_entry[2])
+
+        records = query.all()
+
+
+    results = [
+        {
+            "id": record.id,
+            "first_name": record.first_name,
+            "last_name": record.last_name,
+            "title_1": record.title_1,
+            "title_2": record.title_2,
+            "heat": record.heat,
+            "finishtime": record.finishtime / 1_000,
+            "snowmobile": record.snowmobile,
+            "penalty": record.penalty,
+            "points": record.points
+        } for record in records
+    ]
+
+    combined_results = {}
+
+    for record in results:
+        name_key = f"{record['first_name']} {record['last_name']}"
+        
+        if name_key not in combined_results:
+            combined_results[name_key] = {
+                "first_name": record['first_name'],
+                "last_name": record['last_name'],
+                "snowmobile": record['snowmobile'],
+                "points": record['points'],
+                "finishtime": record['finishtime'] if record['finishtime'] != 0 else float('inf')
+            }
+        else:
+            combined_results[name_key]['points'] += record['points']
+            if 0 < record['finishtime'] < combined_results[name_key]['finishtime']:
+                combined_results[name_key]['finishtime'] = record['finishtime']
+
+    for key, value in combined_results.items():
+        if value['finishtime'] == float('inf'):
+            value['finishtime'] = 0
+    
+    sorted_combined_results = sorted(combined_results.values(), key=lambda x: x['points'], reverse=True)
+
+
+    sorted_combined_results_new = []
+    counter = 1
+    for a in sorted_combined_results:
+        a["number"] = counter
+        sorted_combined_results_new.append(a)
+        counter += 1
+
+    count = len(sorted_combined_results_new)
+    if count > 20:
+        count_data = count//2
+        combined_results3 = sorted_combined_results_new[count_data:]
+        combined_results2 = sorted_combined_results_new[:count_data]
+    else:
+        combined_results3 = []
+        combined_results2 = sorted_combined_results_new
+
+    return render_template('board/scoreboard_cross.html', results=combined_results2, results2=combined_results3, title=title)

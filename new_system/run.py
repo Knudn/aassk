@@ -101,10 +101,13 @@ def create_tables(app):
                 ["Startlist loop stige 15", "http://192.168.1.50:7777/board/startlist_simple_loop?event_filter=Stige&timer=15"],
                 ["Startlist loop kval 8", "http://192.168.1.50:7777/board/startlist_simple_loop?event_filter=Kvalifisering&timer=8"],
                 ["Startlist loop kval 15", "http://192.168.1.50:7777/board/startlist_simple_loop?event_filter=Kvalifisering&timer=15"],
+                ["Startlist Single Active", "http://192.168.1.50:7777/board/startlist_active_simple_single"],
+                ["Startlist Single Active Upcoming", "http://192.168.1.50:7777/board/startlist_active_simple_single?upcoming=true"],
                 ["Scoreboard active", "http://192.168.1.50:7777/board/scoreboard"],
                 ["Scoreboard loop 8", "http://192.168.1.50:7777/board/scoreboard_c?columns=3&timer=8"],
-                ["Scoreboard loop 15", "http://192.168.1.50:7777/board/scoreboard_c?columns=3&timer=15"]
-                
+                ["Scoreboard loop 15", "http://192.168.1.50:7777/board/scoreboard_c?columns=3&timer=15"],
+                ["Scoreboard cross all", "http://192.168.1.50:7777/board/scoreboard_cross?all=all"],
+                ["Scoreboard cross event", "http://192.168.1.50:7777/vmix/drivers_stats_cross?active=true"],
             ]
             for a in assets:
                 new_entry = InfoScreenAssets(
