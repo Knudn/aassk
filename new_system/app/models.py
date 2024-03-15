@@ -56,6 +56,7 @@ class ConfigForm(FlaskForm):
     event_dir = StringField('Event Directory')
     wl_title = StringField('Whitelist Title')
     wl_cross_title = StringField('Whitelist Cross Title')
+    exclude_title = StringField('Blacklist Title')
     wl_bool = BooleanField('Use Whitelist')
     display_proxy = BooleanField('Use MSport display proxy')
     cross = BooleanField('Watercross/Snowcross')
@@ -75,6 +76,7 @@ class GlobalConfig(db.Model):
     display_proxy = db.Column(db.Boolean, default=True)
     Smart_Sorting = db.Column(db.Boolean, default=False)
     wl_cross_title = db.Column(db.String(100), nullable=False, default="")
+    exclude_title = db.Column(db.String(100), nullable=False, default="")
 
 
 class ActiveEvents(db.Model):
@@ -165,7 +167,7 @@ class CrossConfig(db.Model):
 
     #This dict will be used to also get the amount the drivers
     driver_scores = db.Column(db.JSON, nullable=True, default=lambda: {1: 8, 2: 16})
-
+    
     def __repr__(self):
         return f"<CrossConfig(id={self.id}, dnf_point={self.dnf_point}, dsq_point={self.dsq_point}, dns_point={self.dns_point}, invert_score={self.invert_score}, driver_scores={self.driver_scores})>"
 

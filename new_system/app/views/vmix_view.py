@@ -332,15 +332,45 @@ def get_startlist():
 @vmix_bp.route('/vmix/get_startlist_loop', methods=['GET'])
 def get_startlist_loop():
     from app.lib.utils import GetEnv
+    from app.models import ActiveDrivers
+
 
     session['index'] = session.get('index', 0) + 1
     db_location = GetEnv()["db_location"]
     driver_entries = []
 
-    event = get_active_event()
-    heat = event[0]["SPESIFIC_HEAT"]
-       
-    query = db.session.query(ActiveEvents.event_file, ActiveEvents.run, ActiveEvents.mode, ActiveEvents.sort_order, ActiveEvents.event_name).filter(ActiveEvents.run == heat, ActiveEvents.enabled == True).order_by(ActiveEvents.sort_order.asc())
+    # Retrieve query parameters
+    event_type = request.args.get('event_type')
+    heat = request.args.get('heat')
+    event_name = request.args.get('event_name')
+    all_event = request.args.get('all', type=bool)
+    display_current_heat = request.args.get('current_heat')
+    from_active_event = request.args.get('from_active_event', type=bool)
+
+    
+
+
+    query = db.session.query(ActiveEvents.event_file, ActiveEvents.run, ActiveEvents.mode, ActiveEvents.sort_order, ActiveEvents.event_name).filter(ActiveEvents.enabled == True)
+
+    if from_active_event:
+        active_event = get_active_event()
+        active_event_file = active_event[0]["db_file"]
+        active_event_run = active_event[0]["SPESIFIC_HEAT"]
+        current_id = db.session.query(ActiveEvents.sort_order).filter(ActiveEvents.run == int(active_event_run), ActiveEvents.event_file == active_event_file).first()[0]
+        query = query.filter(ActiveEvents.sort_order > current_id)
+
+    if heat:
+        query = query.filter(ActiveEvents.run == heat)
+    else:
+        event = get_active_event()
+        heat = event[0]["SPESIFIC_HEAT"]
+        
+    if event_type:
+        query = query.filter(ActiveEvents.event_name.like(f"%{event_type}%"))  # Use %like% for partial matches
+    if event_name:
+        query = query.filter(ActiveEvents.event_name.like(f"%{event_name}%"))  # Use %like% for partial matches
+
+    query = query.order_by(ActiveEvents.sort_order.asc())
     active_events = query.all()
 
     event_count = len(active_events)

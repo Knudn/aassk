@@ -15,11 +15,33 @@ def startlist_simple():
 
 @board_bp.route('/board/startlist_simple_upcoming')
 def startlist_simple_upcoming():
-    return render_template('board/startlist_active_upcoming.html')
+    from app.lib.db_operation import get_active_event
+    from app.models import ActiveEvents
+    from app.lib.utils import GetEnv
+    import sqlite3
+
+    db_location = GetEnv()["db_location"]
+    event = get_active_event()
+    heat = event[0]["SPESIFIC_HEAT"]
+    with sqlite3.connect(db_location + event[0]["db_file"]+".sqlite") as conn:
+        cursor = conn.cursor()
+        mode = cursor.execute("SELECT MODE FROM db_index;".format(heat)).fetchall()
+
+    mode = mode[0][0]
+    if int(mode) == 0:
+        return render_template('board/startlist_active_upcoming_single.html')
+    else:
+        return render_template('board/startlist_active_upcoming.html')
 
 @board_bp.route('/board/startlist_simple_loop')
 def startlist_simple_loop():
+
     return render_template('board/startlist_active_simple_loop.html')
+
+@board_bp.route('/board/startlist_simple_loop_single')
+def startlist_simple_loop_single():
+
+    return render_template('board/startlist_active_simple_loop_single.html')
 
 @board_bp.route('/board/scoreboard')
 def scoreboard():
@@ -126,6 +148,11 @@ def speaker():
 def startlist_active_simple_single():
     return render_template('board/startlist_active_simple_single.html')
 
+@board_bp.route('/board/startlist_active_simple_single_finale')
+def startlist_active_simple_single_finale():
+    return render_template('board/startlist_active_simple_single_finale.html')
+    
+
 @board_bp.route('/board/scoreboard_cross', methods=['GET'])
 def scoreboard_cross():
     from app.models import Session_Race_Records
@@ -153,7 +180,7 @@ def scoreboard_cross():
         data = get_active_event_name()
         title_2 = data["title_2"]
         query = query.filter(Session_Race_Records.title_2.ilike(f"%{title_2}%"))
-        
+        title = title_2
 
         if heat == "true":
             heat == data["heat"]
@@ -198,7 +225,7 @@ def scoreboard_cross():
             query = query.filter(Session_Race_Records.heat == event_entry[2])
 
         records = query.all()
-
+    print(records)
 
     results = [
         {

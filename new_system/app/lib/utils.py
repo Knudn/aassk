@@ -402,3 +402,33 @@ def format_startlist(event,include_timedata=False):
 def get_active_event_name():
     
     pass
+
+def reorder_list_based_on_dict(original_list, correct_order_dict):
+    # Create a new list to hold the reordered elements
+    new_list = []
+    # Temporary dictionary to hold the elements as we go through the original list
+    temp_dict = {}
+
+    # Populate the temp_dict with the original list's elements, grouped by their scores
+    for name, score in original_list:
+        if score in temp_dict:
+            temp_dict[score].append(name)
+        else:
+            temp_dict[score] = [name]
+
+    # Iterate through the original list to maintain the overall order
+    for item in original_list:
+        name, score = item
+        # Check if this score needs reordering and if the name is in the correct order list
+        if score in correct_order_dict and name in correct_order_dict[score]:
+            # If the name is the next one to be placed according to the dictionary, add it to the new list
+            if name == correct_order_dict[score][0]:
+                new_list.append(item)
+                correct_order_dict[score].pop(0)  # Remove the added name from the dictionary list
+        else:
+            # For scores not needing reordering or already handled, add them directly
+            if name in temp_dict[score]:
+                new_list.append(item)
+                temp_dict[score].remove(name)  # Remove the added name from the temp_dict list
+
+    return new_list

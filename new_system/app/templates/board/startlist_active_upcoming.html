@@ -69,7 +69,9 @@ function adjustFontSize() {
         }
         
         function displayData(data, upcoming) {
-
+            if (data[0]["race_config"]["MODE"] == 0) {
+                        location.reload()
+                    }
             let htmlContent = '';
             let htmlContent_active = '';
             let htmlContent_finished = '';

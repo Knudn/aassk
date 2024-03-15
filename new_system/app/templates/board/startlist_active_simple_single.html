@@ -1,6 +1,7 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <title>Startliste</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
     <style>
@@ -40,85 +41,123 @@
     <div class="container"></div>
 
     <script>
-        var urlParams = new URLSearchParams(window.location.search);
-        var up = urlParams.get('upcoming')
-        if (up == null) {
-            up = false
-        } else {
-            up = true
+        function get_starting_positions(data) {
+            return fetch('/api/get_start_position_cross', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(data => {
+                console.log('Success:', data);
+                return data;
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+                throw error;
+            });
         }
 
         const apiUrl = 'http://192.168.1.50:7777/api/get_current_startlist_w_data';
 
-        const fetchAndUpdate = () => {
+        function extractDriverIds(data) {
+            let driverIds = [];
+            data.forEach(item => {
+                if (item.drivers) {
+                    item.drivers.forEach(driver => {
+                        driverIds.push(driver.first_name + "+" + driver.last_name);
+                    });
+                }
+            });
+            return driverIds;
+        }
+
+        function createTable(titleText, data, position) {
+            const container = document.querySelector('.container');
+
+            if (!data || data.length === 0) {
+                console.log(`${titleText} has no data.`);
+                return;
+            }
+
+            let title = document.createElement('h2');
+            title.textContent = titleText;
+            container.appendChild(title);
+
+            let table = document.createElement('table');
+            table.className = "table";
+            table.innerHTML = `
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>ID</th>
+                        <th>Navn</th>
+                        <th>Klubb</th>
+                        <th>Kjøretøy</th>
+                        <th>Banevalg (1 = Høyre)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            `;
+            container.appendChild(table);
+            position.forEach(item => {
+                console.log(item)
+            })
+
+            let count = 0;
+            data.forEach(item => {
+                if (item.drivers) {
+                    item.drivers.forEach(driver => {
+                        count += 1;
+                        let row = document.createElement('tr');
+                        pos_count = 0
+                        position.forEach(item => {
+                            pos_count += 1 
+                            console.log(item[0], driver.first_name + driver.last_name)
+                            if (item[0] == driver.first_name + "+" +  driver.last_name) {
+                                start = pos_count
+                            }
+                        }) 
+                        row.innerHTML = `
+                            <td>${count}</td>
+                            <td>${driver.id}</td>
+                            <td>${driver.first_name} ${driver.last_name}</td>
+                            <td>${driver.club}</td>
+                            <td>${driver.vehicle}</td>
+                            <td>${start}</td>
+                        `;
+                        table.querySelector('tbody').appendChild(row);
+                    });
+                }
+            });
+        }
+
+        function fetchAndUpdate() {
             Promise.all([
                 fetch(apiUrl).then(response => response.json()),
                 fetch(`${apiUrl}?upcoming=true`).then(response => response.json())
             ])
             .then(([currentData, upcomingData]) => {
-                const container = document.querySelector('.container');
-                container.innerHTML = ''; // Clear existing content
-                
-                function createTable(titleText, data) {
-                    if (!data || data.length === 0) {
-                        console.log(`${titleText} has no data.`);
-                        return; // Skip if data is empty or undefined
-                    }
+                const currentDriverIds = extractDriverIds(currentData);
+                const upcomingDriverIds = extractDriverIds(upcomingData);
 
-                    let title = document.createElement('h2');
-                    title.textContent = titleText;
-                    container.appendChild(title);
-
-                    let table = document.createElement('table');
-                    table.className = "table";
-                    table.innerHTML = `
-                        <thead>
-                            <tr>
-                                <th>#</th>
-                                <th>ID</th>
-                                <th>Navn</th>
-                                <th>Klubb</th>
-                                <th>Kjøretøy</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        </tbody>
-                    `;
-                    container.appendChild(table);
-
-                    // Assuming each 'drivers' list is to be displayed
-                    count = 0
-                    data.forEach(item => {
-                        if (item.drivers) {
-                            item.drivers.forEach(driver => {
-                                count += 1
-                                let row = document.createElement('tr');
-                                row.innerHTML = `
-                                    <td>${count}</td>
-                                    <td>${driver.id}</td>
-                                    <td>${driver.first_name} ${driver.last_name}</td>
-                                    <td>${driver.club}</td>
-                                    <td>${driver.vehicle}</td>
-                                `;
-                                table.querySelector('tbody').appendChild(row);
-                            });
-                        }
-                    });
-                }
-
-                // Handle data
-                curr_title = currentData[0]["race_config"]["TITLE_2"] + " " + currentData[0]["race_config"]["HEAT"] + "/" + currentData[0]["race_config"]["HEATS"]
-                up_title = upcomingData[0]["race_config"]["TITLE_2"] + " " + upcomingData[0]["race_config"]["HEAT"] + "/" + upcomingData[0]["race_config"]["HEATS"]
-                if (up == true) {
-                    createTable("Pågående Event: " + curr_title, currentData);
-                    createTable("Kommende Event: " + up_title, upcomingData);
-                } else {
-                    createTable("Pågående Event: " + curr_title, currentData);
-                }
-
+                return Promise.all([
+                    get_starting_positions({driverIds: currentDriverIds}).then(currentPositions => ({data: currentData, positions: currentPositions})),
+                    get_starting_positions({driverIds: upcomingDriverIds}).then(upcomingPositions => ({data: upcomingData, positions: upcomingPositions}))
+                ]);
             })
+            .then(([currentResult, upcomingResult]) => {
+            let curr_title = "Pågående Event: " + currentResult.data[0]["race_config"]["TITLE_2"] + " " + currentResult.data[0]["race_config"]["HEAT"] + "/" + currentResult.data[0]["race_config"]["HEATS"];
+            let up_title = "Kommende Event: " + upcomingResult.data[0]["race_config"]["TITLE_2"] + " " + upcomingResult.data[0]["race_config"]["HEAT"] + "/" + upcomingResult.data[0]["race_config"]["HEATS"];
+
+            createTable(curr_title, currentResult.data, currentResult.positions);
+            createTable(up_title, upcomingResult.data, upcomingResult.positions);
+        })
             .catch(error => console.error('Error:', error));
-        };
+        }
 
         fetchAndUpdate();
     </script>

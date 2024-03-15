@@ -609,3 +609,105 @@ def get_driver_points():
 
 
     return output
+
+
+@api_bp.route('/api/get_start_position_cross', methods=['POST'])
+def get_start_position_cross():
+    from app.lib.utils import reorder_list_based_on_dict
+    from sqlalchemy import desc
+    import random
+    from app.models import Session_Race_Records
+    from app import db
+    from sqlalchemy import func
+
+    # Extract the list of driver names from the request
+    data = request.json
+    print(data)
+    driver_names = data.get('driverIds', [])  # Adjust this key as necessary
+
+    # Prepare a query to get the records
+    drivers_points = []
+    for name in driver_names:
+        first_name, last_name = name.split('+')
+        driver_record = Session_Race_Records.query.filter(Session_Race_Records.first_name == first_name, Session_Race_Records.last_name == last_name ,Session_Race_Records.title_2.ilike(f"%Kvalifisering%")).order_by(Session_Race_Records.points).all()
+        points = 0
+        for a in driver_record:
+            points += int(a.points)
+
+        if driver_record:
+            drivers_points.append([first_name+"+"+last_name, points])
+
+    sorted_drivers = sorted(drivers_points, key=lambda x: x[1], reverse=True)
+    # Step 1: Find duplicates based on scores
+    scores = [score for name, score in sorted_drivers]
+    duplicates = {score for score in scores if scores.count(score) > 1}
+
+    # Step 2: Remove duplicates from the original list and keep a separate list of duplicates
+    duplicates_list = []
+    new_drivers_list = []
+
+    for driver in sorted_drivers:
+        if driver[1] in duplicates:
+            duplicates_list.append(driver)
+        else:
+            new_drivers_list.append(driver)
+
+    dub_dckt = {}
+    for a in duplicates_list:
+        if a[1] not in dub_dckt:
+            dub_dckt[a[1]] = [a[0]]
+        else:
+            dub_dckt[a[1]].append(a[0])
+    
+    # Assuming dub_dckt and new_order_dups are defined elsewhere in your code
+    new_order_dups_with_points = {}  # Temporary dictionary to hold names with points
+
+    for h in dub_dckt:
+        for g in dub_dckt[h]:
+            first_name, last_name = g.split('+')
+            driver_record = (Session_Race_Records.query
+                            .filter(Session_Race_Records.first_name == first_name,
+                                    Session_Race_Records.last_name == last_name,
+                                    Session_Race_Records.points != 0,
+                                    Session_Race_Records.title_2.ilike("%Kvalifisering%"))
+                            .order_by(Session_Race_Records.heat.desc())
+                            .first())
+            if driver_record:  # Checking if the driver record is not None
+                
+                # Store with points for sorting later
+                entry = (driver_record.first_name + "+" + driver_record.last_name, driver_record.points)
+                if h not in new_order_dups_with_points:
+                    new_order_dups_with_points[h] = [entry]
+                else:
+                    new_order_dups_with_points[h].append(entry)
+
+    # Now, sort the drivers in each list by points and remove the points, leaving just the names
+    new_order_dups = {}
+    for h, drivers_with_points in new_order_dups_with_points.items():
+        sorted_drivers = sorted(drivers_with_points, key=lambda x: x[1], reverse=True)  # Sort by points in descending order
+        new_order_dups[h] = [name for name, points in sorted_drivers]  # Remove the points, keep names
+
+    # At this point, new_order_dups will have the names sorted by points as you desired.
+        
+    corrected_list = []
+
+    # Iterate through the dictionary sorted by points
+    for points, names in new_order_dups.items():
+        # For each name in the current list of names
+        for name in names:
+            # Find the corresponding entry in the original list and add it to the corrected list
+            for entry in duplicates_list:
+                if entry[0] == name:
+                    corrected_list.append(entry)
+                    break  # Move to the next name once the match is found
+
+
+    combined_list = new_drivers_list + corrected_list
+
+    # Sort the combined list by score, maintaining the order for same scores using the "stable" property of Python's sort
+    combined_list.sort(key=lambda x: x[1], reverse=True)
+
+    print(combined_list)
+
+    return (combined_list)
+

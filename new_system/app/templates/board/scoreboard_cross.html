@@ -79,14 +79,26 @@
           location.reload()
 
         });
+
+    var urlParams = new URLSearchParams(window.location.search);
+    var timer = urlParams.get('timer')
+    if (timer == null) {
+        timer = 10000
+    } else {
+        timer = timer * 1000
+    }
+    console.log(timer)
+    setTimeout(function(){
+       window.location.reload(1);
+    }, timer);
+    
 </script>
 </head>
 <body>
-
     {% if results2 != [] %}
     <div class="leaderboard">
     {% else %}
-    <div class="leaderboard" style="scale: 1.3;">
+    <div class="leaderboard" style="scale: 1;">
     {% endif %}
         <h2>{{ title }}</h2>
     

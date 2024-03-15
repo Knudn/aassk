@@ -24,6 +24,7 @@ def map_database_files(global_config, Event=None, event_only=False):
     wh_title = global_config["wl_title"]
     cross_check = global_config["cross"]
     cross_title = global_config["wl_cross_title"]
+    exclude_title = global_config["exclude_title"]
 
 
     if Event != None:
@@ -55,7 +56,8 @@ def map_database_files(global_config, Event=None, event_only=False):
                     cursor.execute("SELECT C_NUM, C_FIRST_NAME, C_LAST_NAME, C_CLUB, C_TEAM FROM TCOMPETITORS;")
                     driver_rows = cursor.fetchall()
                     if len(rows) >= 4:
-                        
+                        if exclude_title.upper() in str(rows[3][0] + " " + rows[4][0]).upper() and exclude_title != "":
+                            continue
                         if cross_check and str(rows[2][0]) == "0" and cross_title.upper() in str(rows[3][0] + " " + rows[4][0]).upper():
                             if wh_check and wh_title.upper() in str(rows[3][0]).upper():
                                 datevalue = timevalue_convert(int(rows[0][0]))
@@ -240,42 +242,44 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True, sync=Fa
                     query = f"SELECT C_NUM, C_INTER1, C_INTER2, C_INTER3, C_SPEED1, C_STATUS, C_TIME FROM TTIMEINFOS_PARF_HEAT{heat_count}_RUN1"
                 else:
                     query = f"SELECT C_NUM, C_INTER1, C_INTER2, C_INTER3, C_SPEED1, C_STATUS, C_TIME FROM TTIMEINFOS_HEAT{heat}"
+                try:
+                    with sqlite3.connect(event_db_path) as conn:
+                        cursor = conn.cursor()
+                        cursor.execute(query)
+                        time_data = cursor.fetchall()
 
-                with sqlite3.connect(event_db_path) as conn:
-                    cursor = conn.cursor()
-                    cursor.execute(query)
-                    time_data = cursor.fetchall()
+                        if g_config["cross"] and mode == str(0):
+                            cursor.execute(start_time_query)
+                            start_time_data = cursor.fetchall()
 
-                    if g_config["cross"] and mode == str(0):
-                        cursor.execute(start_time_query)
-                        start_time_data = cursor.fetchall()
-
-                        time_data_lst = [
-                            {
-                                "CID": data[0], "INTER_1": data[1], "INTER_2": data[2], "INTER_3": data[3],
-                                "SPEED": data[4], "PENELTY": data[5], "FINISHTIME": data[6]
-                            } 
-                            for data in time_data
-                        ]
+                            time_data_lst = [
+                                {
+                                    "CID": data[0], "INTER_1": data[1], "INTER_2": data[2], "INTER_3": data[3],
+                                    "SPEED": data[4], "PENELTY": data[5], "FINISHTIME": data[6]
+                                } 
+                                for data in time_data
+                            ]
 
 
-                        start_time_lst = [
-                            {
-                                "CID": data[0], "START": data[1]
-                            } 
-                            for data in start_time_data
-                        ]
+                            start_time_lst = [
+                                {
+                                    "CID": data[0], "START": data[1]
+                                } 
+                                for data in start_time_data
+                            ]
 
-                    else:
+                        else:
 
-                        time_data_lst = [
-                            {
-                                "CID": data[0], "INTER_1": data[1], "INTER_2": data[2], "INTER_3": data[3],
-                                "SPEED": data[4], "PENELTY": data[5], "FINISHTIME": data[6]
-                            } 
-                            for data in time_data
-                        ]
-
+                            time_data_lst = [
+                                {
+                                    "CID": data[0], "INTER_1": data[1], "INTER_2": data[2], "INTER_3": data[3],
+                                    "SPEED": data[4], "PENELTY": data[5], "FINISHTIME": data[6]
+                                } 
+                                for data in time_data
+                            ]
+                except:
+                    print("No session data inserted for, " + event_db_path)
+                    continue
                 with sqlite3.connect(main_db_path) as conn:
                     cursor = conn.cursor()
                     sql = "SELECT * FROM startlist_r{0};".format(heat)
@@ -386,6 +390,8 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True, sync=Fa
                     (INTER_1, INTER_2, INTER_3, SPEED, PENELTY, FINISHTIME, CID) 
                     VALUES (?, ?, ?, ?, ?, ?, ?)
                     """
+                    if len(timedata_tuples) == 0:
+                        continue
                     for x in timedata_tuples:
                         for b in driver_list:
                             if int(x[6]) == int(b[0]):
@@ -502,6 +508,7 @@ def insert_start_list(db, g_config, init_mode=True):
 
         local_event_db = db_location+a["db_file"]+".sqlite"
         ext_event_db = event_dir+a["db_file"]+"Ex.scdb"
+        print(ext_event_db)
         for b in range(0, int(heats)):
             startlist_data = ""
             heat = (b + 1)
@@ -533,6 +540,9 @@ def insert_start_list(db, g_config, init_mode=True):
                 except Error as e:
                     print(e)
                 startlist_data = cursor.fetchall()
+                if len(startlist_data) == 0:
+                    print("No drivers")
+                    continue
 
             with sqlite3.connect(local_event_db) as conn_new_db:
                 cursor_new = conn_new_db.cursor()

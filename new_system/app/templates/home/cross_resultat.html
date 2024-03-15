@@ -8,7 +8,6 @@
   
 <style>
 
-
 .accordion {
   font-size: 1rem;
   margin: 0 auto;
@@ -53,7 +52,7 @@
 
 .accordion-body__contents {
   padding: 1.5em 1.5em;
-  font-size: .85em;
+  font-size: .50em;
 }
 
 .accordion__item.active:last-child .accordion-header {
@@ -247,7 +246,7 @@ function createAccordions(groupedByEventAndHeat) {
         const eventItem = document.createElement('div');
         eventItem.className = 'accordion__item js-accordion-item';
         eventItem.innerHTML = `
-        <div class="accordion-header js-accordion-header" style="font-size: 20px; padding: 15px;">${eventName}</div>
+        <div class="accordion-header js-accordion-header" style="font-size: 15px; padding: 15px;">${eventName}</div>
             <div class="accordion-body js-accordion-body" style="display: none;">
                 <div class="accordion-body__contents">
                     <!-- Event summary will be added here -->

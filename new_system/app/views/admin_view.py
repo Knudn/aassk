@@ -244,6 +244,7 @@ def global_config_tab():
                 config.display_proxy = bool(form.display_proxy.data)
                 config.cross = bool(form.cross.data)
                 config.wl_cross_title = form.wl_cross_title.data
+                config.exclude_title = form.exclude_title.data
 
                 if bool(form.cross.data):
                     db.session.query(MicroServices).filter(MicroServices.name == "Cross Clock Server").update({"state": True})
