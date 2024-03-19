@@ -96,7 +96,7 @@ $(document).ready(function() {
 
 function update_screen() {
     $.ajax({
-        url: 'http://192.168.1.50:7777/api/get_current_startlist_w_data',
+        url: '/api/get_current_startlist_w_data',
         type: 'GET',
         dataType: 'json', // assuming the server responds with JSON
         timeout: 10000, // 10 seconds timeout

@@ -97,7 +97,7 @@
     function fetchAndDisplayDataForColumn(columnIndex, col) {
       return new Promise((resolve, reject) => {
         $.ajax({
-          url: 'http://192.168.1.50:7777/api/get_current_startlist_w_data_loop?finished=true&latest=true',
+          url: '/api/get_current_startlist_w_data_loop?finished=true&latest=true',
           type: 'GET',
           xhrFields: {
             withCredentials: true

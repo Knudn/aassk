@@ -36,7 +36,7 @@
     <script>
         function updateScoreboard() {
             $.ajax({
-                url: 'http://192.168.1.50:7777/api/get_current_startlist_w_data',
+                url: '/api/get_current_startlist_w_data',
                 type: 'GET',
                 success: function(data) {
                     displayData(data);

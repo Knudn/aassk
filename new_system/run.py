@@ -5,8 +5,17 @@ import os
 import logging
 from logging.handlers import RotatingFileHandler
 from app.lib.utils import GetEnv, is_screen_session_running, manage_process_screen
+import socket
 
 pwd = os.getcwd()
+
+
+#GET DEFAULT IP ROUTE ADDRESS
+s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+s.connect(("8.8.8.8", 80))
+IP = s.getsockname()[0]
+s.close()
+
 
 def configure_logging(app):
     log_level = logging.INFO 
@@ -25,8 +34,6 @@ def configure_logging(app):
     # Also log to stdout
     logging.basicConfig(level=log_level, format='[%(asctime)s] %(levelname)s in %(module)s: %(message)s')
     
-
-
 
 def create_tables(app):
     with app.app_context():
@@ -92,23 +99,23 @@ def create_tables(app):
         if InfoScreenAssets_db is None:
             app.logger.info('Infoscreen DB init')
             assets = [
-                ["Ladder Active", "http://192.168.1.50:7777/board/ladder"],
-                ["Ladder loop 8", "http://192.168.1.50:7777/board/ladder/loop?timer=8"],
-                ["Ladder loop 15", "http://192.168.1.50:7777/board/ladder/loop?timer=15"],
-                ["Startlist active upcoming", "http://192.168.1.50:7777/board/startlist_simple_upcoming"],
-                ["Startlist active", "http://192.168.1.50:7777/board/startlist_simple"],
-                ["Startlist loop stige 8", "http://192.168.1.50:7777/board/startlist_simple_loop?event_filter=Stige&timer=8"],
-                ["Startlist loop stige 15", "http://192.168.1.50:7777/board/startlist_simple_loop?event_filter=Stige&timer=15"],
-                ["Startlist loop kval 8", "http://192.168.1.50:7777/board/startlist_simple_loop?event_filter=Kvalifisering&timer=8"],
-                ["Startlist loop kval 15", "http://192.168.1.50:7777/board/startlist_simple_loop?event_filter=Kvalifisering&timer=15"],
-                ["Startlist loop finale 8", "http://192.168.1.50:7777/board/startlist_simple_loop_single?event_filter=Finale&timer=8"],
-                ["Startlist loop finale 15", "http://192.168.1.50:7777/board/startlist_simple_loop_single?event_filter=Finale&timer=15"],
-                ["Startlist Cross Active", "http://192.168.1.50:7777/board/startlist_active_simple_single"],
-                ["Startlist Cross Active Upcoming", "http://192.168.1.50:7777/board/startlist_active_simple_single?upcoming=true"],                
-                ["Scoreboard loop 8", "http://192.168.1.50:7777/board/scoreboard_c?columns=3&timer=8"],
-                ["Scoreboard loop 15", "http://192.168.1.50:7777/board/scoreboard_c?columns=3&timer=15"],
-                ["Scoreboard cross all", "http://192.168.1.50:7777/board/scoreboard_cross?all=all"],
-                ["Scoreboard cross event", "http://192.168.1.50:7777/board/scoreboard_cross?active=true"],
+                ["Ladder Active", "http://{0}:7777/board/ladder".format(IP)],
+                ["Ladder loop 8", "http://{0}:7777/board/ladder/loop?timer=8".format(IP)],
+                ["Ladder loop 15", "http://{0}:7777/board/ladder/loop?timer=15".format(IP)],
+                ["Startlist active upcoming", "http://{0}:7777/board/startlist_simple_upcoming".format(IP)],
+                ["Startlist active", "http://{0}:7777/board/startlist_simple".format(IP)],
+                ["Startlist loop stige 8", "http://{0}:7777/board/startlist_simple_loop?event_filter=Stige&timer=8".format(IP)],
+                ["Startlist loop stige 15", "http://{0}:7777/board/startlist_simple_loop?event_filter=Stige&timer=15".format(IP)],
+                ["Startlist loop kval 8", "http://{0}:7777/board/startlist_simple_loop?event_filter=Kvalifisering&timer=8".format(IP)],
+                ["Startlist loop kval 15", "http://{0}:7777/board/startlist_simple_loop?event_filter=Kvalifisering&timer=15".format(IP)],
+                ["Startlist loop finale 8", "http://{0}:7777/board/startlist_simple_loop_single?event_filter=Finale&timer=8".format(IP)],
+                ["Startlist loop finale 15", "http://{0}:7777/board/startlist_simple_loop_single?event_filter=Finale&timer=15".format(IP)],
+                ["Startlist Cross Active", "http://{0}:7777/board/startlist_active_simple_single".format(IP)],
+                ["Startlist Cross Active Upcoming", "http://{0}:7777/board/startlist_active_simple_single?upcoming=true".format(IP)],                
+                ["Scoreboard loop 8", "http://{0}:7777/board/scoreboard_c?columns=3&timer=8".format(IP)],
+                ["Scoreboard loop 15", "http://{0}:7777/board/scoreboard_c?columns=3&timer=15".format(IP)],
+                ["Scoreboard cross all", "http://{0}:7777/board/scoreboard_cross?all=all".format(IP)],
+                ["Scoreboard cross event", "http://{0}:7777/board/scoreboard_cross?active=true".format(IP)],
             ]
             for a in assets:
                 new_entry = InfoScreenAssets(

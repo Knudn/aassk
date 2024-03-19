@@ -8,7 +8,7 @@
 <script>
 function fetchAndUpdateContent() {
     // Perform a GET request to your API
-    $.get("http://192.168.1.50:7777/vmix/get_active_driver_single", function(data) {
+    $.get("/vmix/get_active_driver_single", function(data) {
 
         $(".D1").eq(0).html(data.NAME); 
         $(".T1").eq(0).html(data.FINISHTIME); 

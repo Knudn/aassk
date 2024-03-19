@@ -72,7 +72,7 @@ function updateOverlay(data) {
 }
 
 function loadDriverData() {
-    fetch('http://192.168.1.50:7777/api/get_current_startlist_w_data')
+    fetch('/api/get_current_startlist_w_data')
         .then(response => response.json())
         .then(data => updateOverlay(data))
         .catch(error => console.error('Error fetching data:', error));

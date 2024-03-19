@@ -45,7 +45,7 @@ def s_set_active_driver():
             cur = con.cursor()
             cur.execute("UPDATE active_drivers SET D1 = ?;", (active_driver_id,))
             print(cur.execute("SELECT * FROM active_drivers").fetchall())
-        requests.get("http://192.168.1.50:7777/api/active_event_update")
+        requests.get("http://127.0.0.1:7777/api/active_event_update")
 
         con.commit()
         return {"synced":"True"}

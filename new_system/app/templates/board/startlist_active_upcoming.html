@@ -29,7 +29,7 @@ function adjustFontSize() {
 
     function updateScoreboard() {
             $.ajax({
-                url: 'http://192.168.1.50:7777/api/get_current_startlist_w_data',
+                url: '/api/get_current_startlist_w_data',
                 type: 'GET',
                 success: function(data) {
                     html_data = displayData(data, false);
@@ -48,7 +48,7 @@ function adjustFontSize() {
         }
         function updateScoreboard_upcoming() {
             $.ajax({
-                url: 'http://192.168.1.50:7777/api/get_current_startlist_w_data?upcoming=true',
+                url: '/api/get_current_startlist_w_data?upcoming=true',
                 type: 'GET',
                 success: function(data) {
                     html_data = displayData(data, true);

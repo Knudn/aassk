@@ -269,7 +269,7 @@ $(function () {
 
     // Function to update content
     function updateContent() {
-      $.getJSON("http://192.168.1.50:7777/api/get_specific_event_data_loop", function (data) {
+      $.getJSON("/api/get_specific_event_data_loop", function (data) {
         var new_data = transformData(data);
 
         // Determine the layout based on the number of drivers

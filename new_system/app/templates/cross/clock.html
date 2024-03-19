@@ -334,7 +334,7 @@
             data = JSON.parse(data_update);
         } else {
             try {
-                const response = await fetch('http://192.168.1.50:7777/api/get_current_startlist_w_data');
+                const response = await fetch('/api/get_current_startlist_w_data');
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
                 }

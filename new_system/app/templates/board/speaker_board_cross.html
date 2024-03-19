@@ -76,7 +76,7 @@
     <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.bundle.min.js"></script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            fetch('http://192.168.1.50:7777/api/get_current_startlist_w_data')
+            fetch('/api/get_current_startlist_w_data')
                 .then(response => response.json())
                 .then(data => {
                     get_current_event_stats(data);
@@ -94,7 +94,7 @@
 
             const driversInfo = document.getElementById('driversInfo');
             $.ajax({
-                url: `http://192.168.1.50:7777/api/get_timedata_cross/?title_1=${title_1}&title_2=${title_2}&heat=${heat}`,
+                url: `/api/get_timedata_cross/?title_1=${title_1}&title_2=${title_2}&heat=${heat}`,
                 type: 'GET',
                 dataType: 'json', 
                 success: function(res) {
@@ -105,7 +105,7 @@
 
         function get_driver_data_right(data) {
             title_2 = data[0]["race_config"]["TITLE_2"]; 
-            url = title_2.toUpperCase().includes("FINALE") ? "http://192.168.1.50:7777/api/driver-points?title_2=Finale" : "http://192.168.1.50:7777/api/driver-points";
+            url = title_2.toUpperCase().includes("FINALE") ? "/api/driver-points?title_2=Finale" : "/api/driver-points";
 
             $.ajax({
                 url: url,
