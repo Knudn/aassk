@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <title>Startliste</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css">
+    <script src="{{url_for('static', filename='js/socket.io.js')}}"></script>
+
     <style>
         body {
             background-color: #f4f6f9;
@@ -39,7 +41,19 @@
 </head>
 <body>
     <div class="container"></div>
+    <script>
+            const socket = io.connect('http://' + document.domain + ':' + location.port);
 
+            socket.on('connect', function() {
+                console.log('Connected to the server');
+                socket.emit('join', { username: 'John', room: 'room1' });
+            });
+            socket.on('response', function() {
+            location.reload()
+
+            });
+
+    </script>
     <script>
         function get_starting_positions(data) {
             return fetch('/api/get_start_position_cross', {
@@ -69,9 +83,11 @@
                     item.drivers.forEach(driver => {
                         driverIds.push(driver.first_name + "+" + driver.last_name);
                     });
+                } else {
+                    event = item["race_config"]["TITLE_2"]
                 }
             });
-            return driverIds;
+            return [driverIds, event];
         }
 
         function createTable(titleText, data, position) {
@@ -103,12 +119,11 @@
                 </tbody>
             `;
             container.appendChild(table);
-            position.forEach(item => {
-                console.log(item)
-            })
+
 
             let count = 0;
             data.forEach(item => {
+
                 if (item.drivers) {
                     item.drivers.forEach(driver => {
                         count += 1;
@@ -116,22 +131,43 @@
                         pos_count = 0
                         position.forEach(item => {
                             pos_count += 1 
-                            console.log(item[0], driver.first_name + driver.last_name)
+                            
                             if (item[0] == driver.first_name + "+" +  driver.last_name) {
                                 start = pos_count
                             }
                         }) 
+
+                        if (kval == true) {
                         row.innerHTML = `
                             <td>${count}</td>
                             <td>${driver.id}</td>
                             <td>${driver.first_name} ${driver.last_name}</td>
                             <td>${driver.club}</td>
                             <td>${driver.vehicle}</td>
-                            <td>${start}</td>
+                            <td style="padding: 5px; font-size:20px; font-weight: bold;">${count}</td>
                         `;
+                        } else {
+                        row.innerHTML = `
+                            <td>${count}</td>
+                            <td>${driver.id}</td>
+                            <td>${driver.first_name} ${driver.last_name}</td>
+                            <td>${driver.club}</td>
+                            <td>${driver.vehicle}</td>
+                            <td style="padding: 5px; font-size:20px; font-weight: bold;">${start}</td>
+                        `;   
+                        }
                         table.querySelector('tbody').appendChild(row);
+
                     });
-                }
+                } else {
+                    let event = item["race_config"]["TITLE_2"];
+                    kval = false; // Assuming you're declaring kval here
+                    if (event.includes("Kvalifisering")) {
+                        console.log("kasdakmlkmkl");
+                        kval = true;
+                    }
+
+                } 
             });
         }
 
@@ -141,14 +177,15 @@
                 fetch(`${apiUrl}?upcoming=true`).then(response => response.json())
             ])
             .then(([currentData, upcomingData]) => {
-                const currentDriverIds = extractDriverIds(currentData);
-                const upcomingDriverIds = extractDriverIds(upcomingData);
+                const [currentDriverIds, currentEvent] = extractDriverIds(currentData);
+                const [upcomingDriverIds, upcomingEvent] = extractDriverIds(upcomingData);
 
                 return Promise.all([
-                    get_starting_positions({driverIds: currentDriverIds}).then(currentPositions => ({data: currentData, positions: currentPositions})),
-                    get_starting_positions({driverIds: upcomingDriverIds}).then(upcomingPositions => ({data: upcomingData, positions: upcomingPositions}))
+                    get_starting_positions({driverIds: currentDriverIds, event: currentEvent}).then(currentPositions => ({data: currentData, positions: currentPositions})),
+                    get_starting_positions({driverIds: upcomingDriverIds, event: upcomingEvent}).then(upcomingPositions => ({data: upcomingData, positions: upcomingPositions}))
                 ]);
             })
+
             .then(([currentResult, upcomingResult]) => {
             let curr_title = "Pågående Event: " + currentResult.data[0]["race_config"]["TITLE_2"] + " " + currentResult.data[0]["race_config"]["HEAT"] + "/" + currentResult.data[0]["race_config"]["HEATS"];
             let up_title = "Kommende Event: " + upcomingResult.data[0]["race_config"]["TITLE_2"] + " " + upcomingResult.data[0]["race_config"]["HEAT"] + "/" + upcomingResult.data[0]["race_config"]["HEATS"];

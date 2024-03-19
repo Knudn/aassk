@@ -616,26 +616,29 @@ def get_start_position_cross():
     from app.lib.utils import reorder_list_based_on_dict
     from sqlalchemy import desc
     import random
-    from app.models import Session_Race_Records
+    from app.models import Session_Race_Records, ActiveEvents
     from app import db
     from sqlalchemy import func
+    from app.lib.db_operation import get_active_event
 
     # Extract the list of driver names from the request
     data = request.json
-    print(data)
     driver_names = data.get('driverIds', [])  # Adjust this key as necessary
+    event = data.get('event')
+    event_filter = event.split("-")[0] + "- Kvalifisering"
 
     # Prepare a query to get the records
     drivers_points = []
     for name in driver_names:
         first_name, last_name = name.split('+')
-        driver_record = Session_Race_Records.query.filter(Session_Race_Records.first_name == first_name, Session_Race_Records.last_name == last_name ,Session_Race_Records.title_2.ilike(f"%Kvalifisering%")).order_by(Session_Race_Records.points).all()
+        driver_record = Session_Race_Records.query.filter(Session_Race_Records.first_name == first_name, Session_Race_Records.last_name == last_name ,Session_Race_Records.title_2.ilike(f"%{event_filter}%")).order_by(Session_Race_Records.points).all()
         points = 0
         for a in driver_record:
             points += int(a.points)
 
         if driver_record:
             drivers_points.append([first_name+"+"+last_name, points])
+        
 
     sorted_drivers = sorted(drivers_points, key=lambda x: x[1], reverse=True)
     # Step 1: Find duplicates based on scores

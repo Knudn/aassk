@@ -106,6 +106,7 @@ if (timer != null) {
             </thead>
             <tbody>
                 {% for driver in results %}
+                {% if driver["finishtime"] != 0 %}
                 <tr>
                     <td>{{ driver["number"] }}</td>
                     <td>{{ driver["first_name"] }} {{ driver["last_name"] }}</td>
@@ -113,7 +114,9 @@ if (timer != null) {
                     <td>{{ driver["finishtime"] }}</td>
                     <td>{{ driver["points"] }}</td>
                 </tr>
+                {% endif %}
                 {% endfor %}
+
             </tbody>
         </table>
     

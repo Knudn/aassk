@@ -167,10 +167,17 @@ def scoreboard_cross():
     heat = request.args.get('heat')
     active = request.args.get('active')
     all_event = request.args.get('all')
+    event = request.args.get('event')
+    all_heats = request.args.get('all_heats')
+
 
     query = Session_Race_Records.query
     query = query.order_by(Session_Race_Records.points.desc(), Session_Race_Records.finishtime.asc())
     
+    if event:
+        query = query.filter(Session_Race_Records.title_2.ilike(f"%{event}%"))
+        records = query.all()
+
     if all_event:
         title = get_active_event_name()["title_1"]
         records = query.all()
@@ -194,23 +201,42 @@ def scoreboard_cross():
     
     if loop:
         session['index'] = session.get('index', 0) + 1
-        results_orgin = db.session.query(
-            Session_Race_Records.title_1,
-            Session_Race_Records.title_2,
-            func.max(Session_Race_Records.heat).label('max_heat')
-        ).filter(
-            and_(
-                Session_Race_Records.finishtime != 0,
-                Session_Race_Records.penalty == 0
-            )
-        ).group_by(
-            Session_Race_Records.title_1,
-            Session_Race_Records.title_2
-        ).all()
+        if not all_heats:
+            results_orgin = db.session.query(
+                Session_Race_Records.title_1,
+                Session_Race_Records.title_2,
+                func.max(Session_Race_Records.heat).label('max_heat')
+            ).filter(
+                and_(
+                    Session_Race_Records.finishtime != 0,
+                    Session_Race_Records.penalty == 0
+                )
+            ).group_by(
+                Session_Race_Records.title_1,
+                Session_Race_Records.title_2
+            ).all()
 
-        event_count = len(results_orgin)
-        if event_count < session['index']:
-                session['index'] = 1
+            event_count = len(results_orgin)
+            if event_count < session['index']:
+                    session['index'] = 1
+        else:
+            results_orgin = db.session.query(
+                Session_Race_Records.title_1,
+                Session_Race_Records.title_2,
+            ).filter(
+                and_(
+                    Session_Race_Records.finishtime != 0,
+                    Session_Race_Records.penalty == 0
+                )
+            ).group_by(
+                Session_Race_Records.title_1,
+                Session_Race_Records.title_2
+            ).all()
+            event_count = len(results_orgin)
+            print(event_count)
+
+            if event_count < session['index']:
+                    session['index'] = 1
 
         event_entry = results_orgin.pop(session['index'] - 1)
 

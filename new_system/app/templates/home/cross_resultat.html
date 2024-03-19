@@ -332,6 +332,8 @@ function createAccordions(groupedByEventAndHeat) {
               const row = tbody.insertRow();
               const numberCell = row.insertCell();
               numberCell.textContent = index + 1; // Participant number
+              const bib = row.insertCell();
+              bib.textContent = index + 1; // Participant number
               const nameCell = row.insertCell();
               nameCell.textContent = `${participant.first_name} ${participant.last_name}`; // Participant name
               const snowmobileCell = row.insertCell();

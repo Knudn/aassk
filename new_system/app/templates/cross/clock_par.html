@@ -52,7 +52,6 @@
             background-color: #ff5555; 
             color: #333; 
             text-align: center;
-            height: 180px;
         }
 
         .selected {
@@ -340,6 +339,7 @@
                 }
                 data = await response.json();
                 data.forEach(item => {
+
                     if (item.race_config == undefined) {
                             baseTime = item.drivers[0].time_info.INTER_1
                             dataId = item.drivers[0].id
@@ -395,6 +395,13 @@
                     let driverDiv = container.querySelector(`.driver-div[data-id="${driver.id}"]`);
 
                     if (!driverDiv) {
+                        console.log(driver.active)
+                        if (driver.active == true) {
+                            const name = driver.first_name + " " + driver.last_name;
+                            document.getElementById("name").innerHTML = name;
+
+
+                        }
                         const isLeftAligned = driver.id % 2 !== 0;
                         const driverHTML = `
                             <div class="col-md-6">
@@ -466,15 +473,7 @@
             } else if (item.race_config) {
                 const title = item.race_config["TITLE_1"] + " " + item.race_config["TITLE_2"];
                 document.getElementById("title").innerHTML = title;
-                if (item.race_config["CROSS"] == false) {
-                    
-                    ignore_entry = `
-                    <div id="overlay">
-                        <div id="text" style="font-size: 50px; ">EVENT NOT CONFIGURED TO BE CROSS</div>
-                    </div>`;
-                    var currentContent = document.getElementById('content').innerHTML;
-                    document.getElementById('content').innerHTML = currentContent + ignore_entry
-                }
+
 
              }
 
@@ -519,6 +518,7 @@
 <body>
 
     <div><h1 id="title" style="text-align: center;">Title</h1></div>
+    <div><h1 id="name" style="text-align: center;">Active</h1></div>
     <div id="content">
     <div class="container">
         <div class="row">
