@@ -104,11 +104,12 @@ def is_screen_session_running(session_name: str) -> bool:
         # If the screen command fails, assume the session is not running
         return False
 
-def manage_process_screen(python_program_path: str, operation: str) -> None:
+def manage_process_screen(python_program_path: str, operation: str, new_argument: str = None) -> None:
     from app.models import GlobalConfig
     import time, subprocess, shlex, logging
 
     global_config = GlobalConfig.query.get(1)
+    program_file = python_program_path
     python_program_path = global_config.project_dir + "/scripts/" + python_program_path
     python_executable = sys.executable
     program_name = os.path.basename(python_program_path)
@@ -124,6 +125,7 @@ def manage_process_screen(python_program_path: str, operation: str) -> None:
             return False
 
     if operation == 'start':
+
         if is_screen_session_running(screen_session_name):
             logging.error(f"Screen session {screen_session_name} may already be running.")
             return

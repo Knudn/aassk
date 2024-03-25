@@ -33,6 +33,8 @@ def admin(tab_name):
         return msport_proxy()
     elif tab_name == 'export':
         return export_data()
+    elif tab_name == 'clock_mgnt':
+        return clock_mgnt()
     else:
         return "Invalid tab", 404
 
@@ -143,16 +145,22 @@ def home_tab():
 
             service_name = request.form.get('service_name')
             service_state = request.form.get('service_state')
+            params = request.form.get('ip_address')
+
+            print(service_name, service_state, params)
             
             service_object = db.session.query(MicroServices).filter((MicroServices.name == service_name)).first()
-
             if service_object is not None:
+
                 if bool(service_object.state) == False and service_state == "start":
                     service_object.state = True
+
+                    if params != None:
+                        service_object.params = params
                     db.session.commit()
-                    
                     manage_process_screen(service_object.path, "start")
                     sleep(1)
+
                     if is_screen_session_running(service_object.path) == True:
                         return "True"
                     else:
@@ -250,7 +258,7 @@ def global_config_tab():
                     db.session.query(MicroServices).filter(MicroServices.name == "Cross Clock Server").update({"state": True})
                     db.session.commit()
                     manage_process_screen("cross_clock_server.py", "start")
-                
+
                 db.session.commit()
         elif 'update' in request.form: 
             print("asdasd")
@@ -587,3 +595,11 @@ def export_data():
     
     event_export = export_events()
     return render_template('admin/export.html', current_events=event_export, current_driver=current_driver, archive_params_state=archive_params_state, status=status)
+
+def clock_mgnt():
+    from flask import current_app
+    data = current_app.config['timestamp_tracket']
+    
+    data.append({"test":"2222"})
+    current_app.config['timestamp_tracket'] = data
+    return render_template('admin/clock_mgnt.html')

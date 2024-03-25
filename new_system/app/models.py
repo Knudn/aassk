@@ -154,6 +154,7 @@ class MicroServices(db.Model):
     name = db.Column(db.String(64), nullable=False)
     path = db.Column(db.String(84), nullable=False)
     state = db.Column(db.Boolean, nullable=False, default=False)
+    params = db.Column(db.String(84), nullable=True)
     def __repr__(self):
         return f"<Microservices(id={self.id}, name='{self.name}', state='{self.state}')>"
 

@@ -6,13 +6,22 @@ import json
 import sqlite3
 import logging
 import requests
+import socket
 
 # Setting up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+
+
 # Constants
 DB_PATH = "site.db"
 URL = 'http://localhost:10000/entry'
+
+
+with sqlite3.connect(DB_PATH) as con:
+    cur = con.cursor()
+    listen_ip = cur.execute("SELECT params FROM microservices WHERE path = 'msport_display_proxy.py';").fetchone()[0]
+
 
 #Regex rules
 PARRALEL_PATTERNS = {
@@ -148,7 +157,7 @@ def data_clean(data):
         data_sock["Driver2"]["snowmobile"] = snowp2
     
     if update_field == True:
-        requests.get("http://127.0.0.1:7777/api/active_event_update")
+        requests.get("http://{0}:7777/api/active_event_update".format(listen_ip))
         update_field = False
 
 async def server(ws, path):
@@ -169,7 +178,8 @@ async def handle_client(reader, writer):
             await writer.drain()
 
 async def main():
-    server = await asyncio.start_server(handle_client, '0.0.0.0', 7000)
+    print(listen_ip)
+    server = await asyncio.start_server(handle_client, listen_ip, 7000)
 
     async with server:
         await server.serve_forever()

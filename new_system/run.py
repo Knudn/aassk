@@ -6,16 +6,16 @@ import logging
 from logging.handlers import RotatingFileHandler
 from app.lib.utils import GetEnv, is_screen_session_running, manage_process_screen
 import socket
+import argparse
 
 pwd = os.getcwd()
 
 
-#GET DEFAULT IP ROUTE ADDRESS
-s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-s.connect(("8.8.8.8", 80))
-IP = s.getsockname()[0]
-s.close()
-
+# In-memory request tracker
+virtual_clock_request = [
+    {"id": 1, "title": "Task One", "description": "This is task one"},
+    {"id": 2, "title": "Task Two", "description": "This is task two"},
+]
 
 def configure_logging(app):
     log_level = logging.INFO 
@@ -77,14 +77,20 @@ def create_tables(app):
         if MicroServices_db == []:
             app.logger.info('MicroService DB init')
             services = [
-                ["Msport Proxy", "msport_display_proxy.py"],
-                ["Cross Clock Server", "cross_clock_server.py"]
+                ["Msport Proxy", "msport_display_proxy.py", "{0}".format(args.host)],
+                ["Cross Clock Server", "cross_clock_server.py"],
+                ["Backup Clock", "clock_server_vola.py", "192.168.1.10"]
             ]
-
+            
             for a in services:
+
+                if len(a) < 3:
+                    a.append("None")
+
                 new_entry = MicroServices(
                     name = a[0],
-                    path = a[1]
+                    path = a[1],
+                    params = a[2],
                 )
                 db.session.add(new_entry)
                 manage_process_screen(a[1], "start")
@@ -92,6 +98,7 @@ def create_tables(app):
         else:
             for service in MicroServices_db:
                 if bool(service.state) == True:
+                    print(service.path)
                     manage_process_screen(service.path, "start")
                 else: 
                     manage_process_screen(service.path, "stop")
@@ -146,9 +153,17 @@ def create_tables(app):
             db.session.commit()
 
 if __name__ == '__main__':
+
+    parser = argparse.ArgumentParser(description='Run the web server with spesific host.')
+    parser.add_argument('--host', type=str, default='0.0.0.0',
+                            help='Host address to listen on. Default is 0.0.0.0.')
+    args = parser.parse_args()
+    IP = args.host 
     app, socketio = create_app()
+    app.config['timestamp_tracket'] = virtual_clock_request
+    app.config['listen_address'] = IP
     configure_logging(app)
     app.logger.info('App started')
     create_tables(app)
-    socketio.run(app, debug=True, host="0.0.0.0", port=7777) 
+    socketio.run(app, debug=True, host=args.host, port=7777) 
     

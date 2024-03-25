@@ -20,7 +20,7 @@ def home_cross():
 
     grouped_events = {}
     for event in events:
-        event_name = event['Event'].rsplit(' - ', 1)[0] # Split to remove the "Finale" part and get the base event name
+        event_name = event['Event'].rsplit(' - ', 1)[0]
         if event_name not in grouped_events:
             grouped_events[event_name] = []
         grouped_events[event_name].append(event)
@@ -37,3 +37,7 @@ def home_ladder():
 @home_bp.route('/home/results', methods=['GET'])
 def home_results():
     return render_template('home/results.html')
+
+@home_bp.route('/home/manual_clock', methods=['GET'])
+def manual_clock():
+    return render_template('home/par_clock.html')

@@ -30,6 +30,7 @@ def submit_cross_timestamp():
 
     data = "<BOX {1} {0} 23 01 2 1567>\n".format(time_stamp_new, id.zfill(6))
     data += "\n"
+    print(data)
 
     
     response = requests.post('http://192.168.1.50:2009', data={'message': data})

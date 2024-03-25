@@ -8,6 +8,7 @@ from sqlalchemy import func
 
 
 
+
 api_bp = Blueprint('api', __name__)
 
 
@@ -714,3 +715,31 @@ def get_start_position_cross():
 
     return (combined_list)
 
+@api_bp.route('/api/submit_timestamp_clock', methods=['POST'])
+def submit_timestamp_clock():
+    import re
+    from flask import current_app
+    from app.lib.db_operation import get_active_event
+    from app.models import ActiveEvents
+    from app import db
+
+    active_event = get_active_event()
+    query = db.session.query(ActiveEvents.event_name, ActiveEvents.run).filter(
+    ActiveEvents.event_file == active_event[0]["db_file"]
+    )
+
+    results = query.first()
+
+    pattern = r"TN_(\d{4}_\d{4})_(\d{2})_(\d{2}:\d{2}:\d{2}\.\d{3})_\d{5}"
+    data = request.json["timestamp"]
+    match = re.match(pattern, data)
+
+    current_timestamps = current_app.config['timestamp_tracket']
+
+    if match:
+        device, id, timestamp = match.groups()
+        print(f"Device: {device}, ID: {id}, Timestamp: {timestamp}")
+    else:
+        print("No match found.")
+
+    return data
