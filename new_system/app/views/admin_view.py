@@ -39,6 +39,8 @@ def admin(tab_name):
         return "Invalid tab", 404
 
 def s_set_active_driver():
+    from flask import current_app
+    list_address = current_app.config['listen_address']
 
     DB_PATH = "site.db"
     if request.method == "POST":
@@ -47,7 +49,8 @@ def s_set_active_driver():
             cur = con.cursor()
             cur.execute("UPDATE active_drivers SET D1 = ?;", (active_driver_id,))
             print(cur.execute("SELECT * FROM active_drivers").fetchall())
-        requests.get("http://127.0.0.1:7777/api/active_event_update")
+
+        requests.get("http://{0}:7777/api/active_event_update".format(list_address))
 
         con.commit()
         return {"synced":"True"}
@@ -597,9 +600,26 @@ def export_data():
     return render_template('admin/export.html', current_events=event_export, current_driver=current_driver, archive_params_state=archive_params_state, status=status)
 
 def clock_mgnt():
-    from flask import current_app
-    data = current_app.config['timestamp_tracket']
+    from flask import Markup, current_app
+    from app.models import GlobalConfig
+    from app import db
+
+    global_config = db.session.query(GlobalConfig).first()
+
+
+    if request.method == 'POST':
+        data = request.get_json()
+        print(data)
+        global_config.auto_commit_manual_clock = bool(data.get("autoCommit"))
+        global_config.dual_start_manual_clock = bool(data.get("duelStart"))
+        db.session.commit()
+        return "Updates"
+
+    toggles = {"AutoCommit":global_config.auto_commit_manual_clock, "DualStart":global_config.dual_start_manual_clock}
+
+
+    current_timestamps = current_app.config['timestamp_tracket']
     
-    data.append({"test":"2222"})
-    current_app.config['timestamp_tracket'] = data
-    return render_template('admin/clock_mgnt.html')
+    event_data_json = Markup(json.dumps(current_timestamps))
+    
+    return render_template('admin/clock_mgnt.html', event_data=event_data_json, toggles=toggles)

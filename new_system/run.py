@@ -11,10 +11,8 @@ import argparse
 pwd = os.getcwd()
 
 
-# In-memory request tracker
+# In-memory timestamp request tracker
 virtual_clock_request = [
-    {"id": 1, "title": "Task One", "description": "This is task one"},
-    {"id": 2, "title": "Task Two", "description": "This is task two"},
 ]
 
 def configure_logging(app):
@@ -79,7 +77,7 @@ def create_tables(app):
             services = [
                 ["Msport Proxy", "msport_display_proxy.py", "{0}".format(args.host)],
                 ["Cross Clock Server", "cross_clock_server.py"],
-                ["Backup Clock", "clock_server_vola.py", "192.168.1.10"]
+                ["Backup Clock", "clock_server_vola.py", "192.168.1.77"]
             ]
             
             for a in services:

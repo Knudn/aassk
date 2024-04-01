@@ -40,4 +40,19 @@ def home_results():
 
 @home_bp.route('/home/manual_clock', methods=['GET'])
 def manual_clock():
-    return render_template('home/par_clock.html')
+    from app.lib.db_operation import get_active_event
+    from app.models import ActiveEvents
+    from app import db
+
+    active_event_file = get_active_event()
+
+    active_entry = db.session.query(ActiveEvents.mode).filter(
+    ActiveEvents.event_file == active_event_file[0]["db_file"]
+    ).first()
+
+    mode = active_entry.mode
+    if mode == 3 or mode == 2:
+        return render_template('home/par_clock.html')
+    else:
+        return render_template('home/single_clock.html')
+    

@@ -434,3 +434,15 @@ def reorder_list_based_on_dict(original_list, correct_order_dict):
                 temp_dict[score].remove(name)  # Remove the added name from the temp_dict list
 
     return new_list
+
+
+def get_active_driver_name(db_path, cid):
+    
+
+    query = "SELECT FIRST_NAME, LAST_NAME FROM drivers WHERE CID={0};".format(cid)
+
+    with sqlite3.connect(db_path) as con:
+        cur = con.cursor()
+        driver_name = cur.execute(query).fetchall()
+    print(driver_name)
+    return driver_name[0][0] + " " + driver_name[0][1]

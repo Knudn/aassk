@@ -42,8 +42,7 @@ def infoscreen_asset(filename):
 @api_bp.route('/api/send_data')
 def send_data_to_room(msg):
     room = request.args.get('room')
-
-    socketio.emit('response', msg, room=room)
+    socketio.emit('response', msg, room="room1")
     return {"message": "Data sent to the room"}
 
 @api_bp.route('/api/update_active_drivers', methods=['GET','POST'])
@@ -676,39 +675,32 @@ def get_start_position_cross():
                                     Session_Race_Records.title_2.ilike("%Kvalifisering%"))
                             .order_by(Session_Race_Records.heat.desc())
                             .first())
-            if driver_record:  # Checking if the driver record is not None
+            if driver_record:
                 
-                # Store with points for sorting later
                 entry = (driver_record.first_name + "+" + driver_record.last_name, driver_record.points)
                 if h not in new_order_dups_with_points:
                     new_order_dups_with_points[h] = [entry]
                 else:
                     new_order_dups_with_points[h].append(entry)
 
-    # Now, sort the drivers in each list by points and remove the points, leaving just the names
     new_order_dups = {}
     for h, drivers_with_points in new_order_dups_with_points.items():
-        sorted_drivers = sorted(drivers_with_points, key=lambda x: x[1], reverse=True)  # Sort by points in descending order
-        new_order_dups[h] = [name for name, points in sorted_drivers]  # Remove the points, keep names
+        sorted_drivers = sorted(drivers_with_points, key=lambda x: x[1], reverse=True)
+        new_order_dups[h] = [name for name, points in sorted_drivers]
 
-    # At this point, new_order_dups will have the names sorted by points as you desired.
         
     corrected_list = []
 
-    # Iterate through the dictionary sorted by points
     for points, names in new_order_dups.items():
-        # For each name in the current list of names
         for name in names:
-            # Find the corresponding entry in the original list and add it to the corrected list
             for entry in duplicates_list:
                 if entry[0] == name:
                     corrected_list.append(entry)
-                    break  # Move to the next name once the match is found
+                    break
 
 
     combined_list = new_drivers_list + corrected_list
 
-    # Sort the combined list by score, maintaining the order for same scores using the "stable" property of Python's sort
     combined_list.sort(key=lambda x: x[1], reverse=True)
 
     print(combined_list)
@@ -722,24 +714,159 @@ def submit_timestamp_clock():
     from app.lib.db_operation import get_active_event
     from app.models import ActiveEvents
     from app import db
+    from app.lib.utils import get_active_driver_name
 
-    active_event = get_active_event()
-    query = db.session.query(ActiveEvents.event_name, ActiveEvents.run).filter(
-    ActiveEvents.event_file == active_event[0]["db_file"]
+
+
+
+    g_config = GetEnv()
+
+    db_location = g_config["db_location"]
+    
+    DB_PATH = "site.db"
+
+    active_event_file = get_active_event()
+    query = db.session.query(ActiveEvents.event_name, ActiveEvents.run, ActiveEvents.mode).filter(
+    ActiveEvents.event_file == active_event_file[0]["db_file"]
     )
 
-    results = query.first()
+    active_event = query.first()
+    event_title = active_event.event_name
+    heat = active_event.run
 
-    pattern = r"TN_(\d{4}_\d{4})_(\d{2})_(\d{2}:\d{2}:\d{2}\.\d{3})_\d{5}"
-    data = request.json["timestamp"]
-    match = re.match(pattern, data)
+    pattern = r"(\d{4}_\d{4})_(\d{2})_(\d{2}:\d{2}:\d{2}\.\d{3})_\d{5}"
 
-    current_timestamps = current_app.config['timestamp_tracket']
+    
+    timestamp_raw = request.json["timestamp"]
+    button = request.json["button"]
 
+    match = re.match(pattern, timestamp_raw)
+
+    if active_event.mode == 0:
+        query = "SELECT D1 FROM active_drivers;"
+    else:
+        query = "SELECT D1, D2 FROM active_drivers;"
+
+
+    #active_driver_id = request.json["driverId"]
+
+    with sqlite3.connect(DB_PATH) as con:
+        cur = con.cursor()
+        active_driver = cur.execute(query).fetchall()
+    
     if match:
         device, id, timestamp = match.groups()
         print(f"Device: {device}, ID: {id}, Timestamp: {timestamp}")
     else:
         print("No match found.")
 
-    return data
+    current_timestamps = current_app.config['timestamp_tracket']
+
+    
+
+    if g_config["dual_start_manual_clock"] == True:
+        start_both = True
+    else:
+        start_both = False
+
+    if len(current_timestamps) > 25:
+        current_timestamps.pop(0)
+        if button == 1 and start_both == True:
+            current_timestamps.pop(0)
+
+    print(print(db_location+active_event_file[0]["db_file"]+".sqlite",active_driver[0][0]))
+
+    if active_event.mode == 0:
+        if button == 1:
+            current_timestamps.append({"id": len(current_timestamps) + 1, "TITLE": event_title, "HEAT":heat, "DRIVER": active_driver[0][0], "DRIVER_NAME":get_active_driver_name(db_location+active_event_file[0]["db_file"]+".sqlite",active_driver[0][0]), "BUTTON":button,"TS_SIMPLE":timestamp, "TS_RAW":timestamp_raw,"PLACEMENT":"START"})
+        if button == 3:
+            current_timestamps.append({"id": len(current_timestamps) + 1, "TITLE": event_title, "HEAT":heat, "DRIVER": active_driver[0][0], "DRIVER_NAME":get_active_driver_name(db_location+active_event_file[0]["db_file"]+".sqlite",active_driver[0][0]), "BUTTON":button,"TS_SIMPLE":timestamp, "TS_RAW":timestamp_raw,"PLACEMENT":"FINISH"})
+    else:
+        if button == 1 and start_both == False:
+            current_timestamps.append({"id": len(current_timestamps) + 1, "TITLE": event_title, "HEAT":heat, "DRIVER": active_driver[0][0], "DRIVER_NAME":get_active_driver_name(db_location+active_event_file[0]["db_file"]+".sqlite",active_driver[0][0]), "BUTTON":button,"TS_SIMPLE":timestamp, "TS_RAW":timestamp_raw,"PLACEMENT":"START"})
+        elif button == 1 and start_both == True:
+            current_timestamps.append({"id": len(current_timestamps) + 1, "TITLE": event_title, "HEAT":heat, "DRIVER": active_driver[0][0], "DRIVER_NAME":get_active_driver_name(db_location+active_event_file[0]["db_file"]+".sqlite",active_driver[0][0]), "BUTTON":button,"TS_SIMPLE":timestamp, "TS_RAW":timestamp_raw,"PLACEMENT":"START"})
+            current_timestamps.append({"id": len(current_timestamps) + 1, "TITLE": event_title, "HEAT":heat, "DRIVER": active_driver[0][1], "DRIVER_NAME":get_active_driver_name(db_location+active_event_file[0]["db_file"]+".sqlite",active_driver[0][1]), "BUTTON":button,"TS_SIMPLE":timestamp, "TS_RAW":timestamp_raw,"PLACEMENT":"START"})
+        elif button == 2 and start_both == False:
+            current_timestamps.append({"id": len(current_timestamps) + 1, "TITLE": event_title, "HEAT":heat, "DRIVER": active_driver[0][1], "DRIVER_NAME":get_active_driver_name(db_location+active_event_file[0]["db_file"]+".sqlite",active_driver[0][1]), "BUTTON":button,"TS_SIMPLE":timestamp, "TS_RAW":timestamp_raw,"PLACEMENT":"START"})
+        elif button == 3:
+            current_timestamps.append({"id": len(current_timestamps) + 1, "TITLE": event_title, "HEAT":heat, "DRIVER": active_driver[0][0], "DRIVER_NAME":get_active_driver_name(db_location+active_event_file[0]["db_file"]+".sqlite",active_driver[0][0]), "BUTTON":button,"TS_SIMPLE":timestamp, "TS_RAW":timestamp_raw,"PLACEMENT":"FINISH"})
+        elif button == 4:
+            current_timestamps.append({"id": len(current_timestamps) + 1, "TITLE": event_title, "HEAT":heat, "DRIVER": active_driver[0][1],"DRIVER_NAME":get_active_driver_name(db_location+active_event_file[0]["db_file"]+".sqlite",active_driver[0][1]), "BUTTON":button,"TS_SIMPLE":timestamp, "TS_RAW":timestamp_raw,"PLACEMENT":"FINISH"})
+    
+
+
+    if g_config["auto_commit_manual_clock"] == True:
+        send_fixed_timestamp(timestamp_raw)
+
+    #Push changed to the correct websocket
+    socketio.emit('response', current_timestamps, room="clock_mgnt")
+
+    return "Success"
+    
+@api_bp.route('/api/submit_timestamp_clock', methods=['POST'])
+def send_fixed_timestamp(timestamp):
+    import requests
+    from app.models import MicroServices
+    from app import db
+    import json
+
+    
+    clock_server_endpoint = db.session.query(MicroServices.params).filter(
+    MicroServices.path == "clock_server_vola.py"
+    ).first()[0]
+
+    url = 'http://{0}:5000/send-timestamp'.format(clock_server_endpoint)
+    headers = {'Content-Type': 'application/json'}
+    response = requests.post(url, headers=headers, data=json.dumps({"timestamp":timestamp}))
+
+    if response.status_code == 200:
+        return 'Success'
+    else:
+        return 'Error'
+
+@api_bp.route('/api/retry_entries', methods=['POST', 'GET'])
+def retry_entries():
+    import requests
+    from app.models import MicroServices, RetryEntries, ActiveEvents, Session_Race_Records
+    from app import db
+    import json
+    from app.lib.db_operation import get_active_event
+    from app.lib.utils import get_active_driver_name
+
+    active_event_file = get_active_event()
+
+    active_entry = db.session.query(ActiveEvents.event_name, ActiveEvents.run, ActiveEvents.mode).filter(
+    ActiveEvents.event_file == active_event_file[0]["db_file"]
+    ).first()
+
+    active_title_heat = active_entry[0]+str(active_entry[1])
+
+    if request.method == 'POST':
+        if request.json["method"] == "remove":
+            cid = request.json["cid"]
+            retry_entries = db.session.query(RetryEntries).filter(RetryEntries.cid == cid).delete()
+            db.session.commit()
+        else:
+            cid = request.json["cid"]
+            g_config = GetEnv()
+            db_location = g_config["db_location"]
+            event_file = db_location + active_event_file[0]["db_file"]+".sqlite"
+            
+            new_retry_entry = RetryEntries(cid=cid, title=active_title_heat, driver_name=get_active_driver_name(event_file, cid))
+            db.session.add(new_retry_entry)
+            db.session.commit()
+            
+
+    retry_entries = db.session.query(RetryEntries).filter(RetryEntries.title == active_title_heat).all()
+    retry_entries_list = []
+    for a in retry_entries:
+        retry_entries_list.append({
+            "CID":a.cid,
+            "title":a.title,
+            "driver_name":a.driver_name
+        })
+
+    socketio.emit('response', json.dumps(retry_entries_list), room="socket_retry")
+    return retry_entries_list
+    

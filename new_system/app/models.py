@@ -77,6 +77,8 @@ class GlobalConfig(db.Model):
     Smart_Sorting = db.Column(db.Boolean, default=False)
     wl_cross_title = db.Column(db.String(100), nullable=False, default="")
     exclude_title = db.Column(db.String(100), nullable=False, default="")
+    auto_commit_manual_clock = db.Column(db.Boolean, default=False)
+    dual_start_manual_clock = db.Column(db.Boolean, default=False)
 
 
 class ActiveEvents(db.Model):
@@ -171,4 +173,14 @@ class CrossConfig(db.Model):
     
     def __repr__(self):
         return f"<CrossConfig(id={self.id}, dnf_point={self.dnf_point}, dsq_point={self.dsq_point}, dns_point={self.dns_point}, invert_score={self.invert_score}, driver_scores={self.driver_scores})>"
+
+class RetryEntries(db.Model):
+    __tablename__ = 'retryentries'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    cid = db.Column(db.Integer, nullable=True)
+    title = db.Column(db.String(84), nullable=True)
+    driver_name = db.Column(db.String(84), nullable=True)
+
+    def __repr__(self):
+        return f"<CrossConfig(id={self.id}, cid={self.cid}, title={self.title}, driver_name={self.driver_name})>"
 

@@ -17,6 +17,20 @@
 
 
   <style>
+.retry-indicator-container {
+    position: relative;
+}
+
+.retry-indicator {
+    position: absolute;
+    top: -20px; /* Adjust this value to position the indicator vertically */
+    right: 0;
+    padding: 5px 10px;
+    background-color: #dc3545;
+    color: #fff;
+    font-weight: bold;
+    border-radius: 4px;
+}
 
 .custom-btn {
     padding: 10px 15px;
@@ -272,12 +286,16 @@ body, html {
 
             </button>
             <br>
-            <button type="button" class="btn btn-primary" id="top_driver_button" data-bs-toggle="modal" data-bs-target="#top_driver_button_model">
+            <button type="button" class="btn btn-primary" id="top_driver_button" data-bs-toggle="modal" data-bs-target="#top_driver_button_model" style="margin-bottom: 15px;">
 
                 <span id="boot-icon" class="bi bi-stopwatch" style="font-size: 28px; opacity: 1; -webkit-text-stroke-width: 0px;"></span>
 
             </button>
-    
+
+            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#mockDataModal">
+                <span id="boot-icon" class="bi bi-arrow-clockwise" style="font-size: 28px; opacity: 1; -webkit-text-stroke-width: 0px;"></span>
+            </button>
+        
             <div class="arrow-buttons" style="padding-top: 20px;">
                 <button id="arrow-left" class="btn btn-secondary custom-btn">
                     <i class="bi bi-arrow-left custom-icon"></i>
@@ -294,7 +312,35 @@ body, html {
             <!-- Right Driver Content -->
         </div>
     </div>
-    
+
+
+<!-- Mock Data Modal -->
+<div class="modal fade" id="mockDataModal" tabindex="-1" role="dialog" aria-labelledby="mockDataModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="mockDataModalLabel">Kjør på nytt tabell</h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>Driver Name</th>
+                            <th>Title</th>
+                            <th>CID</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- Rows will be dynamically added here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>    
 <!-- EVENT ORDER MODEL -->
 <div class="modal fade" id="eventsModal" tabindex="-1" role="dialog" aria-labelledby="eventsModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg" role="document"> <!-- Use modal-lg for larger modal -->
@@ -406,46 +452,43 @@ body, html {
   </div>
     
 <!--SETTINGS MODEL -->
-  <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="exampleModalLabel">Speaker page settings</h5>
-            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-          </button>
-          
-        </div>
-        <div class="modal-body">
-            <div class="input-group">
-                <div class="input-group-prepend">
-                  <span class="input-group-text" id="">Archive endpoint:</span>
-                </div>
-                <input type="text" class="form-control" value="{{ SpeakerPageConfig_json.h_server_url }}" id="h_server_url">
-              </div>
-              <br>
-            <div class="form-check">
-                {% if SpeakerPageConfig_json.matching_parallel == False %}
-                <input class="form-check-input" type="checkbox" value="True" id="matching_parallel">
-                {% else %}
-                <input class="form-check-input" type="checkbox" value="True" id="matching_parallel" checked>
-                {% endif %}
+        <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
+            <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                <h5 class="modal-title" id="exampleModalLabel">Speaker page settings</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </button>
                 
-                <label class="form-check-label" for="matching_parallel">
-                    Only display matching parallel races
-                </label>
                 </div>
+                <div class="modal-body">
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                        <span class="input-group-text" id="">Archive endpoint:</span>
+                        </div>
+                        <input type="text" class="form-control" value="{{ SpeakerPageConfig_json.h_server_url }}" id="h_server_url">
+                    </div>
+                    <br>
+                    <div class="form-check">
+                        {% if SpeakerPageConfig_json.matching_parallel == False %}
+                        <input class="form-check-input" type="checkbox" value="True" id="matching_parallel">
+                        {% else %}
+                        <input class="form-check-input" type="checkbox" value="True" id="matching_parallel" checked>
+                        {% endif %}
+                        
+                        <label class="form-check-label" for="matching_parallel">
+                            Only display matching parallel races
+                        </label>
+                        </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" aria-label="Close">Close</button>
+                    <button type="button" class="btn btn-primary" id="saveChanges">Save Changes</button>
+                </div>
+            </div>
+            </div>
         </div>
-        <div class="modal-footer">
-            <button type="button" class="btn btn-primary" data-bs-dismiss="modal" aria-label="Close">Close</button>
-            <button type="button" class="btn btn-primary" id="saveChanges">Save Changes</button>
         </div>
-      </div>
-    </div>
-  </div>
-
-
-        </div>
-
       </div>
     </div>
   </div>
@@ -456,12 +499,11 @@ body, html {
 </script>
   <script>
 function add_websocket_live_timer() {
-    const ws = new WebSocket("ws://192.168.1.50:4444/");
+    const ws = new WebSocket("ws://192.168.20.228:4444/");
     var x;
     var arr = [];
 
     function update_live_data(newData) {
-        console.log(newData)
         document.getElementsByClassName("T1")[0].innerHTML = newData.Driver1.time;
         document.getElementsByClassName("T2")[0].innerHTML = newData.Driver2.time;
     }
@@ -725,7 +767,9 @@ document.addEventListener('DOMContentLoaded', function() {
             socket.emit('join', { username: 'John', room: 'room1' });
         });
         add_websocket_live_timer()
+
         socket.on('response', function(dataString) {
+            console.log(dataString)
             const data = JSON.parse(dataString);
             new_title = data[0]["race_config"]["TITLE_1"] + "-" + data[0]["race_config"]["TITLE_2"] + " (" + data[0]["race_config"]["HEAT"] + "/" + data[0]["race_config"]["HEATS"]+")";
             
@@ -747,8 +791,21 @@ document.addEventListener('DOMContentLoaded', function() {
             
         });
 
+        const socket_retry = io.connect('http://' + document.domain + ':' + location.port);
+
+        socket_retry.on('connect', function() {
+            console.log('Connected to the server');
+            socket_retry.emit('join', { username: 'socket_retry', room: 'socket_retry' });
+        });
+        
+        socket_retry.on('response', function(dataString) {
+            console.log(dataString);
+            const data = JSON.parse(dataString);
+            display_retry_entries(data);
+        });
         // Function to display active drivers
         let driverPairs = [];
+
 let currentPairIndex = 0;
 
 async function displayActiveDrivers(data) {
@@ -842,6 +899,9 @@ async function updateDriverDisplay() {
             const rightLadderData = await get_ladder_data(right_driver_name);
             $('#right-driver').append(display_parallel_history(rightLadderData, left_driver_name, right_driver_name, 2));
 
+            //Retry entries
+            const retry_entries = await get_retry_entries("retry");
+            $('#left-driver').append(display_retry_entries(retry_entries));
 
         } catch (error) {
             console.error('Error updating driver display:', error);
@@ -853,6 +913,21 @@ function get_top_driver_header(title_name) {
     return new Promise((resolve, reject) => {
         $.ajax({
             url: `/api/get_timedata/?title_1=${title_name[0]}&title_2=${title_name[1]}&heat=${title_name[2]}&single_all=true&entries_per_filter=1&unique_names=true`,
+            type: 'GET',
+            success: function(data) {
+                resolve(data);
+            },
+            error: function() {
+                reject('Error fetching snowmobile models');
+            }
+        });
+    });
+}
+
+function get_retry_entries(title_name) {
+    return new Promise((resolve, reject) => {
+        $.ajax({
+            url: `/api/retry_entries`,
             type: 'GET',
             success: function(data) {
                 resolve(data);
@@ -1332,6 +1407,57 @@ displayHTML += "<hr class='my-4' style='border-top: 3px solid green;'>";
 
 return displayHTML;
 }
+
+function display_retry_entries(entries) {
+    const tableBody = document.querySelector('#mockDataModal .modal-body table tbody');
+    tableBody.innerHTML = ''; // Clear the existing table rows
+
+    // Convert entry driver names to lowercase for case-insensitive comparison
+    const entryDriverNamesLower = entries.map(entry => entry.driver_name.toLowerCase());
+
+    // Prepare driver containers and their default T text elements
+    const driverContainersInfo = [
+        { containerId: 'left-driver', tClass: '.T1' },
+        { containerId: 'right-driver', tClass: '.T2' }
+    ];
+
+    driverContainersInfo.forEach(info => {
+        const container = document.getElementById(info.containerId);
+        const tEl = container.querySelector(info.tClass);
+
+        // Reset T text to default state for all drivers first
+        if (tEl) {
+            tEl.textContent = '0'; // Default state
+            tEl.style.color = ''; // Reset color to default
+        }
+
+        // Find the driver name element within the container
+        const driverNameEl = container.querySelector('.active_drivers');
+        if (driverNameEl) {
+            const driverNameLower = driverNameEl.textContent.trim().toLowerCase();
+
+            // Mark as "RETRY" if the driver's name is in the entry list
+            if (entryDriverNamesLower.includes(driverNameLower)) {
+                if (tEl) {
+                    tEl.style.color = 'red';
+                }
+            }
+        }
+    });
+
+    // Populate the modal table with the current entries
+    entries.forEach(entry => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${entry.driver_name}</td>
+            <td>${entry.title}</td>
+            <td>${entry.CID}</td>
+        `;
+        tableBody.appendChild(row);
+    });
+}
+
+
 
 
   </script>
