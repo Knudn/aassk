@@ -57,9 +57,10 @@ def update_active_drivers():
 
 @api_bp.route('/api/active_event_update', methods=['GET'])
 def active_event_update():
-    
+
     update_active_event_stats()
     send_data_to_room(get_active_startlist())
+
     return "Updated"
 
 @api_bp.route('/api/update_active_startlist', methods=['GET'])
@@ -82,13 +83,30 @@ def get_current_startlist():
 
     return get_active_startlist()
 
+
+
 @api_bp.route('/api/get_current_startlist_w_data', methods=['GET'])
 def get_current_startlist_w_data():
+    from app.models import Session_Race_Records, ActiveEvents
+    from app import db
+
     upcoming = request.args.get('upcoming')
+    event = request.args.get('event')
+    heat = request.args.get('heat')
 
     if upcoming != None:
         if upcoming.lower() == "true":
             return get_active_startlist_w_timedate(upcoming=True)
+    
+    if event != None:
+
+        query = db.session.query(ActiveEvents.event_file, ActiveEvents.run, ActiveEvents.mode).filter(
+            ActiveEvents.event_name == event, ActiveEvents.run == heat
+        ).first()
+
+        event = [{'db_file':query.event_file, 'SPESIFIC_HEAT':query.run}]
+        print(event)
+        return get_active_startlist_w_timedate(event_wl=event)
     
     return get_active_startlist_w_timedate()
 
@@ -716,9 +734,6 @@ def submit_timestamp_clock():
     from app import db
     from app.lib.utils import get_active_driver_name
 
-
-
-
     g_config = GetEnv()
 
     db_location = g_config["db_location"]
@@ -869,4 +884,83 @@ def retry_entries():
 
     socketio.emit('response', json.dumps(retry_entries_list), room="socket_retry")
     return retry_entries_list
+
+@api_bp.route('/api/toggle_retry', methods=['GET'])
+def toggle_retry():
+    import json
+    import requests
     
+    driver = request.args.get('driver', default=None, type=str)
+    operation = request.args.get('operation', default=None, type=str)
+
+    g_config = GetEnv()
+
+    db_location = g_config["db_location"]
+    
+    DB_PATH = "site.db"
+
+    if str(driver) == "1":
+        query = "SELECT D1 FROM active_drivers;"
+    else:
+        query = "SELECT D2 FROM active_drivers;"
+
+    with sqlite3.connect(DB_PATH) as con:
+        cur = con.cursor()
+        active_driver = cur.execute(query).fetchall()
+
+    print(active_driver[0][0])
+
+    if operation == "add":
+        payload = json.dumps({
+        "method": "add",
+        "cid": active_driver[0][0]
+        })
+    else:
+        payload = json.dumps({
+        "method": "remove",
+        "cid": active_driver[0][0]
+        })
+
+    url = "http://192.168.1.50:7777/api/retry_entries"
+
+    headers = {
+    'Content-Type': 'application/json'
+    }
+
+    response = requests.request("POST", url, headers=headers, data=payload)
+    return "Changed state"
+
+
+@api_bp.route('/api/set_active_state', methods=['POST'])
+def set_active_state():
+    from app.models import ActiveDrivers, ActiveEvents
+    from app import db
+    
+
+    data = request.json
+    driver_one = data.get("driver_one")
+    driver_two = data.get("driver_two")
+    event = data.get("event")
+    heat = data.get("event_heat")
+    
+    event_file = ActiveEvents.query.filter(
+        ActiveEvents.event_name == data.get("event")).first()
+
+    event_file_id = event_file.event_file[-3:]
+
+    
+    if int(event_file_id[0]) == 0 and int(event_file_id[1]) == 0:
+        event_file_id = event_file_id[-1:]
+    elif int(event_file_id[0]) == 0:
+        event_file_id = event_file_id[-2:]
+
+    current_active_state = ActiveDrivers.query.first()
+
+    current_active_state.Event = event_file_id
+    current_active_state.Heat = heat
+    current_active_state.D1 = driver_one
+    current_active_state.D2 = driver_two
+    db.session.commit()
+    send_data_to_room(get_active_startlist())
+    return "asd"
+    #hostname = data.get('Hostname')

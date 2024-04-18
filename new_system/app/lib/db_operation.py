@@ -195,14 +195,15 @@ def get_active_startlist_w_timedate(upcoming=False, event_wl=None):
     g_config = GetEnv()
 
     if event_wl != None:
-
+        event_db_file = (g_config["db_location"]+event_wl[0]["db_file"]+".sqlite")
+        event_wl[0]["db_file"] = event_db_file
         data = format_startlist(event_wl, include_timedata=True)
         return data
 
     event = get_active_event()
+    
     current_db_file = event[0]["db_file"]
     current_heat = event[0]["SPESIFIC_HEAT"]
-
 
     if upcoming == True:
 

@@ -264,7 +264,9 @@ body, html {
     </div>
     
       </div>
+      <div id="alert_msg">
 
+        </div>
 
     <div class="driver-container">
         <div id="left-driver" class="driver">
@@ -291,6 +293,7 @@ body, html {
                 <span id="boot-icon" class="bi bi-stopwatch" style="font-size: 28px; opacity: 1; -webkit-text-stroke-width: 0px;"></span>
 
             </button>
+            
 
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#mockDataModal">
                 <span id="boot-icon" class="bi bi-arrow-clockwise" style="font-size: 28px; opacity: 1; -webkit-text-stroke-width: 0px;"></span>
@@ -499,7 +502,7 @@ body, html {
 </script>
   <script>
 function add_websocket_live_timer() {
-    const ws = new WebSocket("ws://192.168.20.228:4444/");
+    const ws = new WebSocket("ws://192.168.1.50:4444/");
     var x;
     var arr = [];
 
@@ -744,11 +747,19 @@ document.addEventListener('DOMContentLoaded', function() {
             url: '/api/get_current_startlist_w_data', // API URL
             type: 'GET',
             success: function(data) {
+                
                 old_mode = data[0]["race_config"]["MODE"]
                 validate_mode(data)
                 displayActiveDrivers(data);
                 document.getElementsByClassName("header_title")[0].innerHTML = data[0]["race_config"]["TITLE_1"] + "-" + data[0]["race_config"]["TITLE_2"] + " (" + data[0]["race_config"]["HEAT"] + "/" + data[0]["race_config"]["HEATS"]+")";
                 title_name = [data[0]["race_config"]["TITLE_1"], data[0]["race_config"]["TITLE_2"], data[0]["race_config"]["HEAT"]]
+                console.log(data)
+                if (data[1] == undefined) {
+                    console.log("asdasd")
+                    insert_alert("NO DRIVERS! (JOSTEIN STRESSER SANNSYNELIGVIS MED Å SETTE OPP STARTLISTENE)")
+                } else {
+                    insert_alert("clean")
+                }
                 
                 old_results = MD5(JSON.stringify(data));
             },
@@ -769,11 +780,13 @@ document.addEventListener('DOMContentLoaded', function() {
         add_websocket_live_timer()
 
         socket.on('response', function(dataString) {
-            console.log(dataString)
+            
             const data = JSON.parse(dataString);
             new_title = data[0]["race_config"]["TITLE_1"] + "-" + data[0]["race_config"]["TITLE_2"] + " (" + data[0]["race_config"]["HEAT"] + "/" + data[0]["race_config"]["HEATS"]+")";
             
-            
+            if (!data[0]["drivers"]) {
+                location.reload()
+            }
             var new_result = MD5(JSON.stringify(dataString)); 
 
             if (!(new_result == old_results)) {
@@ -841,6 +854,7 @@ document.getElementById('arrow-right').addEventListener('click', function() {
 let driver_names = []
 
 async function updateDriverDisplay() {
+    
     if (driverPairs[currentPairIndex] && driverPairs[currentPairIndex].drivers) {
         const drivers = driverPairs[currentPairIndex].drivers;
         document.getElementsByClassName("heat_num")[0].innerHTML = (currentPairIndex + 1)+"/"+driverPairs.length;
@@ -863,6 +877,8 @@ async function updateDriverDisplay() {
         }
         driver_names.push(left_driver_name)
         driver_names.push(right_driver_name)
+
+
 
         // Update the HTML content of the driver divs
         $('#left-driver').html(websocket_driver_data(leftDriver, 1));
@@ -941,6 +957,23 @@ function get_retry_entries(title_name) {
 
 function milliseconds_to_sec(ms) {
     return (ms / 1000).toFixed(3)
+}
+
+function insert_alert(msg) {
+    if (msg == "clean") {
+        var alert_div = document.getElementById('alert_msg');
+        alert_div.innerHTML = "";
+    } else {
+        alert_msg = `
+        <div style="text-align: center;" class="alert alert-danger" role="alert">
+            ${msg}
+        </div>
+            `
+        var alert_div = document.getElementById('alert_msg');
+        alert_div.innerHTML = alert_msg;
+    }
+
+
 }
 
 function display_get_top_driver_header(data) {

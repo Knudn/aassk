@@ -1,4 +1,3 @@
-
 import asyncio
 import websockets
 import re
@@ -7,6 +6,7 @@ import sqlite3
 import logging
 import requests
 import socket
+import time
 
 # Setting up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -170,6 +170,7 @@ async def handle_client(reader, writer):
     while True:
         await asyncio.sleep(0.05)
         data = await reader.read(4096)
+
         decoded_data = data.decode('iso-8859-1')
         if decoded_data:
             data_clean(data)

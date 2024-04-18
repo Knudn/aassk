@@ -35,8 +35,12 @@ def admin(tab_name):
         return export_data()
     elif tab_name == 'clock_mgnt':
         return clock_mgnt()
+    elif tab_name == 'time_keeper':
+        return timekeeperpage()
     else:
         return "Invalid tab", 404
+
+
 
 def s_set_active_driver():
     from flask import current_app
@@ -57,13 +61,17 @@ def s_set_active_driver():
 
     return render_template('admin/s_set_active_driver.html') 
 
+
+
 def home_tab():
     from app.models import ActiveDrivers, ActiveEvents, Session_Race_Records, GlobalConfig, MicroServices
     from app import db
     from sqlalchemy import func
 
-    db_location = db.session.query(GlobalConfig.db_location).all()[0][0]
-
+    g_conf = db.session.query(GlobalConfig.db_location, GlobalConfig.event_dir).all()[0]
+    db_location = g_conf[0]
+    mount_path = g_conf[1]
+    mount_bool = str(os.path.ismount(mount_path))
 
     # Query to get distinct event names and their counts
     enabled_events = (ActiveEvents.query
@@ -183,7 +191,7 @@ def home_tab():
                 elif bool(service_object.state) == True and service_state == "restart":
                     print("Restart")
 
-    return render_template('admin/index.html', drivercount=drivers, num_run=number_runs, num_events=enabled_events, events=unique_events, microservices=services)
+    return render_template('admin/index.html', drivercount=drivers, num_run=number_runs, num_events=enabled_events, events=unique_events, microservices=services, mount_bool=mount_bool, mount_path=mount_path)
 
 def cross_config_tab():
     from app.models import CrossConfig, db
@@ -233,12 +241,16 @@ def cross_config_tab():
     return render_template('admin/cross_config_tab.html', cross_config=cross_config, driver_scores_json=driver_scores_json)
 
 def global_config_tab():
-    from app.models import GlobalConfig, ConfigForm, ActiveDrivers, Session_Race_Records, MicroServices
+    from app.models import GlobalConfig, ConfigForm, ActiveDrivers, Session_Race_Records, MicroServices, ActiveEvents
     from app import db
     from app.lib.utils import manage_process_screen
+    from sqlalchemy import asc
+
 
 
     global_config = GlobalConfig.query.all()
+
+
     form = ConfigForm()
     
     if request.method == 'POST':
@@ -254,6 +266,7 @@ def global_config_tab():
                 config.wl_bool = bool(form.wl_bool.data)
                 config.display_proxy = bool(form.display_proxy.data)
                 config.cross = bool(form.cross.data)
+                config.keep_previous_sort = form.keep_previous_sort.data
                 config.wl_cross_title = form.wl_cross_title.data
                 config.exclude_title = form.exclude_title.data
 
@@ -266,11 +279,32 @@ def global_config_tab():
         elif 'update' in request.form: 
             print("asdasd")
         else:
-            
+            keep_previous_sort = global_config[0].keep_previous_sort
+            print(keep_previous_sort)
+
+            if global_config[0].keep_previous_sort == True:
+                ActiveEvents_entries = ActiveEvents.query.filter(ActiveEvents.id).order_by(asc(ActiveEvents.sort_order)).all()
+                ActiveEvents_list = []
+                for h in ActiveEvents_entries:
+                    ActiveEvents_list.append(h.id)
+
+                #
+
             db.session.query(Session_Race_Records).delete()
             full_db_reload(add_intel_sort=True)
+            if global_config[0].keep_previous_sort == True:
+
+                order_mapping = {id_value: index for index, id_value in enumerate(ActiveEvents_list)}
+                events = ActiveEvents.query.filter(ActiveEvents.id.in_(ActiveEvents_list)).all()
+                for event in events:
+
+                    event.sort_order = order_mapping[event.id]
+                    
+                db.session.commit()
             
         return redirect(url_for('admin.admin', tab_name='global-config'))
+
+
 
     return render_template('admin/global_config.html', global_config=global_config, form=form)
 
@@ -278,6 +312,8 @@ def global_config_tab():
 def active_events():
     from app.models import ActiveEvents, EventType, EventOrder, GlobalConfig
     from app import db
+
+    
 
     if request.method == 'POST':
         # Handle the form data for table updates
@@ -304,6 +340,7 @@ def active_events():
         
         # If sort_data is provided, process it to update the sort order
         elif sort_data:
+            
             try:
                 EventType.query.delete()
                 EventOrder.query.delete()
@@ -561,18 +598,24 @@ def infoscreen():
 def export_data():
     from app.models import ActiveEvents, GlobalConfig, LockedEntry, archive_server
     from app import db
+    
     if request.method == 'POST':
-        content_type = request.content_type
-        if content_type.startswith("application/json"):
-            archive_params = archive_server.query.first()
-            if archive_params == None:
-                archive_params = archive_server(hostname=request.get_json()["enpoint_url"], auth_token=request.get_json()["auth_token"], use_use_token=request.get_json()["use_auth_token"])
-                db.session.add(archive_params)
-            else:
-                archive_params.hostname = request.get_json()["enpoint_url"]
-                archive_params.auth_token = request.get_json()["auth_token"]
-                archive_params.use_use_token = request.get_json()["use_auth_token"]
-            
+        print("sdjfjkdfgkjdnfg")
+        try:
+            content_type = request.content_type
+            if content_type.startswith("application/json"):
+                archive_params = archive_server.query.first()
+                print(archive_params)
+                if archive_params == None:
+                    print(request.get_json()["endpoint_url"])
+                    archive_params = archive_server(hostname=request.get_json()["endpoint_url"], auth_token=request.get_json()["auth_token"], use_use_token=request.get_json()["use_auth_token"])
+                    db.session.add(archive_params)
+                else:
+                    archive_params.hostname = request.get_json()["endpoint_url"]
+                    archive_params.auth_token = request.get_json()["auth_token"]
+                    archive_params.use_use_token = request.get_json()["use_auth_token"]
+        except:
+            print(request.get_json()["endpoint_url"])  
             db.session.commit()
 
             print(request.get_json())
@@ -623,3 +666,6 @@ def clock_mgnt():
     event_data_json = Markup(json.dumps(current_timestamps))
     
     return render_template('admin/clock_mgnt.html', event_data=event_data_json, toggles=toggles)
+
+def timekeeperpage():
+    return render_template('admin/timekeeperpage.html')

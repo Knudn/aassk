@@ -520,3 +520,7 @@ def get_event_order_vmix():
         results2 = []
 
     return render_template('vmix/get_event_order_vmix.html', events=results, events2=results2)
+
+@vmix_bp.route('/vmix/get_active_ladder', methods=['GET'])
+def get_active_ladder():
+    return render_template('vmix/active_ladder.html')

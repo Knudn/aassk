@@ -58,6 +58,7 @@ class ConfigForm(FlaskForm):
     wl_cross_title = StringField('Whitelist Cross Title')
     exclude_title = StringField('Blacklist Title')
     wl_bool = BooleanField('Use Whitelist')
+    keep_previous_sort = BooleanField('Keep previous event sort')
     display_proxy = BooleanField('Use MSport display proxy')
     cross = BooleanField('Watercross/Snowcross')
     submit = SubmitField('Save')
@@ -75,10 +76,12 @@ class GlobalConfig(db.Model):
     cross = db.Column(db.Boolean, default=False)
     display_proxy = db.Column(db.Boolean, default=True)
     Smart_Sorting = db.Column(db.Boolean, default=False)
+    keep_previous_sort = db.Column(db.Boolean, default=False)
     wl_cross_title = db.Column(db.String(100), nullable=False, default="")
     exclude_title = db.Column(db.String(100), nullable=False, default="")
     auto_commit_manual_clock = db.Column(db.Boolean, default=False)
     dual_start_manual_clock = db.Column(db.Boolean, default=False)
+
 
 
 class ActiveEvents(db.Model):

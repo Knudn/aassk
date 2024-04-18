@@ -101,7 +101,15 @@
                         </div>
                     </td>
                 </tr>
-                
+                <tr>
+                    <td>Keep order event order?</td>
+                    <td>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="keep_previous_sort" {% if config.keep_previous_sort %}checked{% endif %}>
+                            <i class="form-text text-muted">This will make it so the order of the event stay unchanged after reload.</i>
+                        </div>
+                    </td>
+                </tr>
                 
                 <tr>
                     <td>Snowcross/Watercross?</td>

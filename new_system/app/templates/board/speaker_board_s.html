@@ -1334,6 +1334,55 @@ displayHTML += "<hr class='my-4' style='border-top: 3px solid green;'>";
 return displayHTML;
 }
 
+function display_retry_entries(entries) {
+    const tableBody = document.querySelector('#mockDataModal .modal-body table tbody');
+    tableBody.innerHTML = ''; // Clear the existing table rows
+
+    // Convert entry driver names to lowercase for case-insensitive comparison
+    const entryDriverNamesLower = entries.map(entry => entry.driver_name.toLowerCase());
+
+    // Prepare driver containers and their default T text elements
+    const driverContainersInfo = [
+        { containerId: 'left-driver', tClass: '.T1' },
+        { containerId: 'right-driver', tClass: '.T2' }
+    ];
+
+    driverContainersInfo.forEach(info => {
+        const container = document.getElementById(info.containerId);
+        const tEl = container.querySelector(info.tClass);
+
+        // Reset T text to default state for all drivers first
+        if (tEl) {
+            tEl.textContent = '0'; // Default state
+            tEl.style.color = ''; // Reset color to default
+        }
+
+        // Find the driver name element within the container
+        const driverNameEl = container.querySelector('.active_drivers');
+        if (driverNameEl) {
+            const driverNameLower = driverNameEl.textContent.trim().toLowerCase();
+
+            // Mark as "RETRY" if the driver's name is in the entry list
+            if (entryDriverNamesLower.includes(driverNameLower)) {
+                if (tEl) {
+                    tEl.style.color = 'red';
+                }
+            }
+        }
+    });
+
+    // Populate the modal table with the current entries
+    entries.forEach(entry => {
+        const row = document.createElement('tr');
+        row.innerHTML = `
+            <td>${entry.driver_name}</td>
+            <td>${entry.title}</td>
+            <td>${entry.CID}</td>
+        `;
+        tableBody.appendChild(row);
+    });
+}
+
 
   </script>
   
