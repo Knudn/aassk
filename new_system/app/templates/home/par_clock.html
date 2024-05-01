@@ -365,6 +365,7 @@ function sendFixedTimestamp(index) {
         contentType: 'application/json',
         data: JSON.stringify(data), 
         success: function(response) {
+            console.log(response)
             console.log('Success:', response);
         },
         error: function(xhr, status, error) {
@@ -415,11 +416,13 @@ function resendTimestamp(index, timestampDiv) {
     console.log("Resending", data);
 
     // AJAX request to resend the timestamp with the edited values
+    console.log(data)
     $.ajax({
         url: '/api/submit_timestamp_clock', // Adjust URL as needed
         type: 'POST',
         contentType: 'application/json',
         data: JSON.stringify(data),
+        
         success: function(response) {
             console.log('Resend Success:', response);
         },

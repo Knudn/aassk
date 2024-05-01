@@ -7,6 +7,9 @@ import logging
 import requests
 import socket
 import time
+import aiohttp
+import string
+
 
 # Setting up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -22,22 +25,9 @@ with sqlite3.connect(DB_PATH) as con:
     cur = con.cursor()
     listen_ip = cur.execute("SELECT params FROM microservices WHERE path = 'msport_display_proxy.py';").fetchone()[0]
 
-
-#Regex rules
-PARRALEL_PATTERNS = {
-    "name_1": r'<name1>(.*?)</name1>',
-    "name_2": r'<name2>(.*?)</name2>',
-    "time_1": r'TO(.*?)OT',
-    "time_2": r'TT(.*?)TT',
-    "bid_1": r'C1(\d+)1C',
-    "bid_2": r'C2(\d+)2C',
-    "snowmobile_1": r'POS(.*?)POS',
-    "snowmobile_2": r'PTS(.*?)PTS'
-}
-
 data_sock = {
-    "Driver1": {"name": "", "time": "0"},
-    "Driver2": {"name": "", "time": "0"}
+    "Driver1": {"first_name": "", "last_name":"" , "time": "0"},
+    "Driver2": {"first_name": "", "last_name":"" , "time": "0"}
 }
 
 driver_index = 0
@@ -48,138 +38,184 @@ update_field = False
 
 d_history = ""
 
-def update_driver(D1=None, D2=None):
+
+async def async_update_event(listen_ip):
+    async with aiohttp.ClientSession() as session:
+        url = f"http://{listen_ip}:7777/api/active_event_update"
+        try:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    logging.info("Event update successful")
+                else:
+                    logging.error("Event update failed with status: %s", response.status)
+        except Exception as e:
+            logging.error("Failed to send update: %s", str(e))
+
+
+class DatabaseHandler:
+    def __init__(self, db_path):
+        self.conn = sqlite3.connect(db_path, check_same_thread=False)
+        self.conn.row_factory = sqlite3.Row
+
+    def update_driver(self, D1=None, D2=None):
+        with self.conn as con:
+            cur = con.cursor()
+            try:
+                if D1 is not None and D2 is not None:
+                    cur.execute("UPDATE active_drivers SET D1 = ?, D2 = ?;", (D1, D2))
+                elif D1 is not None:
+                    cur.execute("UPDATE active_drivers SET D1 = ?;", (D1,))
+                elif D2 is not None:
+                    cur.execute("UPDATE active_drivers SET D2 = ?;", (D2,))
+                con.commit()
+            except sqlite3.Error as e:
+                logging.error("SQLite error: %s", e)
+            except Exception as e:
+                logging.error("Exception in updating drivers: %s", str(e))
+            finally:
+                logging.info(cur.execute("SELECT * FROM active_drivers;").fetchall())
+
+    def __del__(self):
+        self.conn.close()
+
+
+
+def strip_stx(input_string):
+    # Remove the STX character (ASCII 2)
+    return re.sub(r'\x02', '', input_string)
+
+async def data_clean(data, db_handler):
+    update_event = False
+
+    data_decoded = data.decode('iso-8859-1')
     
-    with sqlite3.connect(DB_PATH) as con:
-        cur = con.cursor()
-        if D1 is not None and D2 is not None:
-            cur.execute("UPDATE active_drivers SET D1 = ?, D2 = ?;", (D1, D2))
-        elif D1 is not None:
-            cur.execute("UPDATE active_drivers SET D1 = ?;", (D1,))
-        elif D2 is not None:
-            cur.execute("UPDATE active_drivers SET D2 = ?;", (D2,))
-        con.commit()
-        print(cur.execute("SELECT * FROM active_drivers;").fetchall())
+    data_decoded = strip_stx(data_decoded)
+    data_new = str.splitlines(data_decoded)
+    for b in data_new:
+        #Driver_time D1
+        if b[0] == "1":
+            driver_1_time = b[2:].rstrip()
+            if driver_1_time == "":
+                continue
 
-def extract_data(pattern_key, data):
-    match = re.search(PARRALEL_PATTERNS[pattern_key], data)
-    return match.group(1).strip().replace('  ', ' ') if match else None
+            data_sock["Driver1"]["time"] = driver_1_time
+            if len(str(data_sock["Driver2"]["time"])) > 4 and len(str(data_sock["Driver1"]["time"])) > 4:
+                if data_sock["Driver1"]["time"][-4] == "." and data_sock["Driver2"]["time"][-4] == ".":
+                    update_event = True
 
-def data_clean(data):
-    global refresh_triggers
-    global driver_index
-    global update_field
-    global d_history
+        elif b[0] == "2":
+            driver_2_time = b[2:].rstrip()
+            if driver_2_time == "":
+                continue
 
-    data = data.decode('iso-8859-1')
-    
-    name_1 = extract_data("name_1", data)
-    name_2 = extract_data("name_2", data)
-    time_1 = extract_data("time_1", data)
-    time_2 = extract_data("time_2", data)
-    bid_1 = extract_data("bid_1", data)
-    bid_2 = extract_data("bid_2", data)
-    snowp1 = extract_data("snowmobile_1", data)
-    snowp2 = extract_data("snowmobile_2", data)
+            data_sock["Driver2"]["time"] = driver_2_time
+            if len(str(data_sock["Driver2"]["time"])) > 4 and len(str(data_sock["Driver1"]["time"])) > 4:
+                print(data_sock["Driver1"]["time"][-4])
+                if data_sock["Driver1"]["time"][-4] == "." and data_sock["Driver2"]["time"][-4] == ".":
+                    
+                    update_event = True
 
-    print(data)
-    if "update" in data:
-        update_field = True
-
-    if name_1:
-        if d_history != name_1:
-            driver_index = 0
-        print(name_1, "Name1")
-        data_sock["Driver1"]["name"] = name_1
-        data_sock["Driver1"]["time"] = 0
-        if "FILLER" in name_1:
-            driver_index += 1
-            if driver_index >= 2:
-                update_field = True
-    if name_2:
-        print(name_2, "Name2")
-        data_sock["Driver2"]["name"] = name_2
-        data_sock["Driver2"]["time"] = 0
-        if "FILLER" in name_2:
-            driver_index += 1
-            if driver_index >= 2:
-                update_field = True
-
-    if bid_1 or bid_2:
-
-        try:
-            update_driver(D1=bid_1, D2=bid_2)
-            update_field = True
-            logging.info("Updated active driver: %s, %s", bid_1, bid_2)
-
-        except:
-            logging.info("Could not update drivers: %s, %s", bid_1, bid_2)
-
-    if time_1 and "TO" in data:
-        data_sock["Driver1"]["time"] = time_1
-
-        try:
-            if len(time_1.split(".")[1]) >= 3:
-                driver_index += 1
-                if driver_index >= 2:
-                    driver_index = 0
-                    update_field = True
-        except:
-            if time_1 in refresh_triggers:
-                driver_index += 1
-                if driver_index >= 2:
-                    driver_index = 0
-                    update_field = True
-
-    if time_2 and "TT" in data:
-
-        data_sock["Driver2"]["time"] = time_2
-
-        try:
-            if len(time_2.split(".")[1]) >= 3:
-                driver_index += 1
-                if driver_index >= 2:
-                    driver_index = 0
-                    update_field = True
-        except:
-            if time_2 in refresh_triggers:
-                driver_index += 1
-                if driver_index >= 2:
-                    driver_index = 0
-                    update_field = True
             
+            print(driver_2_time)
 
-    
-    if snowp1 and "POS" in data:
-        data_sock["Driver1"]["snowmobile"] = snowp1
+        elif b[0] == "3":
+            update_event = True
 
-    if snowp2 and "PTS" in data:
-        data_sock["Driver2"]["snowmobile"] = snowp2
-    
-    if update_field == True:
-        requests.get("http://{0}:7777/api/active_event_update".format(listen_ip))
-        update_field = False
+        elif b[0] == "4":
+            #BID Driver 1
+            driver_1_bid = b[2:].rstrip()
+            db_handler.update_driver(D1=driver_1_bid)
+            data_sock["Driver1"]["time"] = "0"
+            update_event = True
+            print(driver_1_bid)
+
+        elif b[0] == "5":
+            #BID Driver 2
+            driver_2_bid = b[2:].rstrip()
+            db_handler.update_driver(D2=driver_2_bid)
+            data_sock["Driver2"]["time"] = "0"
+            update_event = True
+        elif b[0] == "6":
+            #Driver 1, first name
+            driver_1_first_name = b[2:].rstrip()
+            data_sock["Driver1"]["first_name"] = driver_1_first_name
+            print(driver_1_first_name)
+        elif b[0] == "7":
+            #Driver 1, last name
+            driver_1_last_name = b[2:].rstrip()
+            data_sock["Driver1"]["last_name"] = driver_1_last_name
+            print(driver_1_last_name)
+        elif b[0] == "8":
+            #Driver 2, first name
+            driver_2_first_name = b[2:].rstrip()
+            data_sock["Driver2"]["first_name"] = driver_2_first_name
+            print(driver_2_first_name)
+        elif b[0] == "9":
+            #Driver 2, last name
+            driver_2_last_name = b[2:].rstrip()
+            data_sock["Driver2"]["last_name"] = driver_2_last_name
+
+            print(driver_2_last_name)
+        elif b[0] == "A":
+            #Driver 1, snowmobile
+            driver_1_snowmobile = b[2:].rstrip()
+            data_sock["Driver1"]["snowmobile"] = driver_1_snowmobile
+            print(driver_1_snowmobile)
+        elif b[0] == "B":
+            #Driver 2, snowmobile
+            driver_2_snowmobile = b[2:].rstrip()
+            data_sock["Driver2"]["snowmobile"] = driver_2_snowmobile
+            print(driver_2_snowmobile)
+        elif b[0] == "C":
+            #Update event
+            update_event = True
+
+    if update_event == True:
+        print("Updating....")
+        asyncio.create_task(async_update_event(listen_ip))
+        update_event = False
+
+    #if len(data_sock["Driver1"]["time"]) > 3 and len(data_sock["Driver1"]["time"]) > 3:
+    #    upate
+    #    asyncio.create_task(async_update_event(listen_ip))
+
+    #if update_field == True:
+    #    await async_update_event(listen_ip)
+    #    update_field = False
 
 async def server(ws, path):
     while True:
-        await asyncio.sleep(0.05)
-        await ws.send(json.dumps(data_sock, indent=4))
+        await asyncio.sleep(0.1)
+        if ws.open:
+            try:
+                
+                    
+
+                message_to_send = json.dumps(data_sock, indent=4)
+                await ws.send(message_to_send)
+                # Check and act on update_field
+            except Exception as e:
+                logging.error(f"WebSocket error: {e}")
+                break
+        else:
+            logging.info("WebSocket connection is closed. Stopping message send.")
+            break
+
+
 
 async def handle_client(reader, writer):
-    
-    while True:
-        await asyncio.sleep(0.05)
-        data = await reader.read(4096)
+    db_handler = DatabaseHandler(DB_PATH)
+    try:
+        while True:
+            data = await reader.read(2048)
+            if data:
 
-        decoded_data = data.decode('iso-8859-1')
-        if decoded_data:
-            data_clean(data)
-            writer.write(data)
-            await asyncio.sleep(0.05)
-            await writer.drain()
+                await data_clean(data, db_handler)
+            await asyncio.sleep(0.1)
+    finally:
+        del db_handler
 
 async def main():
-    print(listen_ip)
     server = await asyncio.start_server(handle_client, listen_ip, 7000)
 
     async with server:

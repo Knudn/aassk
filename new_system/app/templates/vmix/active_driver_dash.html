@@ -7,8 +7,8 @@
     var arr = [];
     console.log(ws)
     function updateContent(newData) {
-        document.getElementsByClassName("D1")[0].innerHTML = newData.Driver1.name;
-        document.getElementsByClassName("D2")[0].innerHTML = newData.Driver2.name;
+        document.getElementsByClassName("D1")[0].innerHTML = newData.Driver1.first_name + " " + newData.Driver1.last_name;
+        document.getElementsByClassName("D2")[0].innerHTML = newData.Driver2.first_name + " " + newData.Driver2.last_name;
         document.getElementsByClassName("T1")[0].innerHTML = newData.Driver1.time;
         document.getElementsByClassName("T2")[0].innerHTML = newData.Driver2.time;
         document.getElementsByClassName("S1")[0].innerHTML = newData.Driver1.snowmobile;
