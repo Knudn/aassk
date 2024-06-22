@@ -158,13 +158,20 @@ def home_tab():
             service_state = request.form.get('service_state')
             params = request.form.get('ip_address')
 
+            if service_name == None:
+                return "None"
+
             print(service_name, service_state, params)
+
+
             
             service_object = db.session.query(MicroServices).filter((MicroServices.name == service_name)).first()
+            print(service_object)
             if service_object is not None:
-
+                
                 if bool(service_object.state) == False and service_state == "start":
                     service_object.state = True
+                    print("asdasd")
 
                     if params != None:
                         service_object.params = params

@@ -49,6 +49,7 @@
             wlCrossTitleInput.disabled = false;
         }
     }
+    
 
 
 
@@ -117,6 +118,15 @@
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="cross" id="cross_checkbox" {% if config.cross %}checked{% endif %} onclick="toggleCrossWhitelist();">
                             <i class="form-text text-muted">If enabled, make sure you have configured the <a href="/admin/cross_config" class="your-optional-class-for-styling">cross profile</a> <b>before</b> reloading</i>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Autocommit changes?</td>
+                    <td>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="autocommit" {% if config.autocommit %}checked{% endif %}>
+                            <i class="form-text text-muted">Will automatically refresh the database and look for changes (can cause issues)</i>
                         </div>
                     </td>
                 </tr>

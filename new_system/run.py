@@ -77,7 +77,7 @@ def create_tables(app):
             services = [
                 ["Msport Proxy", "msport_display_proxy.py", "{0}".format(args.host)],
                 ["Cross Clock Server", "cross_clock_server.py"],
-                ["Backup Clock", "clock_server_vola.py", "192.168.1.77"],
+                ["Backup Clock", "clock_server_vola.py", "192.168.1.51"],
                 ["PDF Converter", "pdf_converter.py"]
             ]
             

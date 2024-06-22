@@ -9,11 +9,14 @@ import socket
 import time
 import aiohttp
 import string
+import os
 
 
 # Setting up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
+current_working_directory = os.getcwd()
+print(current_working_directory)
 
 
 # Constants
@@ -26,8 +29,8 @@ with sqlite3.connect(DB_PATH) as con:
     listen_ip = cur.execute("SELECT params FROM microservices WHERE path = 'msport_display_proxy.py';").fetchone()[0]
 
 data_sock = {
-    "Driver1": {"first_name": "", "last_name":"" , "time": "0"},
-    "Driver2": {"first_name": "", "last_name":"" , "time": "0"}
+    "Driver1": {"first_name": "", "last_name":"" , "time": "0", "bid":"0"},
+    "Driver2": {"first_name": "", "last_name":"" , "time": "0", "bid":"0"}
 }
 
 driver_index = 0
@@ -38,6 +41,8 @@ update_field = False
 
 d_history = ""
 
+d1_update = False
+d2_update = False
 
 async def async_update_event(listen_ip):
     async with aiohttp.ClientSession() as session:
@@ -85,6 +90,9 @@ def strip_stx(input_string):
     return re.sub(r'\x02', '', input_string)
 
 async def data_clean(data, db_handler):
+    global d1_update
+    global d2_update
+
     update_event = False
 
     data_decoded = data.decode('iso-8859-1')
@@ -98,43 +106,70 @@ async def data_clean(data, db_handler):
             if driver_1_time == "":
                 continue
 
-            data_sock["Driver1"]["time"] = driver_1_time
-            if len(str(data_sock["Driver2"]["time"])) > 4 and len(str(data_sock["Driver1"]["time"])) > 4:
-                if data_sock["Driver1"]["time"][-4] == "." and data_sock["Driver2"]["time"][-4] == ".":
+            if len(str(data_sock["Driver1"]["time"])) > 4:
+                if (data_sock["Driver1"]["time"][-4] == ".") and driver_1_time in refresh_triggers:
                     update_event = True
 
+            data_sock["Driver1"]["time"] = driver_1_time
+
+            if data_sock["Driver1"]["time"] in refresh_triggers:
+                d1_update = True
+                print("Set D1 Update to True")
+    
+            elif len(str(data_sock["Driver1"]["time"])) > 4:
+                if (data_sock["Driver1"]["time"][-4] == "."):
+                    print("Set D1 Update to True, based on time")
+                    d1_update = True
+                
         elif b[0] == "2":
             driver_2_time = b[2:].rstrip()
             if driver_2_time == "":
                 continue
 
-            data_sock["Driver2"]["time"] = driver_2_time
-            if len(str(data_sock["Driver2"]["time"])) > 4 and len(str(data_sock["Driver1"]["time"])) > 4:
-                print(data_sock["Driver1"]["time"][-4])
-                if data_sock["Driver1"]["time"][-4] == "." and data_sock["Driver2"]["time"][-4] == ".":
-                    
+            if len(str(data_sock["Driver2"]["time"])) > 4:
+                if (data_sock["Driver2"]["time"][-4] == ".") and driver_2_time in refresh_triggers:
                     update_event = True
 
-            
-            print(driver_2_time)
+            data_sock["Driver2"]["time"] = driver_2_time
+
+            if data_sock["Driver2"]["time"] in refresh_triggers:
+                print("Set D2 Update to True")
+                d2_update = True
+    
+            elif len(str(data_sock["Driver2"]["time"])) > 4:
+                if (data_sock["Driver2"]["time"][-4] == "."):
+                    print("Set D2 Update to True, based on time")
+                    d2_update = True
 
         elif b[0] == "3":
             update_event = True
 
         elif b[0] == "4":
             #BID Driver 1
+            
+            
             driver_1_bid = b[2:].rstrip()
-            db_handler.update_driver(D1=driver_1_bid)
-            data_sock["Driver1"]["time"] = "0"
-            update_event = True
-            print(driver_1_bid)
+            if driver_1_bid != "":
+                print("Updating BID for driver 1 to", driver_1_bid)
+
+                db_handler.update_driver(D1=driver_1_bid)
+                
+                data_sock["Driver1"]["bid"] = driver_1_bid
+                data_sock["Driver1"]["time"] = "0"
+                d1_update = True
+                print(driver_1_bid)
 
         elif b[0] == "5":
             #BID Driver 2
+            
             driver_2_bid = b[2:].rstrip()
-            db_handler.update_driver(D2=driver_2_bid)
-            data_sock["Driver2"]["time"] = "0"
-            update_event = True
+            if driver_2_bid != "":
+                print("Updating BID for driver 2 to", driver_2_bid)
+                db_handler.update_driver(D2=driver_2_bid)
+                data_sock["Driver2"]["bid"] = driver_2_bid
+                data_sock["Driver2"]["time"] = "0"
+                d2_update = True
+
         elif b[0] == "6":
             #Driver 1, first name
             driver_1_first_name = b[2:].rstrip()
@@ -170,10 +205,16 @@ async def data_clean(data, db_handler):
             #Update event
             update_event = True
 
-    if update_event == True:
+    if d1_update == True and d2_update == True:
+        update_event = True
+
+    if update_event  == True:
         print("Updating....")
         asyncio.create_task(async_update_event(listen_ip))
+        d1_update = False
+        d2_update = False
         update_event = False
+        
 
     #if len(data_sock["Driver1"]["time"]) > 3 and len(data_sock["Driver1"]["time"]) > 3:
     #    upate

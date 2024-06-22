@@ -81,7 +81,7 @@ class GlobalConfig(db.Model):
     exclude_title = db.Column(db.String(100), nullable=False, default="")
     auto_commit_manual_clock = db.Column(db.Boolean, default=False)
     dual_start_manual_clock = db.Column(db.Boolean, default=False)
-
+    autosubmit_changes = db.Column(db.Boolean, default=False)
 
 
 class ActiveEvents(db.Model):

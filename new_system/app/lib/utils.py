@@ -110,7 +110,7 @@ def manage_process_screen(python_program_path: str, operation: str, new_argument
 
     global_config = GlobalConfig.query.get(1)
     program_file = python_program_path
-    python_program_path = global_config.project_dir + "/scripts/" + python_program_path
+    python_program_path = global_config.project_dir + "scripts/" + python_program_path
     python_executable = sys.executable
     program_name = os.path.basename(python_program_path)
     screen_session_name = f"session_{program_name}"
@@ -129,8 +129,8 @@ def manage_process_screen(python_program_path: str, operation: str, new_argument
         if is_screen_session_running(screen_session_name):
             logging.error(f"Screen session {screen_session_name} may already be running.")
             return
-
         start_cmd = f"screen -dmS {screen_session_name} {python_executable} {shlex.quote(python_program_path)}"
+        print(start_cmd)
         subprocess.Popen(start_cmd, shell=True)
         logging.info(f"Screen session {screen_session_name} started with program {program_name}")
 
@@ -369,21 +369,24 @@ def format_startlist(event,include_timedata=False):
                                     drivers_in_race[0]["status"] = 1
                                     drivers_in_race[1]["status"] = 2
 
-                                if "status" in drivers_in_race[0] and drivers_in_race[1]["time_info"]["FINISHTIME"] > 0:
+                                if "status" in drivers_in_race[0] and drivers_in_race[1]["time_info"]["FINISHTIME"] and drivers_in_race[1]["time_info"]["PENELTY"] == 0:
+                                    print(drivers_in_race[0]["first_name"], "WINNER 1")
                                     drivers_in_race[1]["status"] = 1
                                     drivers_in_race[0]["status"] = 2
                                     
-                                elif "status" in drivers_in_race[1] and drivers_in_race[0]["time_info"]["FINISHTIME"] > 0:
+                                elif "status" in drivers_in_race[1] and drivers_in_race[0]["time_info"]["FINISHTIME"] and drivers_in_race[1]["time_info"]["PENELTY"] == 0:
+                                    print(drivers_in_race[1]["first_name"], "WINNER 0")
                                     drivers_in_race[0]["status"] = 1
                                     drivers_in_race[1]["status"] = 2
                                 
 
                                 if drivers_in_race[0]["time_info"]["FINISHTIME"] < drivers_in_race[1]["time_info"]["FINISHTIME"] and not "status" in drivers_in_race[0]:
-
+                                    print(drivers_in_race[0]["first_name"], "WINNER 1")
                                     drivers_in_race[0]["status"] = 1
                                     drivers_in_race[1]["status"] = 2
 
                                 elif drivers_in_race[0]["time_info"]["FINISHTIME"] > drivers_in_race[1]["time_info"]["FINISHTIME"] and not "status" in drivers_in_race[1]:
+                                    print(drivers_in_race[1]["first_name"], "WINNER 0")
                                     drivers_in_race[1]["status"] = 1
                                     drivers_in_race[0]["status"] = 2
 
