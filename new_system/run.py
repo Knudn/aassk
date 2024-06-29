@@ -4,7 +4,7 @@ from app.lib.db_operation import update_active_event
 import os
 import logging
 from logging.handlers import RotatingFileHandler
-from app.lib.utils import GetEnv, is_screen_session_running, manage_process_screen
+from app.lib.utils import GetEnv, is_screen_session_running, manage_process_screen, fifo_monitor
 import socket
 import argparse
 
@@ -53,7 +53,11 @@ def create_tables(app):
                 db_location = pwd+"/data/event_db/",
                 event_dir = "/mnt/test/",
                 wl_title = "Eikerapen",
-                infoscreen_asset_path="/app/static/assets/infoscreen"
+                infoscreen_asset_path="/app/static/assets/infoscreen",
+                intermediate_path="/mnt/intermediate/",
+                hard_event_dir="/mnt/test/",
+                autocommit=True,
+                use_intermediate=True
             )
             db.session.add(default_config)
             db.session.commit()
@@ -78,7 +82,8 @@ def create_tables(app):
                 ["Msport Proxy", "msport_display_proxy.py", "{0}".format(args.host)],
                 ["Cross Clock Server", "cross_clock_server.py"],
                 ["Backup Clock", "clock_server_vola.py", "192.168.1.51"],
-                ["PDF Converter", "pdf_converter.py"]
+                ["PDF Converter", "pdf_converter.py"],
+                ["Intermediate Listener", "intermediate_list.py"]
             ]
             
             for a in services:
@@ -131,7 +136,7 @@ def create_tables(app):
                 db.session.add(new_entry)
             db.session.commit()
 
-        GlobalConfig_db = GetEnv()
+        #GlobalConfig_db = GetEnv()
 
         try:
             active_event,active_heat = update_active_event(GlobalConfig_db)
@@ -151,11 +156,14 @@ def create_tables(app):
             db.session.add(default_config)
             db.session.commit()
 
+        return GlobalConfig_db
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(description='Run the web server with spesific host.')
     parser.add_argument('--host', type=str, default='0.0.0.0',
                             help='Host address to listen on. Default is 0.0.0.0.')
+
     args = parser.parse_args()
     IP = args.host 
     app, socketio = create_app()
@@ -165,4 +173,3 @@ if __name__ == '__main__':
     app.logger.info('App started')
     create_tables(app)
     socketio.run(app, debug=True, host=args.host, port=7777) 
-    

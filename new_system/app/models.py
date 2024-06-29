@@ -62,6 +62,12 @@ class ConfigForm(FlaskForm):
     display_proxy = BooleanField('Use MSport display proxy')
     cross = BooleanField('Watercross/Snowcross')
     submit = SubmitField('Save')
+
+    intermediate_path = StringField('Whitelist Title')
+    hard_event_dir = StringField('Whitelist Title')
+    autocommit = BooleanField('Watercross/Snowcross')
+    use_intermediate = BooleanField('Watercross/Snowcross')
+
     reload = SubmitField('Reload local DB')
 
 class GlobalConfig(db.Model):
@@ -81,7 +87,11 @@ class GlobalConfig(db.Model):
     exclude_title = db.Column(db.String(100), nullable=False, default="")
     auto_commit_manual_clock = db.Column(db.Boolean, default=False)
     dual_start_manual_clock = db.Column(db.Boolean, default=False)
-    autosubmit_changes = db.Column(db.Boolean, default=False)
+
+    intermediate_path = db.Column(db.String(100), nullable=True, default="/mnt/intermediate/")
+    hard_event_dir = db.Column(db.String(100), nullable=True, default="/mnt/test/")
+    autocommit = db.Column(db.Boolean, default=False)
+    use_intermediate = db.Column(db.Boolean, default=False)
 
 
 class ActiveEvents(db.Model):
@@ -134,6 +144,7 @@ class EventOrder(db.Model):
 class Session_Race_Records(db.Model):
     __tablename__ = 'Active_Session_Race_Records'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    cid =  db.Column(db.Integer, nullable=False)
     first_name = db.Column(db.String(84), nullable=False)
     last_name = db.Column(db.String(84), nullable=False)
     title_1 = db.Column(db.String(84), nullable=False)

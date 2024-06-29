@@ -7,42 +7,102 @@
 
 
 <style>
-.card-header {
-    text-align: center;
-}
-.card-body {
-    text-align: center;
-}
-
-.action-icon {
-    cursor: pointer;
-    margin-left: 10px;
-}
-.status-indicator {
-    padding-left: 10px;
-}
-
-.btn-full-width {
-    display: block;
-    width: 100%;
-}
-
-/* Override Bootstrap table-active class for custom color */
-.table .table-active,
-.table .table-active:hover {
-    background-color: rgba(0, 123, 255, 0.5) !important; /* Transparent blue */
-}
-
-/* Custom styles for the scrollbar */
-.table-responsive::-webkit-scrollbar {
-    width: 8px; /* Scrollbar width */
-}
-
-.table-responsive::-webkit-scrollbar-thumb {
-    background: #007bff; /* Scrollbar color */
-    border-radius: 4px;
-}
-</style>
+    /* Microservices container styles */
+    .microservices-container {
+        width: 100%;
+        overflow-x: auto;
+        padding-bottom: 15px;
+    }
+    
+    .microservices-scroll {
+        display: flex;
+        flex-wrap: nowrap;
+        gap: 15px;
+        padding-bottom: 5px; /* For scrollbar space */
+    }
+    
+    /* Microservice card styles */
+    .microservice-card {
+        flex: 0 0 auto;
+        width: 200px;
+        height: 100px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        text-align: center;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        overflow: hidden;
+        transition: box-shadow 0.3s ease;
+    }
+    
+    .microservice-card:hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    
+    .microservice-card .card-body {
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        height: 100%;
+        padding: 10px;
+        background: white;
+    }
+    
+    .microservice-name {
+        font-size: 0.9rem;
+        margin-bottom: 5px;
+        word-wrap: break-word;
+        hyphens: auto;
+    }
+    
+    .microservice-name[data-state="True"] {
+        color: #28a745;
+    }
+    
+    .microservice-name[data-state="False"] {
+        color: #dc3545;
+    }
+    
+    .action-icons {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+    }
+    
+    .action-icon {
+        cursor: pointer;
+        font-size: 1.2rem;
+    }
+    
+    /* Scrollbar styles */
+    .microservices-container::-webkit-scrollbar {
+        height: 8px;
+    }
+    
+    .microservices-container::-webkit-scrollbar-thumb {
+        background: #007bff;
+        border-radius: 4px;
+    }
+    
+    .microservices-container::-webkit-scrollbar-track {
+        background: #f1f1f1;
+    }
+    
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .microservice-card {
+            width: 150px;
+            height: 80px;
+        }
+        .microservice-name {
+            font-size: 0.8rem;
+        }
+        .action-icon {
+            font-size: 1rem;
+        }
+    }
+    </style>
 
 {% if mount_bool == "False" %}
 <div class="alert alert-danger" role="alert">
@@ -50,37 +110,33 @@
 </div>
   {% endif %}
 
-<div class="container mt-5">
-    <!-- Service Cards with Icons -->
-    <div class="row">
-        {% for d in microservices %}
-        {% set state = d.state | string() %}
-        {% set name_json = d.name %}
+  <div class="container-fluid mt-5">
+    <div class="microservices-container">
+        <div class="microservices-scroll">
+            {% for d in microservices %}
+            {% set state = d.state | string() %}
+            {% set name_json = d.name %}
             {% if d.name == "Backup Clock" %}
             <script>
                 var backupClockParams = "{{ d.params }}"
             </script>
             {% endif %}
-            <div class="col-md-3">
-                <div class="card">
-                    <div class="card-body d-flex align-items-center">
+            <div class="microservice-card">
+                <div class="card-body">
+                    <h6 class="card-title microservice-name" data-state="{{ state }}">
                         {{ d.name }}
-                        <i class="bi bi-play-fill text-success ml-2 action-icon" onclick="changeStatus(this, 'start', '{{ name_json }}', backupClockParams)"></i>
-                        <i class="bi bi-stop-fill text-danger ml-2 action-icon" onclick="changeStatus(this, 'stop', '{{ name_json }}')"></i>
-                        
-                        {% if state == "False" %}
-                            <span class="status-indicator" style="color: rgb(202, 0, 0);">Stopped</span>
-                        {% else %}
-                            <span class="status-indicator" style="color: rgb(0, 189, 9);">Running</span>
-                        {% endif %}
+                    </h6>
+                    <div class="action-icons">
+                        <i class="bi bi-play-fill text-success action-icon" onclick="changeStatus(this, 'start', '{{ name_json }}', backupClockParams)"></i>
+                        <i class="bi bi-stop-fill text-danger action-icon" onclick="changeStatus(this, 'stop', '{{ name_json }}')"></i>
                     </div>
-                    
                 </div>
             </div>
-        {% endfor %}
+            {% endfor %}
+        </div>
     </div>
-
 </div>
+
 
 <br>
 <h4 style="text-align: center;">Active Event & Driver Override</h4>
@@ -259,39 +315,35 @@ document.getElementById('syncButton').addEventListener('click', function() {
 });
     
 function changeStatus(element, action, service, params) {
-    var indicator = $(element).closest('.card-body').find('.status-indicator');
+    var card = $(element).closest('.microservice-card');
+    var nameElement = card.find('.microservice-name');
 
     if (service === 'Backup Clock' && action === 'start') {
-
         var currentIP = params; // Default to empty if not found
-
-        // Example: Assuming your service object has an 'ip' property
-        // Find the correct service object. This part needs to be adjusted based on your actual data structure
-
 
         $('#ipInput').val(currentIP); // Pre-fill the modal with the current IP
         $('#ipConfigModal').modal('show'); // Show the modal
 
         $('#ipConfigModal .btn-primary').off('click').on('click', function() {
-            applyIPConfiguration(service, indicator);
+            applyIPConfiguration(service, nameElement);
         });
     } else {
-        // Handle non-'mytest' services or other actions
+        // Handle other services or actions
         switch(action) {
             case 'start':
-                indicator.css('color', 'rgb(0, 189, 9)').text('Running');
+                nameElement.attr('data-state', 'True').css('color', '#28a745');
                 break;
             case 'stop':
-                indicator.css('color', 'rgb(209, 0, 0)').text('Stopped');
+                nameElement.attr('data-state', 'False').css('color', '#dc3545');
                 break;
             // Include other cases as necessary
         }
-        // Perform the status change operation (without IP change for non-'mytest' services)
+        // Perform the status change operation
         change_microservice_state(action, service);
     }
 }
 
-function applyIPConfiguration(service, indicator) {
+function applyIPConfiguration(service, nameElement) {
     var newIP = $('#ipInput').val();
 
     // Now you can use the new IP to perform the service start operation with the new IP
@@ -306,10 +358,8 @@ function applyIPConfiguration(service, indicator) {
         },
         success: function(result) {
             console.log("Service started with new IP:", newIP);
-            // Update the status indicator as needed
-            if (indicator) {
-                indicator.css('color', 'rgb(0, 189, 9)').text('Running');
-            }
+            // Update the status indicator
+            nameElement.attr('data-state', 'True').css('color', '#28a745');
         },
         error: function() {
             console.log("Error changing service status or applying IP address.");
@@ -325,7 +375,10 @@ function change_microservice_state(state, service) {
         url: "/admin/home",
         data: {service_state: state, service_name: service},
         success: function(result) {
-            console.log("ssssssssss")
+            console.log("Microservice state changed successfully");
+        },
+        error: function() {
+            console.log("Error changing microservice state");
         }
     });
 }

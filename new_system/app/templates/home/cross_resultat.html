@@ -126,7 +126,7 @@
           $accordion = $('.js-accordion');
           $accordion_header = $accordion.find('.js-accordion-header');
           $accordion_item = $('.js-accordion-item');
-
+          
           // Setup event handler
           $accordion_header.on('click', function () {
             toggle($(this));
@@ -318,7 +318,7 @@ function createAccordions(groupedByEventAndHeat) {
           const thead = document.createElement('thead');
           table.appendChild(thead);
           const headerRow = thead.insertRow();
-          const headers = ['No.', 'Name', 'Snowmobile', 'Penalty' ,'Finishtime', 'Points'];
+          const headers = ['No.','ID', 'Name', 'Snowmobile', 'Penalty' ,'Finishtime', 'Points'];
           headers.forEach(text => {
               const th = document.createElement('th');
               th.textContent = text;
@@ -333,7 +333,7 @@ function createAccordions(groupedByEventAndHeat) {
               const numberCell = row.insertCell();
               numberCell.textContent = index + 1; // Participant number
               const bib = row.insertCell();
-              bib.textContent = index + 1; // Participant number
+              bib.textContent = participant.id; // Participant number
               const nameCell = row.insertCell();
               nameCell.textContent = `${participant.first_name} ${participant.last_name}`; // Participant name
               const snowmobileCell = row.insertCell();
@@ -371,16 +371,8 @@ function groupDataByEventAndHeat(data) {
     return events;
 }
 
-
-
 </script>
   
-
-  
-  
-
-
-
 </body>
 </html>
 

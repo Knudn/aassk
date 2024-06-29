@@ -68,9 +68,18 @@ def home_tab():
     from app import db
     from sqlalchemy import func
 
-    g_conf = db.session.query(GlobalConfig.db_location, GlobalConfig.event_dir).all()[0]
+
+
+    g_conf = db.session.query(GlobalConfig.db_location, GlobalConfig.event_dir, GlobalConfig.use_intermediate, GlobalConfig.intermediate_path).all()[0]
+
     db_location = g_conf[0]
     mount_path = g_conf[1]
+    use_inter = g_conf[2]
+    intermediate_path = g_conf[3]
+
+    if use_inter == True:
+        mount_path = g_conf[3]
+
     mount_bool = str(os.path.ismount(mount_path))
 
     # Query to get distinct event names and their counts
@@ -110,7 +119,10 @@ def home_tab():
                 selectedRun = active_event[0]["SPESIFIC_HEAT"]
             else:
                 selectedEventFile = request.form.get('single_event')
+                
                 sync_state = request.form.get('sync')
+                print(selectedEventFile, "EVENT")
+                print(sync_state, "SYNC")
 
             if sync_state == "true":
                 from app.lib.utils import GetEnv
@@ -121,11 +133,12 @@ def home_tab():
                 #Delete local driver session entries for the spesific event
                 db.session.query(Session_Race_Records).filter((Session_Race_Records.title_1 + " " + Session_Race_Records.title_2)==event_name).delete()
                 db.session.commit()
-
+                print(selectedEventFile)
                 full_db_reload(add_intel_sort=False, Event=selectedEventFile)
 
 
             print("Getting:", selectedEventFile)
+
             with sqlite3.connect(db_location + selectedEventFile + ".sqlite") as con:
                 cur = con.cursor()
                 cur.execute(f"SELECT COUNT() FROM drivers;")
@@ -263,8 +276,13 @@ def global_config_tab():
     if request.method == 'POST':
         if 'submit' in request.form:
             for config in global_config:
+                
                 if not form.wl_cross_title.data:
                     form.wl_cross_title.data = ""
+
+                if form.use_intermediate.data == False:
+                    form.intermediate_path.data = form.event_dir.data
+
                 config.session_name = form.session_name.data
                 config.project_dir = form.project_dir.data
                 config.db_location = form.db_location.data
@@ -276,12 +294,14 @@ def global_config_tab():
                 config.keep_previous_sort = form.keep_previous_sort.data
                 config.wl_cross_title = form.wl_cross_title.data
                 config.exclude_title = form.exclude_title.data
+                config.use_intermediate = form.use_intermediate.data
+                config.intermediate_path = form.intermediate_path.data
+                config.autocommit = form.autocommit.data
 
                 if bool(form.cross.data):
                     db.session.query(MicroServices).filter(MicroServices.name == "Cross Clock Server").update({"state": True})
                     db.session.commit()
                     manage_process_screen("cross_clock_server.py", "start")
-
                 db.session.commit()
         elif 'update' in request.form: 
             print("asdasd")

@@ -1,4 +1,3 @@
-import os
 import subprocess
 import logging
 import signal
@@ -6,6 +5,11 @@ import sys
 import sqlite3
 import requests
 import psutil
+import os
+import select
+from threading import Thread
+from flask import current_app
+
 
 def object_to_dict(obj):
     return {attr: getattr(obj, attr) for attr in dir(obj) if not attr.startswith('_') and not callable(getattr(obj, attr))}
@@ -30,6 +34,9 @@ def Get_active_drivers(g_config, event_data_dict):
             active_drivers = {"D1":active_drivers_sql[0][0]}
 
     return active_drivers
+
+
+
 
 def export_events():
     from app.models import ActiveEvents
@@ -88,6 +95,8 @@ def GetEnv():
 
     first_row = global_config[0]
     row_dict = {key: value for key, value in first_row.__dict__.items() if not key.startswith('_')}
+    if row_dict["use_intermediate"] == True:
+        row_dict["event_dir"] = row_dict["intermediate_path"]
 
     return row_dict
 
@@ -409,19 +418,15 @@ def get_active_event_name():
     pass
 
 def reorder_list_based_on_dict(original_list, correct_order_dict):
-    # Create a new list to hold the reordered elements
     new_list = []
-    # Temporary dictionary to hold the elements as we go through the original list
     temp_dict = {}
 
-    # Populate the temp_dict with the original list's elements, grouped by their scores
     for name, score in original_list:
         if score in temp_dict:
             temp_dict[score].append(name)
         else:
             temp_dict[score] = [name]
 
-    # Iterate through the original list to maintain the overall order
     for item in original_list:
         name, score = item
         # Check if this score needs reordering and if the name is in the correct order list
@@ -449,3 +454,63 @@ def get_active_driver_name(db_path, cid):
         driver_name = cur.execute(query).fetchall()
     print(driver_name)
     return driver_name[0][0] + " " + driver_name[0][1]
+
+def fifo_monitor(app, fifo_path='/tmp/file_monitor_fifo', callback=None, g_config=None):
+    import json
+    if g_config.use_intermediate == True:
+        g_config.event_dir = g_config.intermediate_path
+
+    if not os.path.exists(fifo_path):
+        os.mkfifo(fifo_path)
+
+    def monitor_fifo():
+        from app.lib.db_operation import full_db_reload
+        import sqlite3
+        import json
+        import re
+        import time
+
+        fifo = os.open(fifo_path, os.O_RDONLY | os.O_NONBLOCK)
+        poll = select.poll()
+        poll.register(fifo, select.POLLIN)
+        
+        DB_PATH = "/mnt/intermediate/Online.scdb"
+        with sqlite3.connect(DB_PATH) as con:
+            cur = con.cursor()
+            active_event = cur.execute("SELECT C_PARAM WHERE WHERE ;").fetchone()[0]
+            
+        while True:
+            if poll.poll(1000):
+                try:
+                    
+                    data = os.read(fifo, 4096).decode().strip()
+
+                    if str(data) == "Online.scdb":
+                        print("Online DB")
+                        with sqlite3.connect(DB_PATH) as con:
+                            cur = con.cursor()
+                            time.sleep(2)
+                            active_event = cur.execute("SELECT EVENT FROM active_drivers;").fetchone()[0]
+                    else:
+                        event_change = re.findall(r'\d+', data)
+                        try:
+                            if len(event_change) == 0:
+                                print("FAIL", data)
+
+                            else:
+                                print(data[6:])
+                                #full_db_reload(add_intel_sort=False, Event=file)
+                                print("NOT ACTIVE", event_change)
+                        except:
+                            print("Error")
+
+                    if data and callback:
+                        with app.app_context():
+                            callback(data)
+                except OSError:
+                    pass
+
+    thread = Thread(target=monitor_fifo, daemon=True)
+    thread.start()
+
+    return app

@@ -3,9 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Race Overlay</title>
+<title>Centered Race Overlay</title>
 <script src="{{url_for('static', filename='js/socket.io.js')}}"></script>
-
 <style>
     * {
         margin: 0;
@@ -14,58 +13,104 @@
         font-family: 'Arial', sans-serif;
     }
     body {
-        color: #FFD700; /* Gold text color */
+        background-color: rgba(0, 0, 0, 0.5);
+        color: #FFFFFF;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: flex-end;
+        padding-bottom: 10px;
+    }
+    .overlay {
+        background: rgba(0, 0, 0, 0.7);
+        border-radius: 5px;
+        padding: 5px 10px;
         display: flex;
         justify-content: center;
         align-items: center;
-        height: 100vh;
-        overflow: hidden; /* Prevent scrolling */
+        max-width: 100%;
+        overflow-x: auto;
     }
-    .overlay {
-        position: fixed;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        background-color: rgba(0, 0, 0, 0.8); /* Semi-transparent black */
-        padding: 10px 20px;
-        border-top: 2px solid #FFD700; /* Gold border top */
+    .driver-container {
         display: flex;
-        justify-content: space-around;
+        justify-content: space-between;
         align-items: center;
-        flex-wrap: wrap;
+        gap: 10px;
     }
     .driver {
-        color: #FFD700; /* Gold text color */
-        margin: 5px;
-        font-size: 20px;
+        display: flex;
+        align-items: center;
+        padding: 2px 5px;
+        white-space: nowrap;
+    }
+    .position {
+        font-size: 14px;
+        font-weight: bold;
+        color: #FFD700;
+        margin-right: 5px;
+        min-width: 20px;
+        text-align: right;
+    }
+    .name {
+        font-size: 14px;
+        margin-right: 5px;
+        min-width: 80px;
+    }
+    .time {
+        font-size: 14px;
+        color: #00FFFF;
+    }
+    .status {
+        font-size: 12px;
+        color: #FF4500;
+        font-weight: bold;
     }
 </style>
 </head>
 <body>
-<div id="overlay" class="overlay">
-  <!-- Driver information will be dynamically inserted here -->
+<div class="overlay">
+    <div id="driver-container" class="driver-container">
+        <!-- Driver information will be dynamically inserted here -->
+    </div>
 </div>
 
 <script>
-  
 function updateOverlay(data) {
-    const overlay = document.getElementById('overlay');
-    overlay.innerHTML = ''; 
+    const driverContainer = document.getElementById('driver-container');
+    driverContainer.innerHTML = ''; 
 
-    data.forEach(item => {
+    data.forEach((item, index) => {
         if (item.drivers) {
             item.drivers.forEach(driver => {
                 const driverDiv = document.createElement('div');
                 driverDiv.classList.add('driver');
 
+                const positionSpan = document.createElement('span');
+                positionSpan.classList.add('position');
+                positionSpan.textContent = index + 1;
+
+                const nameSpan = document.createElement('span');
+                nameSpan.classList.add('name');
+                nameSpan.textContent = `${driver.first_name}. ${driver.last_name} | `;
+
+                const timeSpan = document.createElement('span');
+                timeSpan.classList.add('time');
+
                 if (driver.time_info.PENELTY !== 0) {
-                  finishStatus = "DNF"
+                    timeSpan.textContent = "DNF";
+                    const statusSpan = document.createElement('span');
+                    statusSpan.classList.add('status');
+                    statusSpan.textContent = ` (Penalty)`;
+                    driverDiv.appendChild(statusSpan);
                 } else {
-                  finishStatus = (driver.time_info.FINISHTIME / 1000)
+                    timeSpan.textContent = (driver.time_info.FINISHTIME / 1000).toFixed(3);
                 }
-                
-                driverDiv.textContent = `${driver.first_name} ${driver.last_name} - ${finishStatus}`;
-                overlay.appendChild(driverDiv);
+
+                driverDiv.appendChild(positionSpan);
+                driverDiv.appendChild(nameSpan);
+                driverDiv.appendChild(timeSpan);
+
+                driverContainer.appendChild(driverDiv);
             });
         }
     });
@@ -86,11 +131,10 @@ socket.on('connect', function() {
     console.log('Connected to the server');
     socket.emit('join', { username: 'John', room: 'room1' });
 });
+
 socket.on('response', function(dataString) {
-  const data = JSON.parse(dataString);
-  updateOverlay(data)
-
-
+    const data = JSON.parse(dataString);
+    updateOverlay(data);
 });
 </script>
 </body>

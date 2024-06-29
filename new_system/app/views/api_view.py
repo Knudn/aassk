@@ -110,6 +110,61 @@ def get_current_startlist_w_data():
     
     return get_active_startlist_w_timedate()
 
+@api_bp.route('/api/update_event', methods=['POST'])
+def update_event():
+        from app.lib.db_operation import get_active_event
+        from app.lib.utils import GetEnv
+            
+        g_config = GetEnv()
+        active_event = get_active_event()
+        print(active_event)
+        print(request.form.get('single_event'))
+        
+        if request.form.get('event_file') == "active_event":
+            active_event = get_active_event()
+            selectedEventFile = active_event[0]["db_file"]
+            selectedRun = active_event[0]["SPESIFIC_HEAT"]
+        else:
+            selectedEventFile = request.form.get('single_event')
+            
+            sync_state = request.form.get('sync')
+
+        if sync_state == "true":
+
+            event_name = request.form.get('event_name')
+
+            #Delete local driver session entries for the spesific event
+            db.session.query(Session_Race_Records).filter((Session_Race_Records.title_1 + " " + Session_Race_Records.title_2)==event_name).delete()
+            db.session.commit()
+            full_db_reload(add_intel_sort=False, Event=selectedEventFile)
+
+
+        print("Getting:", selectedEventFile)
+
+        with sqlite3.connect(db_location + selectedEventFile + ".sqlite") as con:
+            cur = con.cursor()
+            cur.execute(f"SELECT COUNT() FROM drivers;")
+            amount_drivers = cur.fetchone()
+            cur.execute(f"SELECT COUNT() FROM sqlite_master WHERE type='table' AND name LIKE 'driver\_%' ESCAPE '\\';")
+            heat_num = cur.fetchone()[0]
+            valid_recorded_times = 0
+            invalid_recorded_times = 0
+            drivers_left = 0
+
+            for a in range(1,heat_num+1):
+                cur.execute("SELECT COUNT() FROM driver_stats_r{0} WHERE FINISHTIME != 0 AND PENELTY = 0;".format(a))
+                valid_recorded_times += cur.fetchone()[0]
+
+                cur.execute("SELECT COUNT() FROM driver_stats_r{0} WHERE PENELTY != 0;".format(a))
+                invalid_recorded_times += cur.fetchone()[0]
+
+                cur.execute("SELECT COUNT() FROM driver_stats_r{0} WHERE FINISHTIME = 0 AND PENELTY = 0;".format(a))
+                drivers_left += cur.fetchone()[0]
+
+            event_config = {"all_records":(valid_recorded_times + invalid_recorded_times + drivers_left), "p_times":invalid_recorded_times, "v_times":valid_recorded_times, "l_times":drivers_left, "drivers":amount_drivers, "heats":heat_num}
+            return event_config
+        
+
 @api_bp.route('/api/get_current_startlist_w_data_loop', methods=['GET'])
 def get_current_startlist_w_data_loop():
 

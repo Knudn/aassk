@@ -8,6 +8,8 @@
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         toggleCrossWhitelist();
+        toggleIntermediatePath();
+        toggleSortingFields();
     });
     function toggleSortingFields() {
         var checkBox = document.getElementById("enable_sorting");
@@ -27,10 +29,9 @@
         return confirm("ALL CURRENT RACE DATA WILL BE RELOADED");
     }
 
-
     function toggleModal() {
-    var modal = document.getElementById("crossProfileModal");
-    modal.style.display = modal.style.display === "none" ? "block" : "none";
+        var modal = document.getElementById("crossProfileModal");
+        modal.style.display = modal.style.display === "none" ? "block" : "none";
     }
 
     function closeModal() {
@@ -49,10 +50,14 @@
             wlCrossTitleInput.disabled = false;
         }
     }
-    
 
+    function toggleIntermediatePath() {
+        var useIntermediateCheckbox = document.getElementById("use_intermediate");
+        var intermediatePathInput = document.getElementById("intermediate_path");
 
-
+        // Disable the input field if the checkbox is not checked
+        intermediatePathInput.disabled = !useIntermediateCheckbox.checked;
+    }
 </script>
 
 <h3>Global Config</h3>
@@ -80,6 +85,28 @@
                 <tr>
                     <td>Database location</td>
                     <td><input type="text" class="form-control" name="db_location" value="{{ config.db_location }}"></td>
+                </tr>
+                <tr>
+                    <td>Use Intermediate Directory</td>
+                    <td>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="use_intermediate" id="use_intermediate" {% if config.use_intermediate %}checked{% endif %} onclick="toggleIntermediatePath();">
+                            <i class="form-text text-muted">Intermediate location should be used to hinder database locks</i>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Intermediate Directory Path</td>
+                    <td><input type="text" class="form-control" name="intermediate_path" id="intermediate_path" value="{{ config.intermediate_path }}" {% if not config.use_intermediate %}disabled{% endif %}></td>
+                </tr>
+                <tr>
+                    <td>Autocommit</td>
+                    <td>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="autocommit" id="autocommit" {% if config.autocommit %}checked{% endif %}>
+                            <i class="form-text text-muted">Automatically commit changes</i>
+                        </div>
+                    </td>
                 </tr>
                 <tr>
                     <td>Event Directory</td>
@@ -111,7 +138,6 @@
                         </div>
                     </td>
                 </tr>
-                
                 <tr>
                     <td>Snowcross/Watercross?</td>
                     <td>
@@ -122,17 +148,17 @@
                     </td>
                 </tr>
                 <tr>
-                    <td>Autocommit changes?</td>
-                    <td>
-                        <div class="form-check">
-                            <input class="form-check-input" type="checkbox" name="autocommit" {% if config.autocommit %}checked{% endif %}>
-                            <i class="form-text text-muted">Will automatically refresh the database and look for changes (can cause issues)</i>
-                        </div>
-                    </td>
-                </tr>
-                <tr>
                     <td>Cross Whitelist</td>
                     <td><input type="text" class="form-control" name="wl_cross_title" id="wl_cross_title" value="{{ config.wl_cross_title }}" placeholder="Additional filter (Optional)"></td>
+                </tr>
+                <tr>
+                    <td>Enable Sorting</td>
+                    <td>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="enable_sorting" name="enable_sorting" {% if config.enable_sorting %}checked{% endif %} onclick="toggleSortingFields();">
+                            <i class="form-text text-muted">Enable custom sorting</i>
+                        </div>
+                    </td>
                 </tr>
                 <tr id="search_string1" style="{% if not config.enable_sorting %}display: none{% endif %}">
                     <td>Search String 1</td>
@@ -142,6 +168,7 @@
                     <td>Search String 2</td>
                     <td><input type="text" class="form-control" name="search_string2" value="{{ config.search_string2 }}"></td>
                 </tr>
+
                 {% endfor %}
             </tbody>
         </table>
