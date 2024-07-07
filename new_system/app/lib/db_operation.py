@@ -7,6 +7,8 @@ from flask import request
 import json
 
 
+last_data_entry = None
+
 def delete_events(directory_path, event=None):
     if event != None:
         os.remove(directory_path+event+".sqlite")
@@ -17,7 +19,6 @@ def delete_events(directory_path, event=None):
         file_path = os.path.join(directory_path, file)
         
         if os.path.isfile(file_path):
-            print(file_path)
             os.remove(file_path)
     
 
@@ -29,7 +30,7 @@ def full_db_reload(add_intel_sort=False, sync=False, Event=None):
 
     g_config = GetEnv()
 
-    delete_events(g_config["db_location"], event=Event)
+    #delete_events(g_config["db_location"], event=Event)
     
     
     if Event != None:
@@ -65,7 +66,6 @@ def full_db_reload(add_intel_sort=False, sync=False, Event=None):
                     sort_value = hightest_heat.sort_order + (k + 1)
                     event_entry = ActiveEvents(event_name=(a["TITLE1"] + " " + a["TITLE2"]), run=(b + 1), sort_order=sort_value, event_file=a["db_file"], mode=a["MODE"])
                     db.session.add(event_entry)
-                    print("True 1")
 
                 db.session.commit()
 
@@ -77,9 +77,6 @@ def full_db_reload(add_intel_sort=False, sync=False, Event=None):
                         ActiveEvents.event_name == (a["TITLE1"] + " " + a["TITLE2"]),
                         ActiveEvents.run == b + 1
                     ).delete()
-
-                    print("remove:" )
-                    print("True 2")
 
                 entry_range = ActiveEvents.query.filter(
                     ActiveEvents.sort_order.between((hightest_heat.sort_order)+1, max_sort_order_subquery.c.max_sort_order)
@@ -93,7 +90,7 @@ def full_db_reload(add_intel_sort=False, sync=False, Event=None):
         db_data, driver_db_data = map_database_files(g_config)
         ActiveEvents.query.delete()
         count = 0
-        #I moved this indise the if statement. 
+
         for a in db_data:
 
             for b in range(1, (int(a['HEATS']) + 1)):
@@ -137,9 +134,9 @@ def full_db_reload(add_intel_sort=False, sync=False, Event=None):
         db.session.add_all(event_name_db_lst)
         db.session.commit()
 
-    init_database(db_data, driver_db_data, g_config)
-    insert_start_list(db_data, g_config, init_mode=False)
-    insert_driver_stats(db_data, g_config)
+    
+    start_list = get_start_list(db_data, g_config)
+    insert_driver_data_to_db(db_data, driver_db_data, start_list, g_config)
 
 
 def reload_event(db, heat):
@@ -153,19 +150,14 @@ def update_event(db, heat):
 
 def update_active_event_stats(Emit=True):
     g_config = GetEnv()
-    update_active_event(g_config)
-    active_event = get_active_event()
     
-    #print(event, heat)
-    #db_data, driver_db_data = map_database_files(g_config, "Event008")
-    #print(db_data, driver_db_data)
-    try:
+    update_active_event(g_config)
+    
+    active_event = get_active_event()[0]["db_file"]
+    db_data, driver_db_data = map_database_files(g_config, active_event)
 
-        insert_start_list(active_event, g_config, init_mode=False)
-        insert_driver_stats(active_event, g_config, init_mode=False, exclude_lst=True)   
-        
-    except Exception as Error:
-        print(Error)
+    start_list = get_start_list(db_data, g_config)
+    insert_driver_data_to_db(db_data, driver_db_data, start_list, g_config)
 
     return "data"
 
@@ -182,7 +174,7 @@ def get_active_startlist():
 
     g_config = GetEnv()
     event = get_active_event()
-    event_db_file = (g_config["db_location"]+event[0]["db_file"]+".sqlite")
+    event_db_file = event[0]["db_file"]
     event[0]["db_file"] = event_db_file
     data = json.dumps(format_startlist(event))
 
@@ -195,13 +187,12 @@ def get_active_startlist_w_timedate(upcoming=False, event_wl=None):
     g_config = GetEnv()
 
     if event_wl != None:
-        event_db_file = (g_config["db_location"]+event_wl[0]["db_file"]+".sqlite")
-        event_wl[0]["db_file"] = event_db_file
         data = format_startlist(event_wl, include_timedata=True)
+
         return data
 
     event = get_active_event()
-    
+
     current_db_file = event[0]["db_file"]
     current_heat = event[0]["SPESIFIC_HEAT"]
 
@@ -228,13 +219,10 @@ def get_active_startlist_w_timedate(upcoming=False, event_wl=None):
 
     else:
         
-        
-        event_db_file = (g_config["db_location"]+event[0]["db_file"]+".sqlite")
-
+        event_db_file = event[0]["db_file"]
         event[0]["db_file"] = event_db_file
 
     data = format_startlist(event, include_timedata=True)
-    #data = json.dumps(format_startlist(event, include_timedata=True))
 
     return data
 
@@ -250,7 +238,6 @@ def get_specific_event_data(event_filter=None):
     event_db_file = (g_config["db_location"]+event[0]["db_file"]+".sqlite")
     event[0]["db_file"] = event_db_file
     data = get_event_data_all(event)
-    #data = json.dumps(format_startlist(event, include_timedata=True))
 
     return data
 
@@ -276,20 +263,18 @@ def update_active_event(g_conf):
 
     event_dir = g_conf["event_dir"]
 
+    with sqlite3.connect(event_dir+"Online.scdb") as conn:
+        cursor = conn.cursor()
+        cursor.execute("SELECT C_VALUE FROM TPARAMETERS WHERE C_PARAM='EVENT' OR C_PARAM='HEAT';")
+        rows = cursor.fetchall()
 
-    try:
-        with sqlite3.connect(event_dir+"Online.scdb") as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT C_VALUE FROM TPARAMETERS WHERE C_PARAM='EVENT' OR C_PARAM='HEAT';")
-            rows = cursor.fetchall()
+    data = ActiveDrivers.query.get(1)
+    data.Event = rows[0][0]
+    data.Heat = rows[1][0]
+    db.session.commit()
 
-        data = ActiveDrivers.query.get(1)
-        data.Event = rows[0][0]
-        data.Heat = rows[1][0]
-        db.session.commit()
 
-    except:
-        print("Could not access event files")
+    
 
 def get_active_event_name():
     event = get_active_event()

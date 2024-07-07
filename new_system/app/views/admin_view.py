@@ -64,9 +64,10 @@ def s_set_active_driver():
 
 
 def home_tab():
-    from app.models import ActiveDrivers, ActiveEvents, Session_Race_Records, GlobalConfig, MicroServices
+    from app.models import ActiveDrivers, ActiveEvents, Session_Race_Records, GlobalConfig, MicroServices, EventData
     from app import db
     from sqlalchemy import func
+    from app.lib.utils import get_event_statistics
 
 
 
@@ -89,10 +90,9 @@ def home_tab():
                         .with_entities(ActiveEvents.event_name, func.count(ActiveEvents.event_name))
                         .count())
 
-    drivers = (Session_Race_Records.query
-                      .with_entities(Session_Race_Records.first_name, Session_Race_Records.last_name)
-                      .group_by(Session_Race_Records.first_name, Session_Race_Records.last_name)
-                      .count())
+    drivers = (db.session.query(EventData.FIRST_NAME, EventData.LAST_NAME)
+            .group_by(EventData.FIRST_NAME, EventData.LAST_NAME)
+            .count())
 
     services = (MicroServices.query.all())
     
@@ -121,8 +121,6 @@ def home_tab():
                 selectedEventFile = request.form.get('single_event')
                 
                 sync_state = request.form.get('sync')
-                print(selectedEventFile, "EVENT")
-                print(sync_state, "SYNC")
 
             if sync_state == "true":
                 from app.lib.utils import GetEnv
@@ -130,37 +128,10 @@ def home_tab():
 
                 event_name = request.form.get('event_name')
 
-                #Delete local driver session entries for the spesific event
-                db.session.query(Session_Race_Records).filter((Session_Race_Records.title_1 + " " + Session_Race_Records.title_2)==event_name).delete()
-                db.session.commit()
-                print(selectedEventFile)
                 full_db_reload(add_intel_sort=False, Event=selectedEventFile)
 
 
-            print("Getting:", selectedEventFile)
-
-            with sqlite3.connect(db_location + selectedEventFile + ".sqlite") as con:
-                cur = con.cursor()
-                cur.execute(f"SELECT COUNT() FROM drivers;")
-                amount_drivers = cur.fetchone()
-                cur.execute(f"SELECT COUNT() FROM sqlite_master WHERE type='table' AND name LIKE 'driver\_%' ESCAPE '\\';")
-                heat_num = cur.fetchone()[0]
-                valid_recorded_times = 0
-                invalid_recorded_times = 0
-                drivers_left = 0
- 
-                for a in range(1,heat_num+1):
-                    cur.execute("SELECT COUNT() FROM driver_stats_r{0} WHERE FINISHTIME != 0 AND PENELTY = 0;".format(a))
-                    valid_recorded_times += cur.fetchone()[0]
-
-                    cur.execute("SELECT COUNT() FROM driver_stats_r{0} WHERE PENELTY != 0;".format(a))
-                    invalid_recorded_times += cur.fetchone()[0]
-
-                    cur.execute("SELECT COUNT() FROM driver_stats_r{0} WHERE FINISHTIME = 0 AND PENELTY = 0;".format(a))
-                    drivers_left += cur.fetchone()[0]
-
-                event_config = {"all_records":(valid_recorded_times + invalid_recorded_times + drivers_left), "p_times":invalid_recorded_times, "v_times":valid_recorded_times, "l_times":drivers_left, "drivers":amount_drivers, "heats":heat_num}
-                return event_config
+            return get_event_statistics(db, selectedEventFile)
             
         elif "service_state" in request.form:
             from app.lib.utils import GetEnv, is_screen_session_running, manage_process_screen
@@ -174,17 +145,13 @@ def home_tab():
             if service_name == None:
                 return "None"
 
-            print(service_name, service_state, params)
-
-
             
             service_object = db.session.query(MicroServices).filter((MicroServices.name == service_name)).first()
-            print(service_object)
+
             if service_object is not None:
                 
                 if bool(service_object.state) == False and service_state == "start":
                     service_object.state = True
-                    print("asdasd")
 
                     if params != None:
                         service_object.params = params
@@ -307,7 +274,6 @@ def global_config_tab():
             print("asdasd")
         else:
             keep_previous_sort = global_config[0].keep_previous_sort
-            print(keep_previous_sort)
 
             if global_config[0].keep_previous_sort == True:
                 ActiveEvents_entries = ActiveEvents.query.filter(ActiveEvents.id).order_by(asc(ActiveEvents.sort_order)).all()
@@ -425,14 +391,15 @@ def active_events():
     return render_template('admin/active_events.html', active_events=active_events, event_types=event_types, event_order=event_order, global_config_new=global_config_new)
 
 def active_events_driver_data():
-    from app.models import ActiveEvents, GlobalConfig, LockedEntry
+    from app.models import ActiveEvents, GlobalConfig, LockedEntry, EventData
     from app import db
     from sqlalchemy import func
     import sqlite3
     import time
     from app.lib.db_operation import get_active_event
+    import logging
 
-    db_location = db.session.query(GlobalConfig.db_location).all()[0][0]
+    db_location = db.session.query(GlobalConfig.db_location).first()[0]
 
     unique_events = (
         db.session.query(
@@ -448,50 +415,83 @@ def active_events_driver_data():
         if request.form.get('event_file') is not None:
             if request.form.get('event_file') == "active_event":
                 active_event = get_active_event()
-                selectedEventFile = active_event[0]["db_file"]
-                selectedRun = active_event[0]["SPESIFIC_HEAT"]
+                selected_event_file = active_event[0]["db_file"]
+                selected_run = active_event[0]["SPESIFIC_HEAT"]
             else:
-                selectedEventFile = request.form.get('event_file')
-                selectedRun = request.form.get('run')
-            event_entry_file_picked = {"file": selectedEventFile, "run": selectedRun}
-            print("Getting:", selectedEventFile, selectedRun)
-            with sqlite3.connect(db_location + selectedEventFile + ".sqlite") as con:
-                cur = con.cursor()
-                cur.execute(f"SELECT * FROM driver_stats_r{selectedRun}")
+                selected_event_file = request.form.get('event_file')
+                selected_run = request.form.get('run')
+            
+            event_entry_file_picked = {"file": selected_event_file, "run": selected_run}
 
-                data = [dict((cur.description[i][0], value) for i, value in enumerate(row)) for row in cur.fetchall()]
-                cur.execute(f"SELECT TITLE1, TITLE2, MODE FROM db_index")
-                event_title = cur.fetchall()
-                event_info = event_title[0][0]+" "+event_title[0][1]+" - Heat: " + str(selectedRun)  + " - Mode: "+ str(event_title[0][2])
+            data = (
+                db.session.query(EventData)
+                .filter(EventData.DB_FILE == selected_event_file, EventData.HEAT == selected_run)
+                .all()
+            )
 
-            return render_template('admin/active_events_driver_data.html', unique_events=unique_events, sqldata=data, event_entry_file=event_entry_file_picked, returned_event_info=event_info)
+            sqldata = []
+            for row in data:
+                record = {}
+                for column in row.__table__.columns:
+                    value = getattr(row, column.name)
+                    if isinstance(value, datetime):
+                        value = value.isoformat()
+                    if column.name == 'PENALTY':
+                        record['PENELTY'] = value
+                    else:
+                        record[column.name] = value
+                sqldata.append(record)
 
+            event_info = (
+                db.session.query(EventData.TITLE1, EventData.TITLE2, EventData.MODE)
+                .filter(EventData.DB_FILE == selected_event_file)
+                .first()
+            )
+
+            if event_info:
+                event_info_str = f"{event_info.TITLE1} {event_info.TITLE2} - Heat: {selected_run} - Mode: {event_info.MODE}"
+            else:
+                event_info_str = "Event information not found"
+
+            return render_template('admin/active_events_driver_data.html', 
+                                   unique_events=unique_events, 
+                                   sqldata=sqldata, 
+                                   event_entry_file=event_entry_file_picked, 
+                                   returned_event_info=event_info_str)
         else:
+            # Handle JSON POST request (data update)
             data = request.get_json()
             file = data["file"]
             run = data["run"]
 
-            db_location = db.session.query(GlobalConfig.db_location).all()[0][0]
-            sql_con = sqlite3.connect(db_location + file + ".sqlite")
-            sql_cur = sql_con.cursor()
-            sql_cur.execute(f'DELETE FROM driver_stats_r{run}')
+            db.session.query(EventData).filter(EventData.DB_FILE == file, EventData.HEAT == run).delete()
 
             for a in data["data"]:
-                if "LOCKED" in a.keys() and a["LOCKED"] == True:
-                    locked = "1"
-                else:
-                    locked = "0"
-                sql_cur.execute(f'''
-                    INSERT INTO driver_stats_r{run} (INTER_1, INTER_2, INTER_3, SPEED, PENELTY, FINISHTIME, CID, LOCKED)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
-                    (a['INTER_1'], a['INTER_2'], a['INTER_3'], a['SPEED'], a['PENELTY'], a['FINISHTIME'], int(a['CID']), locked)
-                )  
-            sql_con.commit()
-            sql_con.close()
-        
-        return render_template('admin/active_events_driver_data.html', unique_events=unique_events, sqldata=data, event_entry_file="None")
+                new_record = EventData(
+                    DB_FILE=file,
+                    HEAT=run,
+                    INTER_1=a['INTER_1'],
+                    INTER_2=a['INTER_2'],
+                    INTER_3=a['INTER_3'],
+                    SPEED=a['SPEED'],
+                    PENALTY=a['PENELTY'],
+                    FINISHTIME=a['FINISHTIME'],
+                    CID=int(a['CID']),
+                    LOCKED=1 if a.get('LOCKED') else 0
+                )
+                db.session.add(new_record)
+            
+            db.session.commit()
+            return jsonify({"status": "success"})
 
-    return render_template('admin/active_events_driver_data.html', unique_events=unique_events, sqldata="None", event_entry_file="None")
+    # Initial GET request
+    return render_template('admin/active_events_driver_data.html', 
+                           unique_events=unique_events, 
+                           sqldata=[], 
+                           event_entry_file="None",
+                           returned_event_info="None")
+
+
 
 def msport_proxy():
 

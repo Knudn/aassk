@@ -2,7 +2,8 @@
 from flask import Blueprint, render_template, request, session
 import sqlite3
 from app.lib.db_operation import reload_event as reload_event_func
-from app.lib.db_operation import get_active_event, get_active_event_name
+from app.lib.db_operation import get_active_event
+from app.lib.utils import get_active_event_name
 from app.models import Session_Race_Records, ActiveEvents, ActiveDrivers
 from app import db
 import json
@@ -153,7 +154,7 @@ def results_event():
 
 @vmix_bp.route('/vmix/drivers_stats_cross', methods=['GET'])
 def drivers_stats_cross():
-    from app.models import Session_Race_Records
+    from app.models import EventData
     from app import db
     import json
 
@@ -165,9 +166,10 @@ def drivers_stats_cross():
     event_filter = request.args.get('event_filter')
     finale = request.args.get('finale')
 
-    query = Session_Race_Records.query
-    query = query.order_by(Session_Race_Records.points.desc(), Session_Race_Records.finishtime.asc())
+    query = EventData.query
+    query = query.order_by(EventData.POINTS.desc(), EventData.FINISHTIME.asc())
     
+
     if all_event:
         title = get_active_event_name()["title_1"]
         records = query.all()
@@ -176,13 +178,13 @@ def drivers_stats_cross():
     if active == "true":
         data = get_active_event_name()
         title_2 = data["title_2"]
-        query = query.filter(Session_Race_Records.title_2.ilike(f"%{title_2}%"))
+        query = query.filter(EventData.TITLE2.ilike(f"%{title_2}%"))
         
 
         if heat == "true":
             heat == data["heat"]
             heat_new = get_active_event()[0]["SPESIFIC_HEAT"]
-            query = query.filter(Session_Race_Records.heat == heat_new)
+            query = query.filter(EventData.HEAT == heat_new)
             title = title_2 + " " + data["heat"]
         else:
             title = title_2
@@ -193,50 +195,50 @@ def drivers_stats_cross():
         session['index'] = session.get('index', 0) + 1
         if event_filter:
             results_orgin = db.session.query(
-                Session_Race_Records.title_1,
-                Session_Race_Records.title_2,
-                func.max(Session_Race_Records.heat).label('max_heat')
+                EventData.TITLE1,
+                EventData.TITLE1,
+                func.max(EventData.HEAT).label('max_heat')
             ).filter(
                 and_(
-                    Session_Race_Records.finishtime != 0,
-                    Session_Race_Records.penalty == 0,
-                    Session_Race_Records.title_2 == event_filter,
+                    EventData.FINISHTIME != 0,
+                    EventData.PENALTY == 0,
+                    EventData.TITLE2 == event_filter,
                 )
             ).group_by(
-                Session_Race_Records.title_1,
-                Session_Race_Records.title_2,
-                Session_Race_Records.heat,
+                EventData.TITLE1,
+                EventData.TITLE2,
+                EventData.HEAT,
             ).all()
 
         elif all_heats:
             results_orgin = db.session.query(
-                Session_Race_Records.title_1,
-                Session_Race_Records.title_2,
-                func.max(Session_Race_Records.heat).label('max_heat')
+                EventData.TITLE1,
+                EventData.TITLE2,
+                func.max(EventData.HEAT).label('max_heat')
             ).filter(
                 and_(
-                    Session_Race_Records.finishtime != 0,
-                    Session_Race_Records.penalty == 0
+                    EventData.FINISHTIME != 0,
+                    EventData.PENALTY == 0
                 )
             ).group_by(
-                Session_Race_Records.title_1,
-                Session_Race_Records.title_2,
-                Session_Race_Records.heat,
+                EventData.TITLE1,
+                EventData.TITLE2,
+                EventData.HEAT,
             ).all()
 
         else:
             results_orgin = db.session.query(
-                Session_Race_Records.title_1,
-                Session_Race_Records.title_2,
-                func.max(Session_Race_Records.heat).label('max_heat')
+                EventData.TITLE1,
+                EventData.TITLE2,
+                func.max(EventData.HEAT).label('max_heat')
             ).filter(
                 and_(
-                    Session_Race_Records.finishtime != 0,
-                    Session_Race_Records.penalty == 0
+                    EventData.FINISHTIME != 0,
+                    EventData.PENALTY == 0
                 )
             ).group_by(
-                Session_Race_Records.title_1,
-                Session_Race_Records.title_2,
+                EventData.TITLE1,
+                EventData.TITLE2,
             ).all()
         
         event_count = len(results_orgin)
@@ -250,26 +252,25 @@ def drivers_stats_cross():
         else:
             title = event_entry[1]
 
-        query = query.filter(Session_Race_Records.title_2.ilike(f"%{event_entry[1]}%"))
+        query = query.filter(EventData.TITLE2.ilike(f"%{event_entry[1]}%"))
         
         if heat:
-            query = query.filter(Session_Race_Records.heat == event_entry[2])
+            query = query.filter(EventData.HEAT == event_entry[2])
 
         records = query.all()
-
 
     results = [
         {
             "id": record.id,
-            "first_name": record.first_name,
-            "last_name": record.last_name,
-            "title_1": record.title_1,
-            "title_2": record.title_2,
-            "heat": record.heat,
-            "finishtime": record.finishtime / 1_000,
-            "snowmobile": record.snowmobile,
-            "penalty": record.penalty,
-            "points": record.points
+            "first_name": record.FIRST_NAME,
+            "last_name": record.LAST_NAME,
+            "title_1": record.TITLE1,
+            "title_2": record.TITLE2,
+            "heat": record.HEAT,
+            "finishtime": record.FINISHTIME / 1_000,
+            "snowmobile": record.SNOWMOBILE,
+            "penalty": record.PENALTY,
+            "points": record.POINTS
         } for record in records
     ]
 
@@ -318,51 +319,44 @@ def drivers_stats_cross():
 
 @vmix_bp.route('/vmix/get_startlist', methods=['GET'])
 def get_startlist():
-    from app.lib.utils import GetEnv
-    db_location = GetEnv()["db_location"]
-    event = get_active_event()
-    heat = event[0]["SPESIFIC_HEAT"]
+    from app.models import EventData, ActiveEvents
+
+    active_event = get_active_event()
+    db_file = active_event[0]["db_file"]
+    heat = active_event[0]["SPESIFIC_HEAT"]
+
+    # Get the active event
+    event_query = (
+        EventData.query
+        .filter(EventData.DB_FILE == db_file, 
+                EventData.HEAT == int(heat))
+        .order_by(EventData.CID_ORDER).all()
+    )
+    startlist = []
+
+    for b in event_query:
+        startlist.append([b.CID, b.FIRST_NAME, b.LAST_NAME,b.SNOWMOBILE, b.CLUB])
+
+    mode = event_query[0].MODE
+    title2 = event_query[0].TITLE2
 
     driver_entries = []
 
-    event_name = get_active_event_name()
-    event = get_active_event()
-
-    with sqlite3.connect(db_location + event[0]["db_file"]+".sqlite") as conn:
-        cursor = conn.cursor()
-        mode = cursor.execute("SELECT MODE FROM db_index;".format(heat)).fetchall()
-        startlist_cid = cursor.execute("SELECT * FROM startlist_r{0};".format(heat)).fetchall()
-        drivers = cursor.execute("SELECT * FROM drivers").fetchall()
-
-    
-    count = 0
-    driver1 = ""
-    driver2 = ""
-
-    if int(mode[0][0]) == int(0):
-        for b in startlist_cid:
-            for m in drivers:
-                if int(startlist_cid[count][1]) == int(m[0]):
-                    driver1 = m
-
-            driver_entries.append((driver1))
-            count = count + 1 
-        title = event_name["title_2"] + " " + event_name["heat"]
-        return render_template('vmix/startlist_s.html', results=driver_entries, title=title)
+    if mode == 0:
+        for driver in startlist:
+            driver_entries.append(driver)
+        template = 'vmix/startlist_s.html'
 
     else:
-        for b in range(0,int(len(startlist_cid)/2)):
-            for m in drivers:
-                if int(startlist_cid[count][1]) == int(m[0]):
-                    driver1 = m
-            for m in drivers:
-                if int(startlist_cid[count+1][1]) == int(m[0]):
-                    driver2 = m
-            driver_entries.append((driver1,driver2))
-            count = count+2 
-        title = event_name["title_2"] + " " + event_name["heat"]
-        return render_template('vmix/startlist_p.html', results=driver_entries, title=title)
-    
+        for i in range(0, len(startlist), 2):
+            if i + 1 < len(startlist):
+                driver_entries.append((startlist[i], startlist[i+1]))
+            else:
+                driver_entries.append((startlist[i], None))
+        template = 'vmix/startlist_p.html'
+
+    title = f"{title2} {heat}"
+    return render_template(template, results=driver_entries, title=title)
 
     
 
@@ -458,33 +452,48 @@ def get_startlist_loop():
 
 @vmix_bp.route('/vmix/get_active_driver_single', methods=['GET'])
 def get_active_driver_single():
-    from app.lib.utils import GetEnv
-    
-    query = db.session.query(ActiveDrivers.D1)
-    active_driver = query.first()[0]
-    event = get_active_event()
-    db_file = event[0]["db_file"]
-    heat = event[0]["SPESIFIC_HEAT"]
-    db_location = GetEnv()["db_location"]
+    from app.models import EventData
 
-    with sqlite3.connect(db_location + db_file +".sqlite") as conn:
-        cursor = conn.cursor()
-        drivers = cursor.execute("SELECT * FROM drivers").fetchall()
-        driver_stats = cursor.execute("SELECT CID, FINISHTIME FROM driver_stats_r{0};".format(heat)).fetchall()
+    # Get the active driver CID
+    active_driver_cid = db.session.query(ActiveDrivers.D1).first()[0]
 
+    # Get the active event details
+    active_event = get_active_event()[0]
+    db_file = active_event["db_file"]
+    heat = active_event["SPESIFIC_HEAT"]
 
-    for t in drivers:
-        if int(active_driver) == int(t[0]):
-            driver_name = t[1] + " " + t[2]
-            snowmobile = t[4]
-            for g in driver_stats:
-                if int(g[0]) == int(active_driver):
-                    finishtime = g[1]
-        
+    # Query EventData for the active driver's information
+    driver_data = db.session.query(
+        EventData.FIRST_NAME,
+        EventData.LAST_NAME,
+        EventData.SNOWMOBILE,
+        EventData.FINISHTIME
+    ).filter(
+        and_(
+            EventData.DB_FILE == db_file,
+            EventData.HEAT == heat,
+            EventData.CID == active_driver_cid
+        )
+    ).first()
 
-    driver_data = {"NAME":driver_name, "SNOWMOBILE":snowmobile, "FINISHTIME":finishtime/1000}
-    
-    return driver_data
+    if driver_data:
+        driver_name = f"{driver_data.FIRST_NAME} {driver_data.LAST_NAME}"
+        snowmobile = driver_data.SNOWMOBILE
+        finishtime = driver_data.FINISHTIME / 1000 if driver_data.FINISHTIME else None
+
+        response_data = {
+            "NAME": driver_name,
+            "SNOWMOBILE": snowmobile,
+            "FINISHTIME": finishtime
+        }
+    else:
+        response_data = {
+            "NAME": "Driver not found",
+            "SNOWMOBILE": "N/A",
+            "FINISHTIME": None
+        }
+
+    return response_data
 
 @vmix_bp.route('/vmix/get_event_order_vmix', methods=['GET'])
 def get_event_order_vmix():

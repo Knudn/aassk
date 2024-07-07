@@ -447,13 +447,14 @@ $(document).ready(function() {
     });
 
     function fetchDriverData(event, heat) {
+        console.log(event, heat)
     $.ajax({
         url: `/api/get_current_startlist_w_data?event=${encodeURIComponent(event)}&heat=${encodeURIComponent(heat)}`,
         type: 'GET',
         dataType: 'json',
         success: function(response) {
             console.log("API Response:", response);
-
+            
             var driversTable = $('#driversTable');
             driversTable.empty(); // Clear existing entries
 

@@ -83,12 +83,16 @@ https://cdn.jsdelivr.net/npm/tabulator-tables@5.5.2/dist/js/tabulator.min.js
     var table;
 
     document.addEventListener("DOMContentLoaded", function(){
+        var tableData = {{ sqldata|tojson|safe }};
+        console.log("Parsed tableData:", tableData);
 
         table = new Tabulator("#driver-stats-table", {
-            data: {{ sqldata|safe }},
+            data: tableData,
             layout: "fitColumns",
             columns: [
                 {title:"CID", field:"CID"},
+                {title:"FIRST_NAME", field:"FIRST_NAME"},
+                {title:"LAST_NAME", field:"LAST_NAME"},
                 {title:"INTER_1", field:"INTER_1", editor:"input"},
                 {title:"INTER_2", field:"INTER_2", editor:"input"},
                 {title:"INTER_3", field:"INTER_3", editor:"input"},

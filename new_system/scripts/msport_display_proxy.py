@@ -208,12 +208,12 @@ async def data_clean(data, db_handler):
     if d1_update == True and d2_update == True:
         update_event = True
 
-    if update_event  == True:
-        print("Updating....")
-        asyncio.create_task(async_update_event(listen_ip))
-        d1_update = False
-        d2_update = False
-        update_event = False
+    #if update_event  == True:
+    #    print("Updating....")
+    #    asyncio.create_task(async_update_event(listen_ip))
+    #    d1_update = False
+    #    d2_update = False
+    #    update_event = False
         
 
     #if len(data_sock["Driver1"]["time"]) > 3 and len(data_sock["Driver1"]["time"]) > 3:

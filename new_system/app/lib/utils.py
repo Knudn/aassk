@@ -44,8 +44,7 @@ def export_events():
     g_config = GetEnv()
 
     events = ActiveEvents.query.order_by(ActiveEvents.sort_order).all()
-    for a in events:
-        print(a)
+
     data = []
     for a in events:
         event= [{'db_file':g_config["db_location"]+str(a.event_file)+".sqlite", 'SPESIFIC_HEAT':a.run}]
@@ -72,7 +71,6 @@ def update_info_screen(id):
     from app.models import InfoScreenAssetAssociations, InfoScreenAssets, InfoScreenInitMessage
     assets = InfoScreenAssetAssociations.query.filter_by(infoscreen=id)
     infoscreen_url = InfoScreenInitMessage.query.filter_by(id=id).first()
-    print(infoscreen_url)
     port = "8000"
     infoscreen_url = f'http://{infoscreen_url.ip}:{port}/update_index'
     json_data = []
@@ -139,7 +137,6 @@ def manage_process_screen(python_program_path: str, operation: str, new_argument
             logging.error(f"Screen session {screen_session_name} may already be running.")
             return
         start_cmd = f"screen -dmS {screen_session_name} {python_executable} {shlex.quote(python_program_path)}"
-        print(start_cmd)
         subprocess.Popen(start_cmd, shell=True)
         logging.info(f"Screen session {screen_session_name} started with program {program_name}")
 
@@ -244,7 +241,6 @@ def get_event_data_all(event):
     import json
 
     g_config = GetEnv()
-    print(event[0]["db_file"])
     with sqlite3.connect(event[0]["db_file"]) as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM drivers;".format(event[0]["db_file"]))
@@ -300,122 +296,109 @@ def get_active_events_sorted():
         
     return data
 
-def format_startlist(event,include_timedata=False):
-    import json
+def format_startlist(event, include_timedata=False):
+    from app import db
+    from app.models import EventData
+
     g_config = GetEnv()
-    if Check_Event(event) == True:
-        with sqlite3.connect(event[0]["db_file"]) as conn:
-            cursor = conn.cursor()
-            cursor.execute("SELECT * FROM startlist_r{0};".format(event[0]["SPESIFIC_HEAT"]))
-            startlist_data = cursor.fetchall()
-            event_data = cursor.execute("SELECT MODE, RUNS, TITLE1, TITLE2, DATE FROM db_index;").fetchall()
-            event_data_dict={"MODE":event_data[0][0],"HEATS":event_data[0][1], "HEAT":int(event[0]["SPESIFIC_HEAT"]),"TITLE_1":event_data[0][2], "TITLE_2":event_data[0][3], "DATE":event_data[0][4], "CROSS":g_config["cross"]}
+    if Check_Event(event):
+        event_file = event[0]["db_file"]
+        specific_heat = int(event[0]["SPESIFIC_HEAT"])
 
-            cursor.execute("SELECT * FROM drivers")
-            drivers_data = cursor.fetchall()
-            
+        # Query the database using SQLAlchemy
+        event_data = db.session.query(EventData).filter_by(DB_FILE=event_file, HEAT=specific_heat).all()
+        if not event_data:
+            return "None"
 
-            cursor.execute("SELECT CID, INTER_1, INTER_2, SPEED, PENELTY, FINISHTIME FROM driver_stats_r{0};".format(event[0]["SPESIFIC_HEAT"]))
-            time_data = cursor.fetchall()
+        # Get event configuration
+        event_config = event_data[0]
+        event_data_dict = {
+            "MODE": event_config.MODE,
+            "HEATS": event_config.RUNS,
+            "HEAT": specific_heat,
+            "TITLE_1": event_config.TITLE1,
+            "TITLE_2": event_config.TITLE2,
+            "DATE": event_config.DATE.strftime("%Y-%m-%d"),
+            "CROSS": g_config["cross"]
+        }
 
-            drivers_dict = {driver[0]: driver[1:] for driver in drivers_data}
-            structured_races = []
-            structured_races.append({"race_config":event_data_dict})
+        structured_races = [{"race_config": event_data_dict}]
 
-            if event_data_dict["MODE"] == 3 or event_data_dict["MODE"] == 2:
-                active_drivers = Get_active_drivers(g_config, event_data_dict)
-                driver_entries = []
-                count = 0
-                for b in range(0,int(len(startlist_data)/2)):
-                    driver_entries.append((b+1, startlist_data[count][1],startlist_data[count+1][1]))
-                    count = count+2   
-            else:
-                active_drivers = Get_active_drivers(g_config, event_data_dict)
-                driver_entries = []
-                count = 0
+        # Get active drivers
+        active_drivers = Get_active_drivers(g_config, event_data_dict)
 
-                for b in range(0,int(len(startlist_data))):
-                    driver_entries.append((b+1, startlist_data[count][1]))
-                    count = count + 1
-                
-            for race in driver_entries:
-                race_id = race[0]
-                drivers_in_race = []
-                for driver_id in race[1:]:
+        # Organize drivers into pairs or individual entries
+        if event_data_dict["MODE"] in [2, 3]:
+            driver_entries = [(i//2 + 1, d1.CID, d2.CID) for i, (d1, d2) in enumerate(zip(event_data[::2], event_data[1::2]))]
+        else:
+            driver_entries = [(i+1, d.CID) for i, d in enumerate(event_data)]
 
-                    driver_data = drivers_dict.get(driver_id)
-                    if driver_data:
-                        if int(driver_id) in active_drivers.values():
-                            active = True
-                        else:
-                            active = False
-                        
-                        
-                        driver_info = {
-                            "id": driver_id,
-                            "first_name": driver_data[0],
-                            "last_name": driver_data[1],
-                            "club": driver_data[2],
-                            "vehicle": driver_data[3],
-                            "active": active
+        for race in driver_entries:
+            race_id = race[0]
+            drivers_in_race = []
+
+            for driver_id in race[1:]:
+                driver_data = next((d for d in event_data if d.CID == driver_id), None)
+                if driver_data:
+                    active = driver_id in active_drivers.values()
+
+                    driver_info = {
+                        "id": driver_id,
+                        "first_name": driver_data.FIRST_NAME,
+                        "last_name": driver_data.LAST_NAME,
+                        "club": driver_data.CLUB,
+                        "vehicle": driver_data.SNOWMOBILE,
+                        "active": active,
+                        "time_info": {
+                            "INTER_1": driver_data.INTER_1,
+                            "INTER_2": driver_data.INTER_2,
+                            "SPEED": driver_data.SPEED,
+                            "PENELTY": driver_data.PENALTY,
+                            "FINISHTIME": driver_data.FINISHTIME
                         }
-                        for a in time_data:
-                            if str(a[0]) == str(driver_id):
-                                driver_info["time_info"] = {"INTER_1":a[1], "INTER_2":a[2], "SPEED":a[3], "PENELTY":a[4], "FINISHTIME":a[5]}
-                                if a[5] == 0 or a[4] != 0:
-                                    driver_info["status"] = 0
-                                    started = False
+                    }
 
-                        drivers_in_race.append(driver_info)
+                    if driver_data.FINISHTIME == 0 or driver_data.PENALTY != 0:
+                        driver_info["status"] = 0
 
-                        if event_data_dict["MODE"] == 3 or event_data_dict["MODE"] == 2:
-                            if len(drivers_in_race) == 2:
-                                if drivers_in_race[0]["time_info"]["PENELTY"] > 0:
-                                    drivers_in_race[1]["status"] = 1
-                                    drivers_in_race[0]["status"] = 2
-                                
-                                elif drivers_in_race[1]["time_info"]["PENELTY"] > 0:
-                                    drivers_in_race[0]["status"] = 1
-                                    drivers_in_race[1]["status"] = 2
+                    drivers_in_race.append(driver_info)
 
-                                if "status" in drivers_in_race[0] and drivers_in_race[1]["time_info"]["FINISHTIME"] and drivers_in_race[1]["time_info"]["PENELTY"] == 0:
-                                    print(drivers_in_race[0]["first_name"], "WINNER 1")
-                                    drivers_in_race[1]["status"] = 1
-                                    drivers_in_race[0]["status"] = 2
-                                    
-                                elif "status" in drivers_in_race[1] and drivers_in_race[0]["time_info"]["FINISHTIME"] and drivers_in_race[1]["time_info"]["PENELTY"] == 0:
-                                    print(drivers_in_race[1]["first_name"], "WINNER 0")
-                                    drivers_in_race[0]["status"] = 1
-                                    drivers_in_race[1]["status"] = 2
-                                
+            # Handle status for drag race modes (2 and 3)
+            if event_data_dict["MODE"] in [2, 3] and len(drivers_in_race) == 2:
+                if drivers_in_race[0]["time_info"]["PENELTY"] > 0:
+                    drivers_in_race[1]["status"] = 1
+                    drivers_in_race[0]["status"] = 2
+                elif drivers_in_race[1]["time_info"]["PENELTY"] > 0:
+                    drivers_in_race[0]["status"] = 1
+                    drivers_in_race[1]["status"] = 2
+                elif "status" not in drivers_in_race[0] and drivers_in_race[1]["time_info"]["FINISHTIME"] and drivers_in_race[1]["time_info"]["PENELTY"] == 0:
+                    drivers_in_race[1]["status"] = 1
+                    drivers_in_race[0]["status"] = 2
+                elif "status" not in drivers_in_race[1] and drivers_in_race[0]["time_info"]["FINISHTIME"] and drivers_in_race[0]["time_info"]["PENELTY"] == 0:
+                    drivers_in_race[0]["status"] = 1
+                    drivers_in_race[1]["status"] = 2
+                elif drivers_in_race[0]["time_info"]["FINISHTIME"] < drivers_in_race[1]["time_info"]["FINISHTIME"] and "status" not in drivers_in_race[0]:
+                    drivers_in_race[0]["status"] = 1
+                    drivers_in_race[1]["status"] = 2
+                elif drivers_in_race[0]["time_info"]["FINISHTIME"] > drivers_in_race[1]["time_info"]["FINISHTIME"] and "status" not in drivers_in_race[1]:
+                    drivers_in_race[1]["status"] = 1
+                    drivers_in_race[0]["status"] = 2
 
-                                if drivers_in_race[0]["time_info"]["FINISHTIME"] < drivers_in_race[1]["time_info"]["FINISHTIME"] and not "status" in drivers_in_race[0]:
-                                    print(drivers_in_race[0]["first_name"], "WINNER 1")
-                                    drivers_in_race[0]["status"] = 1
-                                    drivers_in_race[1]["status"] = 2
+            elif event_data_dict["MODE"] == 0:
+                race_id = specific_heat
 
-                                elif drivers_in_race[0]["time_info"]["FINISHTIME"] > drivers_in_race[1]["time_info"]["FINISHTIME"] and not "status" in drivers_in_race[1]:
-                                    print(drivers_in_race[1]["first_name"], "WINNER 0")
-                                    drivers_in_race[1]["status"] = 1
-                                    drivers_in_race[0]["status"] = 2
+            race_info = {
+                "race_id": race_id,
+                "drivers": drivers_in_race,
+            }
+            
+            structured_races.append(race_info)
 
-                        elif event_data_dict["MODE"] == 0:
-                            race_id = int(event[0]["SPESIFIC_HEAT"])
-
-                race_info = {
-                    "race_id": race_id,
-                    "drivers": drivers_in_race,
-                }
-                
-                structured_races.append(race_info)
         return structured_races
     else:
         logging.error(f"Active event not initiated operation")
         return "None"
 
-def get_active_event_name():
-    
-    pass
 
 def reorder_list_based_on_dict(original_list, correct_order_dict):
     new_list = []
@@ -443,17 +426,18 @@ def reorder_list_based_on_dict(original_list, correct_order_dict):
 
     return new_list
 
+def get_active_driver_name(db, db_file, cid):
+    from sqlalchemy import and_
+    from app.models import EventData
 
-def get_active_driver_name(db_path, cid):
+    driver = db.session.query(EventData.FIRST_NAME, EventData.LAST_NAME).filter(
+        and_(
+            EventData.DB_FILE == db_file,
+            EventData.CID == cid
+        )
+    ).first()
     
-
-    query = "SELECT FIRST_NAME, LAST_NAME FROM drivers WHERE CID={0};".format(cid)
-
-    with sqlite3.connect(db_path) as con:
-        cur = con.cursor()
-        driver_name = cur.execute(query).fetchall()
-    print(driver_name)
-    return driver_name[0][0] + " " + driver_name[0][1]
+    return driver if driver else (None, None)
 
 def fifo_monitor(app, fifo_path='/tmp/file_monitor_fifo', callback=None, g_config=None):
     import json
@@ -498,7 +482,6 @@ def fifo_monitor(app, fifo_path='/tmp/file_monitor_fifo', callback=None, g_confi
                                 print("FAIL", data)
 
                             else:
-                                print(data[6:])
                                 #full_db_reload(add_intel_sort=False, Event=file)
                                 print("NOT ACTIVE", event_change)
                         except:
@@ -514,3 +497,72 @@ def fifo_monitor(app, fifo_path='/tmp/file_monitor_fifo', callback=None, g_confi
     thread.start()
 
     return app
+
+def get_event_statistics(db, selected_event_file):
+    from sqlalchemy import func, distinct
+    from app.models import EventData
+
+    # Get the number of unique drivers
+    amount_drivers = db.session.query(func.count(distinct(EventData.CID))).filter(EventData.DB_FILE == selected_event_file).scalar()
+
+    # Get the number of heats
+    heat_num = db.session.query(func.max(EventData.HEAT)).filter(EventData.DB_FILE == selected_event_file).scalar() or 0
+
+    valid_recorded_times = 0
+    invalid_recorded_times = 0
+    drivers_left = 0
+
+    for heat in range(1, heat_num + 1):
+        # Count valid recorded times
+        valid_recorded_times += db.session.query(func.count()).filter(
+            EventData.DB_FILE == selected_event_file,
+            EventData.HEAT == heat,
+            EventData.FINISHTIME != 0,
+            EventData.PENALTY == 0
+        ).scalar()
+
+        # Count invalid recorded times
+        invalid_recorded_times += db.session.query(func.count()).filter(
+            EventData.DB_FILE == selected_event_file,
+            EventData.HEAT == heat,
+            EventData.PENALTY != 0
+        ).scalar()
+
+        # Count drivers left
+        drivers_left += db.session.query(func.count()).filter(
+            EventData.DB_FILE == selected_event_file,
+            EventData.HEAT == heat,
+            EventData.FINISHTIME == 0,
+            EventData.PENALTY == 0
+        ).scalar()
+
+    event_config = {
+        "all_records": (valid_recorded_times + invalid_recorded_times + drivers_left),
+        "p_times": invalid_recorded_times,
+        "v_times": valid_recorded_times,
+        "l_times": drivers_left,
+        "drivers": amount_drivers,
+        "heats": heat_num
+    }
+
+    return event_config
+
+
+def get_active_event_name():
+    from app.lib.db_operation import get_active_event
+    from app.models import EventData
+
+    event = get_active_event()
+
+    db_location = GetEnv()["db_location"]
+    
+    heat = event[0]["SPESIFIC_HEAT"]
+
+    event_data = EventData.query.filter(
+        EventData.DB_FILE == event[0]["db_file"],
+        EventData.HEAT == heat
+    ).first()
+
+    event_data = {"title_1":event_data.TITLE1, "title_2":event_data.TITLE2, "heat":str(event_data.HEAT) + "/" + str(event_data.RUNS)}
+    
+    return event_data

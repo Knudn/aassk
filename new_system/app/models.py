@@ -140,7 +140,46 @@ class EventOrder(db.Model):
 
     def __repr__(self):
         return f"<EventOrder(order={self.order}, name='{self.name}')>"
+
+
+#NEW MODEL, THIS HAS NO NORMALISATION
+class EventData(db.Model):
+    __tablename__ = 'event_data'
+    id = db.Column(db.Integer, primary_key=True)
     
+    # Event information
+    MODE = db.Column(db.Integer)
+    RUNS = db.Column(db.Integer)
+    DB_FILE = db.Column(db.String(255))
+    TITLE1 = db.Column(db.String(255))
+    TITLE2 = db.Column(db.String(255))
+    DATE = db.Column(db.DateTime)
+    
+    # Driver information
+    CID = db.Column(db.Integer)
+    FIRST_NAME = db.Column(db.String(255))
+    LAST_NAME = db.Column(db.String(255))
+    CLUB = db.Column(db.String(255))
+    SNOWMOBILE = db.Column(db.String(255))
+    
+    # Start list information
+    HEAT = db.Column(db.Integer)
+    PAIR = db.Column(db.Integer)
+    CID_ORDER = db.Column(db.Integer)
+    
+    # Driver stats
+    INTER_1 = db.Column(db.Integer)
+    INTER_2 = db.Column(db.Integer)
+    INTER_3 = db.Column(db.Integer)
+    SPEED = db.Column(db.Integer)
+    PENALTY = db.Column(db.Integer)
+    FINISHTIME = db.Column(db.Integer)
+    LOCKED = db.Column(db.Integer, default=0)
+    STATE = db.Column(db.Integer, default=0)
+    POINTS = db.Column(db.Integer)
+    def __repr__(self):
+        return f"<EventData(id={self.id}, DB_FILE='{self.DB_FILE}', TITLE1='{self.TITLE1}', TITLE2='{self.TITLE2}', HEAT='{self.HEAT}')>"
+
 class Session_Race_Records(db.Model):
     __tablename__ = 'Active_Session_Race_Records'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)

@@ -7,7 +7,7 @@ from app.lib.utils import intel_sort, update_info_screen, export_events, GetEnv
 from sqlalchemy import func
 
 
-
+last_data_entry = None
 
 api_bp = Blueprint('api', __name__)
 
@@ -57,9 +57,16 @@ def update_active_drivers():
 
 @api_bp.route('/api/active_event_update', methods=['GET'])
 def active_event_update():
+    global last_data_entry
 
+    
     update_active_event_stats()
-    send_data_to_room(get_active_startlist())
+    data = get_active_startlist()
+    
+    if str(data) != last_data_entry:
+        send_data_to_room(data)
+
+    last_data_entry = data
 
     return "Updated"
 
@@ -105,7 +112,6 @@ def get_current_startlist_w_data():
         ).first()
 
         event = [{'db_file':query.event_file, 'SPESIFIC_HEAT':query.run}]
-        print(event)
         return get_active_startlist_w_timedate(event_wl=event)
     
     return get_active_startlist_w_timedate()
@@ -117,8 +123,6 @@ def update_event():
             
         g_config = GetEnv()
         active_event = get_active_event()
-        print(active_event)
-        print(request.form.get('single_event'))
         
         if request.form.get('event_file') == "active_event":
             active_event = get_active_event()
@@ -575,36 +579,33 @@ def get_timedata():
 
 @api_bp.route('/api/get_timedata_cross/', methods=['GET'])
 def get_timedata_cross():
-    from app.models import Session_Race_Records
-    from app import db
+    from app.models import EventData
     import json
-
-    query = Session_Race_Records.query
-    query = query.order_by(Session_Race_Records.points.desc(), Session_Race_Records.finishtime.asc())
+    
+    query = EventData.query
+    query = query.order_by(EventData.POINTS.desc(), EventData.FINISHTIME.asc())
 
     title_combo = request.args.get('title_combo')
     if title_combo:
-        
-        query = query.filter((Session_Race_Records.title_1 + " " + Session_Race_Records.title_2).ilike(f"%{title_combo}%"))
-
+        query = query.filter((EventData.TITLE1 + " " + EventData.TITLE2).ilike(f"%{title_combo}%"))
 
     title_1 = request.args.get('title_1')
     if title_1:
-        query = query.filter(Session_Race_Records.title_1.ilike(f"%{title_1}%"))
+        query = query.filter(EventData.TITLE1.ilike(f"%{title_1}%"))
 
     title_2 = request.args.get('title_2')
     if title_2:
-        query = query.filter(Session_Race_Records.title_2.ilike(f"%{title_2}%"))
+        query = query.filter(EventData.TITLE2.ilike(f"%{title_2}%"))
 
     heat = request.args.get('heat')
     if heat:
-        query = query.filter(Session_Race_Records.heat == heat)
+        query = query.filter(EventData.HEAT == heat)
 
     name = request.args.get('name')
     if name:
         query = query.filter(db.or_(
-            db.and_(Session_Race_Records.first_name + " " + Session_Race_Records.last_name).ilike(f"%{name}%"),
-            db.and_(Session_Race_Records.last_name + " " + Session_Race_Records.first_name).ilike(f"%{name}%")
+            db.and_(EventData.FIRST_NAME + " " + EventData.LAST_NAME).ilike(f"%{name}%"),
+            db.and_(EventData.LAST_NAME + " " + EventData.FIRST_NAME).ilike(f"%{name}%")
         ))
 
     limit = request.args.get('limit', type=int)
@@ -615,15 +616,15 @@ def get_timedata_cross():
     results = [
         {
             "id": record.id,
-            "first_name": record.first_name,
-            "last_name": record.last_name,
-            "title_1": record.title_1,
-            "title_2": record.title_2,
-            "heat": record.heat,
-            "finishtime": record.finishtime / 1_000,
-            "snowmobile": record.snowmobile,
-            "penalty": record.penalty,
-            "points": record.points
+            "first_name": record.FIRST_NAME,
+            "last_name": record.LAST_NAME,
+            "title_1": record.TITLE1,
+            "title_2": record.TITLE2,
+            "heat": record.HEAT,
+            "finishtime": record.FINISHTIME / 1000,
+            "snowmobile": record.SNOWMOBILE,
+            "penalty": record.PENALTY,
+            "points": record.POINTS
         } for record in records
     ]
 
@@ -776,8 +777,6 @@ def get_start_position_cross():
 
     combined_list.sort(key=lambda x: x[1], reverse=True)
 
-    print(combined_list)
-
     return (combined_list)
 
 @api_bp.route('/api/submit_timestamp_clock', methods=['POST'])
@@ -788,6 +787,7 @@ def submit_timestamp_clock():
     from app.models import ActiveEvents
     from app import db
     from app.lib.utils import get_active_driver_name
+    import json
 
     g_config = GetEnv()
 
@@ -844,25 +844,23 @@ def submit_timestamp_clock():
         if button == 1 and start_both == True:
             current_timestamps.pop(0)
 
-    print(print(db_location+active_event_file[0]["db_file"]+".sqlite",active_driver[0][0]))
-
     if active_event.mode == 0:
         if button == 1:
-            current_timestamps.append({"id": len(current_timestamps) + 1, "TITLE": event_title, "HEAT":heat, "DRIVER": active_driver[0][0], "DRIVER_NAME":get_active_driver_name(db_location+active_event_file[0]["db_file"]+".sqlite",active_driver[0][0]), "BUTTON":button,"TS_SIMPLE":timestamp, "TS_RAW":timestamp_raw,"PLACEMENT":"START"})
+            current_timestamps.append({"id": len(current_timestamps) + 1, "TITLE": event_title, "HEAT":heat, "DRIVER": active_driver[0][0], "DRIVER_NAME":get_active_driver_name(db, active_event_file[0]["db_file"],active_driver[0][0]), "BUTTON":button,"TS_SIMPLE":timestamp, "TS_RAW":timestamp_raw,"PLACEMENT":"START"})
         if button == 3:
-            current_timestamps.append({"id": len(current_timestamps) + 1, "TITLE": event_title, "HEAT":heat, "DRIVER": active_driver[0][0], "DRIVER_NAME":get_active_driver_name(db_location+active_event_file[0]["db_file"]+".sqlite",active_driver[0][0]), "BUTTON":button,"TS_SIMPLE":timestamp, "TS_RAW":timestamp_raw,"PLACEMENT":"FINISH"})
+            current_timestamps.append({"id": len(current_timestamps) + 1, "TITLE": event_title, "HEAT":heat, "DRIVER": active_driver[0][0], "DRIVER_NAME":get_active_driver_name(db, active_event_file[0]["db_file"],active_driver[0][0]), "BUTTON":button,"TS_SIMPLE":timestamp, "TS_RAW":timestamp_raw,"PLACEMENT":"FINISH"})
     else:
         if button == 1 and start_both == False:
-            current_timestamps.append({"id": len(current_timestamps) + 1, "TITLE": event_title, "HEAT":heat, "DRIVER": active_driver[0][0], "DRIVER_NAME":get_active_driver_name(db_location+active_event_file[0]["db_file"]+".sqlite",active_driver[0][0]), "BUTTON":button,"TS_SIMPLE":timestamp, "TS_RAW":timestamp_raw,"PLACEMENT":"START"})
+            current_timestamps.append({"id": len(current_timestamps) + 1, "TITLE": event_title, "HEAT":heat, "DRIVER": active_driver[0][0], "DRIVER_NAME":get_active_driver_name(db, active_event_file[0]["db_file"],active_driver[0][0]), "BUTTON":button,"TS_SIMPLE":timestamp, "TS_RAW":timestamp_raw,"PLACEMENT":"START"})
         elif button == 1 and start_both == True:
-            current_timestamps.append({"id": len(current_timestamps) + 1, "TITLE": event_title, "HEAT":heat, "DRIVER": active_driver[0][0], "DRIVER_NAME":get_active_driver_name(db_location+active_event_file[0]["db_file"]+".sqlite",active_driver[0][0]), "BUTTON":button,"TS_SIMPLE":timestamp, "TS_RAW":timestamp_raw,"PLACEMENT":"START"})
-            current_timestamps.append({"id": len(current_timestamps) + 1, "TITLE": event_title, "HEAT":heat, "DRIVER": active_driver[0][1], "DRIVER_NAME":get_active_driver_name(db_location+active_event_file[0]["db_file"]+".sqlite",active_driver[0][1]), "BUTTON":button,"TS_SIMPLE":timestamp, "TS_RAW":timestamp_raw,"PLACEMENT":"START"})
+            current_timestamps.append({"id": len(current_timestamps) + 1, "TITLE": event_title, "HEAT":heat, "DRIVER": active_driver[0][0], "DRIVER_NAME":get_active_driver_name(db, active_event_file[0]["db_file"],active_driver[0][0]), "BUTTON":button,"TS_SIMPLE":timestamp, "TS_RAW":timestamp_raw,"PLACEMENT":"START"})
+            current_timestamps.append({"id": len(current_timestamps) + 1, "TITLE": event_title, "HEAT":heat, "DRIVER": active_driver[0][1], "DRIVER_NAME":get_active_driver_name(db, active_event_file[0]["db_file"],active_driver[0][1]), "BUTTON":button,"TS_SIMPLE":timestamp, "TS_RAW":timestamp_raw,"PLACEMENT":"START"})
         elif button == 2 and start_both == False:
-            current_timestamps.append({"id": len(current_timestamps) + 1, "TITLE": event_title, "HEAT":heat, "DRIVER": active_driver[0][1], "DRIVER_NAME":get_active_driver_name(db_location+active_event_file[0]["db_file"]+".sqlite",active_driver[0][1]), "BUTTON":button,"TS_SIMPLE":timestamp, "TS_RAW":timestamp_raw,"PLACEMENT":"START"})
+            current_timestamps.append({"id": len(current_timestamps) + 1, "TITLE": event_title, "HEAT":heat, "DRIVER": active_driver[0][1], "DRIVER_NAME":get_active_driver_name(db, active_event_file[0]["db_file"],active_driver[0][1]), "BUTTON":button,"TS_SIMPLE":timestamp, "TS_RAW":timestamp_raw,"PLACEMENT":"START"})
         elif button == 3:
-            current_timestamps.append({"id": len(current_timestamps) + 1, "TITLE": event_title, "HEAT":heat, "DRIVER": active_driver[0][0], "DRIVER_NAME":get_active_driver_name(db_location+active_event_file[0]["db_file"]+".sqlite",active_driver[0][0]), "BUTTON":button,"TS_SIMPLE":timestamp, "TS_RAW":timestamp_raw,"PLACEMENT":"FINISH"})
+            current_timestamps.append({"id": len(current_timestamps) + 1, "TITLE": event_title, "HEAT":heat, "DRIVER": active_driver[0][0], "DRIVER_NAME":get_active_driver_name(db, active_event_file[0]["db_file"],active_driver[0][0]), "BUTTON":button,"TS_SIMPLE":timestamp, "TS_RAW":timestamp_raw,"PLACEMENT":"FINISH"})
         elif button == 4:
-            current_timestamps.append({"id": len(current_timestamps) + 1, "TITLE": event_title, "HEAT":heat, "DRIVER": active_driver[0][1],"DRIVER_NAME":get_active_driver_name(db_location+active_event_file[0]["db_file"]+".sqlite",active_driver[0][1]), "BUTTON":button,"TS_SIMPLE":timestamp, "TS_RAW":timestamp_raw,"PLACEMENT":"FINISH"})
+            current_timestamps.append({"id": len(current_timestamps) + 1, "TITLE": event_title, "HEAT":heat, "DRIVER": active_driver[0][1],"DRIVER_NAME":get_active_driver_name(db, active_event_file[0]["db_file"],active_driver[0][1]), "BUTTON":button,"TS_SIMPLE":timestamp, "TS_RAW":timestamp_raw,"PLACEMENT":"FINISH"})
     
 
 
@@ -870,7 +868,7 @@ def submit_timestamp_clock():
         send_fixed_timestamp(timestamp_raw)
 
     #Push changed to the correct websocket
-    socketio.emit('response', current_timestamps, room="clock_mgnt")
+    socketio.emit('response', str(current_timestamps), room="clock_mgnt")
 
     return "Success"
     
@@ -889,7 +887,6 @@ def send_fixed_timestamp(timestamp):
     url = 'http://{0}:5000/send-timestamp'.format(clock_server_endpoint)
     headers = {'Content-Type': 'application/json'}
     response = requests.post(url, headers=headers, data=json.dumps({"timestamp":timestamp}))
-
     if response.status_code == 200:
         return 'Success'
     else:
@@ -898,7 +895,7 @@ def send_fixed_timestamp(timestamp):
 @api_bp.route('/api/retry_entries', methods=['POST', 'GET'])
 def retry_entries():
     import requests
-    from app.models import MicroServices, RetryEntries, ActiveEvents, Session_Race_Records
+    from app.models import MicroServices, RetryEntries, ActiveEvents
     from app import db
     import json
     from app.lib.db_operation import get_active_event
@@ -963,7 +960,6 @@ def toggle_retry():
         cur = con.cursor()
         active_driver = cur.execute(query).fetchall()
 
-    print(active_driver[0][0])
 
     if operation == "add":
         payload = json.dumps({
@@ -990,11 +986,20 @@ def toggle_retry():
 def set_active_state():
     from app.models import ActiveDrivers, ActiveEvents
     from app import db
-    
+    from app.lib.db_operation import get_active_event
+
 
     data = request.json
+
     driver_one = data.get("driver_one")
     driver_two = data.get("driver_two")
+
+    if driver_one == "up":
+        active_event = get_active_event()
+        return "UP"
+    elif driver_one == "down":
+        return "DOWN"
+    
     event = data.get("event")
     heat = data.get("event_heat")
     
