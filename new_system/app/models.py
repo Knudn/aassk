@@ -144,7 +144,7 @@ class EventOrder(db.Model):
 class Session_Race_Records(db.Model):
     __tablename__ = 'Active_Session_Race_Records'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    cid =  db.Column(db.Integer, nullable=False)
+    cid =  db.Column(db.Integer, nullable=True, default=55)
     first_name = db.Column(db.String(84), nullable=False)
     last_name = db.Column(db.String(84), nullable=False)
     title_1 = db.Column(db.String(84), nullable=False)

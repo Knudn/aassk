@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Centered Race Overlay</title>
+<title>Centered Race Overlay with Live Timer</title>
 <script src="{{url_for('static', filename='js/socket.io.js')}}"></script>
 <style>
     * {
@@ -13,7 +13,6 @@
         font-family: 'Arial', sans-serif;
     }
     body {
-        background-color: rgba(0, 0, 0, 0.5);
         color: #FFFFFF;
         height: 100vh;
         display: flex;
@@ -35,7 +34,6 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        gap: 10px;
     }
     .driver {
         display: flex;
@@ -44,7 +42,7 @@
         white-space: nowrap;
     }
     .position {
-        font-size: 14px;
+        font-size: 18px;
         font-weight: bold;
         color: #FFD700;
         margin-right: 5px;
@@ -52,18 +50,24 @@
         text-align: right;
     }
     .name {
-        font-size: 14px;
+        font-size: 18px;
         margin-right: 5px;
         min-width: 80px;
     }
     .time {
-        font-size: 14px;
+        font-size: 18px;
         color: #00FFFF;
     }
     .status {
-        font-size: 12px;
+        font-size: 18px;
         color: #FF4500;
         font-weight: bold;
+    }
+    .separator {
+        width: 1px;
+        height: 20px;
+        background-color: rgba(255, 255, 255, 0.3);
+        margin: 0 10px;
     }
 </style>
 </head>
@@ -75,67 +79,134 @@
 </div>
 
 <script>
-function updateOverlay(data) {
-    const driverContainer = document.getElementById('driver-container');
-    driverContainer.innerHTML = ''; 
-
-    data.forEach((item, index) => {
-        if (item.drivers) {
-            item.drivers.forEach(driver => {
-                const driverDiv = document.createElement('div');
-                driverDiv.classList.add('driver');
-
-                const positionSpan = document.createElement('span');
-                positionSpan.classList.add('position');
-                positionSpan.textContent = index + 1;
-
-                const nameSpan = document.createElement('span');
-                nameSpan.classList.add('name');
-                nameSpan.textContent = `${driver.first_name}. ${driver.last_name} | `;
-
-                const timeSpan = document.createElement('span');
-                timeSpan.classList.add('time');
-
-                if (driver.time_info.PENELTY !== 0) {
-                    timeSpan.textContent = "DNF";
-                    const statusSpan = document.createElement('span');
-                    statusSpan.classList.add('status');
-                    statusSpan.textContent = ` (Penalty)`;
-                    driverDiv.appendChild(statusSpan);
-                } else {
-                    timeSpan.textContent = (driver.time_info.FINISHTIME / 1000).toFixed(3);
-                }
-
-                driverDiv.appendChild(positionSpan);
-                driverDiv.appendChild(nameSpan);
-                driverDiv.appendChild(timeSpan);
-
-                driverContainer.appendChild(driverDiv);
-            });
+    let activeDrivers = {};
+    let intervalId;
+    
+    function updateOverlay(data) {
+        const driverContainer = document.getElementById('driver-container');
+        driverContainer.innerHTML = ''; 
+    
+        data.forEach((item, index) => {
+            if (item.drivers) {
+                item.drivers.forEach((driver, driverIndex) => {
+                    const driverDiv = document.createElement('div');
+                    driverDiv.classList.add('driver');
+    
+                    const positionSpan = document.createElement('span');
+                    positionSpan.classList.add('position');
+                    positionSpan.textContent = driver.id;
+    
+                    const nameSpan = document.createElement('span');
+                    nameSpan.classList.add('name');
+                    nameSpan.textContent = `${driver.first_name}. ${driver.last_name}`;
+    
+                    const timeSpan = document.createElement('span');
+                    timeSpan.classList.add('time');
+    
+                    if (driver.time_info.PENELTY == 1) {
+                        timeSpan.textContent = "DNS";
+                        timeSpan.classList.add('status');
+                    } else if (driver.time_info.PENELTY == 2) {
+                        timeSpan.textContent = "DNF";
+                        timeSpan.classList.add('status');
+                    } else if (driver.time_info.PENELTY == 3) {
+                        timeSpan.textContent = "DSQ";
+                        timeSpan.classList.add('status');
+                    } else if (driver.active && driver.time_info.INTER_1 > 0 && driver.time_info.PENELTY == 0) {
+                        if (!activeDrivers[driver.id]) {
+                            activeDrivers[driver.id] = {
+                                startTime: driver.time_info.INTER_1,
+                                element: timeSpan
+                            };
+                        }
+                        updateDriverTime(driver.id);
+                    } else if (driver.time_info.FINISHTIME > 0) {
+                        timeSpan.textContent = (driver.time_info.FINISHTIME / 1000).toFixed(3);
+                        if (activeDrivers[driver.id]) {
+                            delete activeDrivers[driver.id];
+                        }
+                    } else {
+                        timeSpan.textContent = "0.000";
+                    }
+    
+                    driverDiv.appendChild(positionSpan);
+                    driverDiv.appendChild(nameSpan);
+                    driverDiv.appendChild(timeSpan);
+    
+                    driverContainer.appendChild(driverDiv);
+    
+                    if (index < data.length - 1 || driverIndex < item.drivers.length - 1) {
+                        const separator = document.createElement('div');
+                        separator.classList.add('separator');
+                        driverContainer.appendChild(separator);
+                    }
+                });
+            }
+        });
+    
+        if (Object.keys(activeDrivers).length > 0 && !intervalId) {
+            intervalId = setInterval(updateActiveTimes, 100);
+        } else if (Object.keys(activeDrivers).length === 0 && intervalId) {
+            clearInterval(intervalId);
+            intervalId = null;
         }
+    }
+    
+    function getCurrentTimeInMicroseconds() {
+        const now = new Date();
+        return (now.getHours() * 3600 + now.getMinutes() * 60 + now.getSeconds()) * 1000000 + now.getMilliseconds() * 1000;
+    }
+    
+    function updateDriverTime(driverId) {
+        const driver = activeDrivers[driverId];
+        if (driver) {
+            const currentTimeInMicroseconds = getCurrentTimeInMicroseconds();
+            const elapsedTime = (currentTimeInMicroseconds - driver.startTime) / 1000000;
+            driver.element.textContent = Math.max(0, elapsedTime).toFixed(3);
+        }
+    }
+    
+    function updateActiveTimes() {
+        Object.keys(activeDrivers).forEach(updateDriverTime);
+    }
+    
+    function loadDriverData() {
+        fetch('/api/get_current_startlist_w_data')
+            .then(response => response.json())
+            .then(data => updateOverlay(data))
+            .catch(error => console.error('Error fetching data:', error));
+    }
+    
+    window.onload = loadDriverData;
+    
+    const socket = io.connect('http://' + document.domain + ':' + location.port);
+    
+    socket.on('connect', function() {
+        console.log('Connected to the server');
+        socket.emit('join', { username: 'John', room: 'room1' });
     });
-}
-
-function loadDriverData() {
-    fetch('/api/get_current_startlist_w_data')
-        .then(response => response.json())
-        .then(data => updateOverlay(data))
-        .catch(error => console.error('Error fetching data:', error));
-}
-
-window.onload = loadDriverData;
-
-const socket = io.connect('http://' + document.domain + ':' + location.port);
-
-socket.on('connect', function() {
-    console.log('Connected to the server');
-    socket.emit('join', { username: 'John', room: 'room1' });
-});
-
-socket.on('response', function(dataString) {
-    const data = JSON.parse(dataString);
-    updateOverlay(data);
-});
-</script>
+    
+    socket.on('response', function(dataString) {
+        const data = JSON.parse(dataString);
+        updateOverlay(data);
+    });
+    
+    // Debug function
+    function debugActiveDrivers() {
+        console.log('Active Drivers:', activeDrivers);
+        Object.keys(activeDrivers).forEach(driverId => {
+            const driver = activeDrivers[driverId];
+            const currentTime = getCurrentTimeInMicroseconds();
+            console.log(`Driver ${driverId}:`, {
+                startTime: driver.startTime,
+                currentTime: currentTime,
+                elapsedTime: (currentTime - driver.startTime) / 1000000
+            });
+        });
+    }
+    
+    // Call debug function every 5 seconds
+    setInterval(debugActiveDrivers, 5000);
+    </script>
 </body>
 </html>

@@ -126,7 +126,7 @@
           $accordion = $('.js-accordion');
           $accordion_header = $accordion.find('.js-accordion-header');
           $accordion_item = $('.js-accordion-item');
-          
+
           // Setup event handler
           $accordion_header.on('click', function () {
             toggle($(this));
@@ -207,37 +207,47 @@ $(document).on('click', '.js-accordion .js-accordion-header', function() {
   }
 });
 
+// ... (previous code remains the same)
+
 function format_all_score(data) {
   new_data = {}
   data.forEach((participant, index) => {
-    if ( ! new_data.hasOwnProperty(participant.first_name+participant.last_name)) {
-      new_data[participant.first_name+participant.last_name] = [
+    if (!new_data.hasOwnProperty(participant.first_name + participant.last_name)) {
+      new_data[participant.first_name + participant.last_name] = [
         participant.first_name + " " + participant.last_name, 
         participant.snowmobile,
         participant.penalty,
         participant.finishtime,
-        participant.points
+        participant.points,
+        participant.cid
       ]
     } else {
-      finishtime = new_data[participant.first_name+participant.last_name][3]
+      finishtime = new_data[participant.first_name + participant.last_name][3]
       if (finishtime > participant.finishtime || finishtime == 0) {
         if (participant.finishtime > 0) {
           finishtime = participant.finishtime
         }
-        
       }
 
-      points = new_data[participant.first_name+participant.last_name][4] + participant.points
+      points = new_data[participant.first_name + participant.last_name][4] + participant.points
 
-      new_data[participant.first_name+participant.last_name][4] = points
-      new_data[participant.first_name+participant.last_name][3] = finishtime
+      new_data[participant.first_name + participant.last_name][4] = points
+      new_data[participant.first_name + participant.last_name][3] = finishtime
     }
   })
   const entries = Object.entries(new_data);
-  const sortedEntries = entries.sort((a, b) => b[1][4] - a[1][4]);
+  const sortedEntries = entries.sort((a, b) => {
+    // First, sort by points (descending order)
+    if (b[1][4] !== a[1][4]) {
+      return b[1][4] - a[1][4];
+    }
+    // If points are equal, sort by best time (ascending order)
+    return a[1][3] - b[1][3];
+  });
 
   return sortedEntries
 }
+
 
 function createAccordions(groupedByEventAndHeat) {
     const container = document.getElementById('accordionContainer');
@@ -261,7 +271,7 @@ function createAccordions(groupedByEventAndHeat) {
 
         // Optionally, add table headers here if needed
         const headerRow = table.insertRow();
-        ['No.', 'Name', 'Snowmobile','Best Finishtime', 'Points'].forEach(headerText => {
+        ['No.', 'CID', 'Name', 'Snowmobile','Best Finishtime', 'Points'].forEach(headerText => {
             const headerCell = document.createElement('th');
             headerCell.textContent = headerText;
             headerRow.appendChild(headerCell);
@@ -275,10 +285,13 @@ function createAccordions(groupedByEventAndHeat) {
           snowmobile = participant[1][1]
           finishtime = participant[1][3]
           points = participant[1][4]
+          cid_value = participant[1][5]
 
           const row = table.insertRow();
           const numberCell = row.insertCell();
           numberCell.textContent = index + 1;
+          const cid = row.insertCell();
+          cid.textContent = cid_value;
           const nameCell = row.insertCell();
           nameCell.textContent = `${name}`; 
           const snowmobileCell = row.insertCell();
@@ -318,7 +331,7 @@ function createAccordions(groupedByEventAndHeat) {
           const thead = document.createElement('thead');
           table.appendChild(thead);
           const headerRow = thead.insertRow();
-          const headers = ['No.','ID', 'Name', 'Snowmobile', 'Penalty' ,'Finishtime', 'Points'];
+          const headers = ['No.', 'CID', 'Name', 'Snowmobile', 'Penalty' ,'Finishtime', 'Points'];
           headers.forEach(text => {
               const th = document.createElement('th');
               th.textContent = text;
@@ -331,9 +344,9 @@ function createAccordions(groupedByEventAndHeat) {
           heats[heat].forEach((participant, index) => {
               const row = tbody.insertRow();
               const numberCell = row.insertCell();
-              numberCell.textContent = index + 1; // Participant number
-              const bib = row.insertCell();
-              bib.textContent = participant.id; // Participant number
+              numberCell.textContent = index + 1;
+              const number_bid = row.insertCell();
+              number_bid.textContent = participant.cid;
               const nameCell = row.insertCell();
               nameCell.textContent = `${participant.first_name} ${participant.last_name}`; // Participant name
               const snowmobileCell = row.insertCell();

@@ -13,6 +13,32 @@ from sqlalchemy import func, and_
 vmix_bp = Blueprint('vmix', __name__)
 
 
+@vmix_bp.route('/vmix/startlist_cross_felles', methods=['GET'])
+def startlist_cross_felles():
+    
+    return render_template('vmix/startlist_cross_felles.html')
+
+
+@vmix_bp.route('/vmix/startlist_cross_felles_rookie', methods=['GET'])
+def startlist_cross_felles_rookie():
+    
+    return render_template('vmix/startlist_cross_felles_rookie.html')
+
+@vmix_bp.route('/vmix/drivers_stats_cross_finale_rookie', methods=['GET'])
+def drivers_stats_cross_finale_rookie():
+    
+    return render_template('vmix/drivers_stats_cross_finale_rookie.html')
+
+@vmix_bp.route('/vmix/drivers_stats_cross_finale', methods=['GET'])
+def drivers_stats_cross_finale():
+    
+    return render_template('vmix/drivers_stats_cross_finale.html')
+
+
+@vmix_bp.route('/vmix/startlist_cross_single', methods=['GET'])
+def startlist_cross_single():
+    return render_template('vmix/startlist_cross_single.html')
+
 @vmix_bp.route('/vmix/active_driver_dash_cross', methods=['GET'])
 def active_driver_dash_cross():
     
@@ -156,6 +182,7 @@ def drivers_stats_cross():
     from app.models import Session_Race_Records
     from app import db
     import json
+    from sqlalchemy import func, and_, or_
 
     loop = request.args.get('loop')
     heat = request.args.get('heat')
@@ -168,26 +195,22 @@ def drivers_stats_cross():
     query = Session_Race_Records.query
     query = query.order_by(Session_Race_Records.points.desc(), Session_Race_Records.finishtime.asc())
     
-    if all_event:
+    if finale:
+        query = query.filter(Session_Race_Records.title_2.ilike("%FINALE%"))
+        title = "FINALE"
+    elif all_event:
         title = get_active_event_name()["title_1"]
-        records = query.all()
-
-
-    if active == "true":
+    elif active == "true":
         data = get_active_event_name()
         title_2 = data["title_2"]
         query = query.filter(Session_Race_Records.title_2.ilike(f"%{title_2}%"))
-        
-
+    
         if heat == "true":
-            heat == data["heat"]
             heat_new = get_active_event()[0]["SPESIFIC_HEAT"]
             query = query.filter(Session_Race_Records.heat == heat_new)
             title = title_2 + " " + data["heat"]
         else:
             title = title_2
-
-        records = query.all()
     
     if loop:
         session['index'] = session.get('index', 0) + 1
@@ -198,52 +221,49 @@ def drivers_stats_cross():
                 func.max(Session_Race_Records.heat).label('max_heat')
             ).filter(
                 and_(
-                    Session_Race_Records.finishtime != 0,
-                    Session_Race_Records.penalty == 0,
+                    or_(
+                        and_(Session_Race_Records.finishtime != 0, Session_Race_Records.penalty == 0),
+                        Session_Race_Records.penalty > 0
+                    ),
                     Session_Race_Records.title_2 == event_filter,
                 )
-            ).group_by(
-                Session_Race_Records.title_1,
-                Session_Race_Records.title_2,
-                Session_Race_Records.heat,
-            ).all()
-
+            )
         elif all_heats:
             results_orgin = db.session.query(
                 Session_Race_Records.title_1,
                 Session_Race_Records.title_2,
                 func.max(Session_Race_Records.heat).label('max_heat')
             ).filter(
-                and_(
-                    Session_Race_Records.finishtime != 0,
-                    Session_Race_Records.penalty == 0
+                or_(
+                    and_(Session_Race_Records.finishtime != 0, Session_Race_Records.penalty == 0),
+                    Session_Race_Records.penalty > 0
                 )
-            ).group_by(
-                Session_Race_Records.title_1,
-                Session_Race_Records.title_2,
-                Session_Race_Records.heat,
-            ).all()
-
+            )
         else:
             results_orgin = db.session.query(
                 Session_Race_Records.title_1,
                 Session_Race_Records.title_2,
                 func.max(Session_Race_Records.heat).label('max_heat')
             ).filter(
-                and_(
-                    Session_Race_Records.finishtime != 0,
-                    Session_Race_Records.penalty == 0
+                or_(
+                    and_(Session_Race_Records.finishtime != 0, Session_Race_Records.penalty == 0),
+                    Session_Race_Records.penalty > 0
                 )
-            ).group_by(
-                Session_Race_Records.title_1,
-                Session_Race_Records.title_2,
-            ).all()
+            )
+        
+        if finale:
+            results_orgin = results_orgin.filter(Session_Race_Records.title_2.ilike("%FINALE%"))
+        
+        results_orgin = results_orgin.group_by(
+            Session_Race_Records.title_1,
+            Session_Race_Records.title_2,
+        ).all()
         
         event_count = len(results_orgin)
         if event_count < session['index']:
                 session['index'] = 1
 
-        event_entry = results_orgin.pop(session['index'] - 1)
+        event_entry = results_orgin[session['index'] - 1]
 
         if heat:
             title = event_entry[1] + " " + "Heat: " + str(event_entry[2])
@@ -255,8 +275,7 @@ def drivers_stats_cross():
         if heat:
             query = query.filter(Session_Race_Records.heat == event_entry[2])
 
-        records = query.all()
-
+    records = query.all()
 
     results = [
         {
@@ -266,7 +285,7 @@ def drivers_stats_cross():
             "title_1": record.title_1,
             "title_2": record.title_2,
             "heat": record.heat,
-            "finishtime": record.finishtime / 1_000,
+            "finishtime": record.finishtime / 1_000 if record.finishtime != 0 else 0,
             "snowmobile": record.snowmobile,
             "penalty": record.penalty,
             "points": record.points
@@ -284,19 +303,27 @@ def drivers_stats_cross():
                 "last_name": record['last_name'],
                 "snowmobile": record['snowmobile'],
                 "points": record['points'],
-                "finishtime": record['finishtime'] if record['finishtime'] != 0 else float('inf')
+                "finishtime": record['finishtime'] if record['finishtime'] != 0 else float('inf'),
+                "penalty": record['penalty']
             }
         else:
             combined_results[name_key]['points'] += record['points']
-            if 0 < record['finishtime'] < combined_results[name_key]['finishtime']:
+            if record['finishtime'] != 0 and record['finishtime'] < combined_results[name_key]['finishtime']:
                 combined_results[name_key]['finishtime'] = record['finishtime']
+            if record['penalty'] > combined_results[name_key]['penalty']:
+                combined_results[name_key]['penalty'] = record['penalty']
 
     for key, value in combined_results.items():
         if value['finishtime'] == float('inf'):
             value['finishtime'] = 0
-    
-    sorted_combined_results = sorted(combined_results.values(), key=lambda x: x['points'], reverse=True)
 
+    # New sorting function
+    def sort_key(entry):
+        points = entry['points']
+        finishtime = entry['finishtime']
+        return (-points, finishtime if finishtime != 0 else float('inf'))
+
+    sorted_combined_results = sorted(combined_results.values(), key=sort_key)
 
     sorted_combined_results_new = []
     counter = 1

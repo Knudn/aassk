@@ -523,28 +523,24 @@ document.getElementById('loadDataButton').addEventListener('click', function() {
         .then(response => response.json())
         .then(data => {
             const eventTableBody = document.getElementById('eventTableBody');
-            eventTableBody.innerHTML = ''; // Clear previous content
+            eventTableBody.innerHTML = '';
             data.forEach(event => {
                 const tableRow = document.createElement('tr');
 
-                // Add class to grey out if disabled
                 if(event.Enabled === 0) {
                     tableRow.classList.add('table-secondary', 'strikethrough');
                 }
 
-                // Set background color if active
                 if (event.Active) {
                     active = "style=background:aquamarine"
                 } else {
                     active = ""
                 }
 
-                // Create table data with potential strikethrough
                 const orderTd = `<td class="${event.Enabled === 0 ? 'strikethrough' : ''}" ${active}>${event.Order}</td>`;
                 const eventTd = `<td class="${event.Enabled === 0 ? 'strikethrough' : ''}" ${active}>${event.Event}</td>`;
                 const heatTd = `<td class="${event.Enabled === 0 ? 'strikethrough' : ''} " ${active}>${event.Heat}</td>`;
                 
-                // Set innerHTML of the table row
                 tableRow.innerHTML = orderTd + eventTd + heatTd;
 
                 eventTableBody.appendChild(tableRow);
@@ -556,14 +552,12 @@ document.getElementById('loadDataButton').addEventListener('click', function() {
 table_entry_count = 0
 document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('top_driver_button').addEventListener('click', function() {
-        console.log(title_name[0],title_name[1],title_name[2])
         fetch(`/api/get_timedata/?title_1=${title_name[0]}&title_2=${title_name[1]}&heat=${title_name[2]}&single_all=true&entries_per_filter=10&unique_names=true`)
 
         .then(response => response.json())
         .then(data => {
 
             
-            // Clear existing data in tables and reset tab titles
             document.querySelectorAll('.tab-pane').forEach((tabPane, index) => {
                 tabPane.querySelector('table tbody').innerHTML = '';
                 const tabLink = document.querySelector(`.nav-tabs .nav-item:nth-child(${index + 1}) a`);
@@ -576,7 +570,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 tab2: 0,
                 tab3: 0
             };
-            // Process each record and append it to the right table
+
             Object.keys(data).forEach(key => {
 
                 const event = data[key];
@@ -601,14 +595,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 } else {
                     return
                 }
-                // Update tab title
+
                 const tabLink = document.querySelector(`.nav-tabs .nav-item:nth-child(${key.includes('title_1+title_2+heat_') ? 1 : key.includes('title_1+title_2_') ? 2 : 3}) a`);
                 if (tabLink) {
                     tabLink.textContent = tabTitle;
                 }
                 let time_data = (event.finishtime / 1000).toFixed(3) + " sec";
                 table_entry_count += 1
-                // Create a row for the event
+
                 const row = document.createElement('tr');
                 if (tab == 1) {
                     row.innerHTML = `
@@ -755,7 +749,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 title_name = [data[0]["race_config"]["TITLE_1"], data[0]["race_config"]["TITLE_2"], data[0]["race_config"]["HEAT"]]
                 console.log(data)
                 if (data[1] == undefined) {
-                    console.log("asdasd")
                     insert_alert("NO DRIVERS! (JOSTEIN STRESSER SANNSYNELIGVIS MED Å SETTE OPP STARTLISTENE)")
                 } else {
                     insert_alert("clean")

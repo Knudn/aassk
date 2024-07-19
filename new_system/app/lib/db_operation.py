@@ -152,16 +152,26 @@ def update_event(db, heat):
     insert_driver_stats(db, heat, g_config, init_mode=False, exclude_lst=True)
 
 def update_active_event_stats(Emit=True):
+    from flask import current_app
+
     g_config = GetEnv()
+
     update_active_event(g_config)
     active_event = get_active_event()
+
+    change_active_driver = False
+
+
+    if current_app.config['current_event'] != active_event:
+        current_app.config['current_event'] = active_event
+        change_active_driver = True
     
     #print(event, heat)
     #db_data, driver_db_data = map_database_files(g_config, "Event008")
     #print(db_data, driver_db_data)
     try:
 
-        insert_start_list(active_event, g_config, init_mode=False)
+        insert_start_list(active_event, g_config, init_mode=False, set_active_driver=change_active_driver)
         insert_driver_stats(active_event, g_config, init_mode=False, exclude_lst=True)   
         
     except Exception as Error:

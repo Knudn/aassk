@@ -6,11 +6,7 @@ from app import socketio
 from app.lib.utils import intel_sort, update_info_screen, export_events, GetEnv
 from sqlalchemy import func
 
-
-
-
 api_bp = Blueprint('api', __name__)
-
 
 @api_bp.route('/api/init', methods=['POST'])
 def receive_init():
@@ -57,9 +53,15 @@ def update_active_drivers():
 
 @api_bp.route('/api/active_event_update', methods=['GET'])
 def active_event_update():
+    from flask import current_app
 
     update_active_event_stats()
-    send_data_to_room(get_active_startlist())
+    event_data = get_active_startlist()
+    if current_app.config['event_content'] != event_data:
+        send_data_to_room(event_data)
+        current_app.config['event_content'] = event_data
+
+    
 
     return "Updated"
 
@@ -70,6 +72,11 @@ def update_active_startlist():
 @api_bp.route('/api/export', methods=['GET'])
 def export():
     events = request.args.get('events', default=None)
+    event_file = request.args.get('event_file', default=None)
+
+    if event_file:
+        return export_events(event_file=event_file)
+        
     if events == 'all':
         
         return export_events()
@@ -579,14 +586,15 @@ def get_timedata_cross():
     from app import db
     import json
 
+
+
     query = Session_Race_Records.query
     query = query.order_by(Session_Race_Records.points.desc(), Session_Race_Records.finishtime.asc())
 
-    title_combo = request.args.get('title_combo')
+    title_combo = request.args.get('combined_title')
     if title_combo:
         
         query = query.filter((Session_Race_Records.title_1 + " " + Session_Race_Records.title_2).ilike(f"%{title_combo}%"))
-
 
     title_1 = request.args.get('title_1')
     if title_1:
@@ -615,6 +623,7 @@ def get_timedata_cross():
     results = [
         {
             "id": record.id,
+            "cid": record.cid,
             "first_name": record.first_name,
             "last_name": record.last_name,
             "title_1": record.title_1,
@@ -633,6 +642,7 @@ def get_timedata_cross():
 def get_driver_points():
     from app.models import Session_Race_Records
     from app import db
+    from sqlalchemy import func
 
     query = db.session.query(
         Session_Race_Records.first_name,
@@ -640,23 +650,48 @@ def get_driver_points():
         func.sum(Session_Race_Records.points).label('total_points'),
         func.min(
             db.case(
-                (Session_Race_Records.finishtime != 0, Session_Race_Records.finishtime),
-                else_=None
+                (Session_Race_Records.finishtime == 0, None),
+                (Session_Race_Records.penalty != 0, None),
+                else_=Session_Race_Records.finishtime
             )
         ).label('lowest_finishtime')
-    ).filter(Session_Race_Records.penalty == 0)
+    ).group_by(
+        Session_Race_Records.first_name,
+        Session_Race_Records.last_name
+    ).order_by(
+        func.sum(Session_Race_Records.points).desc(),
+        db.case(
+            (func.min(
+                db.case(
+                    (Session_Race_Records.finishtime == 0, None),
+                    (Session_Race_Records.penalty != 0, None),
+                    else_=Session_Race_Records.finishtime
+                )
+            ) == None, 1),
+            else_=0
+        ),
+        func.min(
+            db.case(
+                (Session_Race_Records.finishtime == 0, None),
+                (Session_Race_Records.penalty != 0, None),
+                else_=Session_Race_Records.finishtime
+            )
+        )
+    )
 
-    query = query.group_by(Session_Race_Records.first_name, Session_Race_Records.last_name)
+    combined_title = request.args.get('combined_title')
+    if combined_title:
+        query = query.filter(
+            (Session_Race_Records.title_1 + ' ' + Session_Race_Records.title_2) == combined_title
+        )
+    else:
+        title_1 = request.args.get('title_1')
+        if title_1:
+            query = query.filter(Session_Race_Records.title_1.ilike(f"%{title_1}%"))
 
-    query = query.order_by(func.sum(Session_Race_Records.points).desc(), func.min(Session_Race_Records.finishtime).asc())
-
-    title_1 = request.args.get('title_1')
-    if title_1:
-        query = query.filter(Session_Race_Records.title_1.ilike(f"%{title_1}%"))
-
-    title_2 = request.args.get('title_2')
-    if title_2:
-        query = query.filter(Session_Race_Records.title_2.ilike(f"%{title_2}%"))
+        title_2 = request.args.get('title_2')
+        if title_2:
+            query = query.filter(Session_Race_Records.title_2.ilike(f"%{title_2}%"))
 
     heat = request.args.get('heat')
     if heat:
@@ -665,9 +700,12 @@ def get_driver_points():
     name = request.args.get('name')
     if name:
         query = query.filter(db.or_(
-            db.and_(Session_Race_Records.first_name + " " + Session_Race_Records.last_name).ilike(f"%{name}%"),
-            db.and_(Session_Race_Records.last_name + " " + Session_Race_Records.first_name).ilike(f"%{name}%")
+            (Session_Race_Records.first_name + " " + Session_Race_Records.last_name).ilike(f"%{name}%"),
+            (Session_Race_Records.last_name + " " + Session_Race_Records.first_name).ilike(f"%{name}%")
         ))
+
+    query = query.group_by(Session_Race_Records.first_name, Session_Race_Records.last_name)
+    query = query.order_by(func.sum(Session_Race_Records.points).desc(), func.min(Session_Race_Records.finishtime).asc())
 
     results = query.all()
     output = [
@@ -679,10 +717,7 @@ def get_driver_points():
         } for result in results
     ]
 
-
-
     return output
-
 
 @api_bp.route('/api/get_start_position_cross', methods=['POST'])
 def get_start_position_cross():
@@ -775,8 +810,6 @@ def get_start_position_cross():
     combined_list = new_drivers_list + corrected_list
 
     combined_list.sort(key=lambda x: x[1], reverse=True)
-
-    print(combined_list)
 
     return (combined_list)
 
@@ -1019,3 +1052,55 @@ def set_active_state():
     send_data_to_room(get_active_startlist())
     return "asd"
     #hostname = data.get('Hostname')
+
+@api_bp.route('/api/ready_state', methods=['GET', 'POST'])
+def ready_state():
+    from app.lib.utils import Set_active_driver
+
+    g_config = GetEnv()
+
+    DB_PATH = "site.db"
+    query = "SELECT * FROM ACTIVE_DRIVERS;"
+    with sqlite3.connect(DB_PATH) as con:
+        cur = con.cursor()
+        active_data = cur.execute(query).fetchall()
+
+    D1 = active_data[0][3]
+    event = active_data[0][1]
+    heat = active_data[0][2]
+
+    db_location = g_config["db_location"]
+    current_event_file = db_location+"Event"+event.zfill(3)+".sqlite"
+
+    query = "SELECT startlist_r{0}.CID, driver_stats_r{0}.INTER_1, driver_stats_r{0}.FINISHTIME \
+             FROM startlist_r{0} JOIN driver_stats_r{0} ON startlist_r{0}.CID = driver_stats_r{0}.CID;".format(heat)
+
+    with sqlite3.connect(current_event_file) as con:
+        cur = con.cursor()
+        driver_data = cur.execute(query).fetchall()
+
+    push = False
+
+    if request.method == "POST":
+
+        for a in driver_data:
+            if push == True:
+
+                Set_active_driver(cid_1=a[0])
+                
+                return str(4)
+            if int(a[0]) == int(D1):
+
+                if str(a[1]) != str(0):
+                    push = True
+
+        return str(1)
+
+    else:
+        for a in driver_data:
+            if int(a[0]) == int(D1):
+                if a[1] != 0:
+                    return str(1)
+                else:
+                    return str(4)
+        return str(4)

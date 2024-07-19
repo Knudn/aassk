@@ -24,6 +24,8 @@ def home_cross():
         if event_name not in grouped_events:
             grouped_events[event_name] = []
         grouped_events[event_name].append(event)
+        
+    print(grouped_events)
     return render_template('home/cross_resultat.html', grouped_events=grouped_events)
 
 @home_bp.route('/home/startlist', methods=['GET'])

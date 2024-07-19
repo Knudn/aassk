@@ -9,6 +9,17 @@
 
 
     <style>
+        #rankings {
+            margin-top: 20px;
+        }
+
+        .not-started {
+            color: #888;
+        }
+
+        .penalty {
+            color: red;
+        }
         #overlay {
             position: fixed; /* Cover the whole page */
             width: 100%;
@@ -479,7 +490,8 @@
              }
 
             });
-            
+
+          updateRankings(data);  
         }
         
 
@@ -512,7 +524,43 @@
             }
             
         });
+        function updateRankings(data) {
+            const rankingsTable = document.getElementById('rankings-body');
+            rankingsTable.innerHTML = ''; // Clear existing rows
 
+            // Filter and sort drivers
+            const drivers = data.flatMap(item => item.drivers || [])
+                .filter(driver => driver.time_info)
+                .sort((a, b) => {
+                    // Sort by finish time, handling penalties and not started
+                    if (a.time_info.PENELTY !== 0 && b.time_info.PENELTY === 0) return 1;
+                    if (a.time_info.PENELTY === 0 && b.time_info.PENELTY !== 0) return -1;
+                    if (a.time_info.INTER_1 === 0 && b.time_info.INTER_1 !== 0) return 1;
+                    if (a.time_info.INTER_1 !== 0 && b.time_info.INTER_1 === 0) return -1;
+                    return a.time_info.FINISHTIME - b.time_info.FINISHTIME;
+                });
+
+            drivers.forEach((driver, index) => {
+                const row = rankingsTable.insertRow();
+                const rankCell = row.insertCell(0);
+                const nameCell = row.insertCell(1);
+                const timeCell = row.insertCell(2);
+
+                rankCell.textContent = index + 1;
+                nameCell.textContent = `${driver.first_name} ${driver.last_name}`;
+
+                if (driver.time_info.PENELTY !== 0) {
+                    timeCell.textContent = 'Penalty';
+                    row.classList.add('penalty');
+                } else if (driver.time_info.INTER_1 === 0) {
+                    timeCell.textContent = 'Not started';
+                    row.classList.add('not-started');
+                } else {
+                    const time = convertMicrosecondsToTime(driver.time_info.FINISHTIME * 1000);
+                    timeCell.textContent = `${time[1]}:${time[2]}.${time[3]}`;
+                }
+            });
+        }
     </script>
 
 </head>
@@ -540,6 +588,20 @@
         </table>
     </div>
 </div>
-
+<div class="container">
+    <h2>Rankings</h2>
+    <table class="table" id="rankings">
+        <thead>
+            <tr>
+                <th scope="col">Rank</th>
+                <th scope="col">Name</th>
+                <th scope="col">Time</th>
+            </tr>
+        </thead>
+        <tbody id="rankings-body">
+            <!-- Rankings will be inserted here -->
+        </tbody>
+    </table>
+</div>
 </body>
 </html>

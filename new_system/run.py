@@ -169,6 +169,8 @@ if __name__ == '__main__':
     app, socketio = create_app()
     app.config['timestamp_tracket'] = virtual_clock_request
     app.config['listen_address'] = IP
+    app.config['current_event'] = None
+    app.config['event_content'] = ""
     configure_logging(app)
     app.logger.info('App started')
     create_tables(app)

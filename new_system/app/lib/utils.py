@@ -35,15 +35,25 @@ def Get_active_drivers(g_config, event_data_dict):
 
     return active_drivers
 
+def Set_active_driver(cid_1=False, cod_2=False):
+    DB_PATH = "site.db"
 
+    query = "UPDATE active_drivers SET D1 = {0};".format(str(cid_1))
 
+    with sqlite3.connect(DB_PATH) as con:
+        cur = con.cursor()
+        cur.execute(query)
 
-def export_events():
+def export_events(event_file=None):
     from app.models import ActiveEvents
 
     g_config = GetEnv()
 
     events = ActiveEvents.query.order_by(ActiveEvents.sort_order).all()
+    if event_file != None:
+        events = ActiveEvents.query.filter(ActiveEvents.event_file==event_file).order_by(ActiveEvents.sort_order).all()
+    else: 
+        events = ActiveEvents.query.order_by(ActiveEvents.sort_order).all()
     for a in events:
         print(a)
     data = []
