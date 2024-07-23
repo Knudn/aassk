@@ -112,14 +112,8 @@
                     } else if (driver.time_info.PENELTY == 3) {
                         timeSpan.textContent = "DSQ";
                         timeSpan.classList.add('status');
-                    } else if (driver.active && driver.time_info.INTER_1 > 0 && driver.time_info.PENELTY == 0) {
-                        if (!activeDrivers[driver.id]) {
-                            activeDrivers[driver.id] = {
-                                startTime: driver.time_info.INTER_1,
-                                element: timeSpan
-                            };
-                        }
-                        updateDriverTime(driver.id);
+                    
+
                     } else if (driver.time_info.FINISHTIME > 0) {
                         timeSpan.textContent = (driver.time_info.FINISHTIME / 1000).toFixed(3);
                         if (activeDrivers[driver.id]) {
@@ -144,12 +138,7 @@
             }
         });
     
-        if (Object.keys(activeDrivers).length > 0 && !intervalId) {
-            intervalId = setInterval(updateActiveTimes, 100);
-        } else if (Object.keys(activeDrivers).length === 0 && intervalId) {
-            clearInterval(intervalId);
-            intervalId = null;
-        }
+
     }
     
     function getCurrentTimeInMicroseconds() {
@@ -166,9 +155,7 @@
         }
     }
     
-    function updateActiveTimes() {
-        Object.keys(activeDrivers).forEach(updateDriverTime);
-    }
+
     
     function loadDriverData() {
         fetch('/api/get_current_startlist_w_data')
@@ -191,22 +178,9 @@
         updateOverlay(data);
     });
     
-    // Debug function
-    function debugActiveDrivers() {
-        console.log('Active Drivers:', activeDrivers);
-        Object.keys(activeDrivers).forEach(driverId => {
-            const driver = activeDrivers[driverId];
-            const currentTime = getCurrentTimeInMicroseconds();
-            console.log(`Driver ${driverId}:`, {
-                startTime: driver.startTime,
-                currentTime: currentTime,
-                elapsedTime: (currentTime - driver.startTime) / 1000000
-            });
-        });
-    }
+
     
     // Call debug function every 5 seconds
-    setInterval(debugActiveDrivers, 5000);
     </script>
 </body>
 </html>

@@ -132,10 +132,9 @@
 
         $(document).ready(function() {
             const heatTitles = {
-                1: "Fjerdefinale",
-                2: "Tredjefinale",
-                3: "Sekunderfinale",
-                4: "Hovedfinale"
+                1: "C Finale",
+                2: "B Finale",
+                3: "A Finale"
             };
 
             $.getJSON(`http://192.168.1.50:7777/api/get_timedata_cross/?title_2=${encodeURIComponent(title_2)}`, function(data) {

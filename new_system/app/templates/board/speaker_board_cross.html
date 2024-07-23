@@ -314,7 +314,7 @@
                     <div class="info-cell">${index + 1}</div>
                     <div class="info-cell">${item.first_name} ${item.last_name}</div>
                     <div class="info-cell">${item.total_points}</div>
-                    <div class="info-cell">${formattedTime}</div>
+                    <div class="info-cell">${secondsToMinutes(item.lowest_finishtime)}</div>
                 `;
                 targetDiv.appendChild(driverRow);
             });
@@ -326,23 +326,28 @@
             let day = data["title_1_0"]
             
             if (heat != undefined) {
-                document.getElementById('currentHeat').innerHTML = `<strong>Current Heat:</strong> ${heat.first_name} ${heat.last_name} - ${milliseconds_to_sec(heat.finishtime / 1000)}`;
+                document.getElementById('currentHeat').innerHTML = `<strong>Current Heat:</strong> ${heat.first_name} ${heat.last_name} - ${secondsToMinutes(heat.finishtime / 1000)}`;
             } else {
                 document.getElementById('currentHeat').innerHTML = `<strong>Heat:</strong> Not started`;
             }
             if (event != undefined) {
-                document.getElementById('eventTitle').innerHTML = `<strong>${event.title_2}:</strong> ${event.first_name} ${event.last_name} - ${milliseconds_to_sec(event.finishtime / 1000)}`;
+                document.getElementById('eventTitle').innerHTML = `<strong>${event.title_2}:</strong> ${event.first_name} ${event.last_name} - ${secondsToMinutes(event.finishtime / 1000)}`;
             } else {
                 document.getElementById('eventTitle').innerHTML = `<strong>EVENT:</strong> Not started`
             }
 
             if (day != undefined) {
-                document.getElementById('dayTitle').innerHTML = `<strong>${day.title_1}:</strong> ${day.first_name} ${day.last_name} - ${milliseconds_to_sec(day.finishtime / 1000)}`;
+                document.getElementById('dayTitle').innerHTML = `<strong>${day.title_1}:</strong> ${day.first_name} ${day.last_name} - ${secondsToMinutes(day.finishtime / 1000)}`;
             } else {
                 document.getElementById('dayTitle').innerHTML = `<strong>DAY:</strong> Not started`;
             }
         }
-
+        
+        function secondsToMinutes(seconds) {
+            const minutes = Math.floor(seconds / 60);
+            const remainingSeconds = (seconds % 60).toFixed(3);
+            return `${minutes}:${remainingSeconds.padStart(6, '0')}`;
+        }
         function append_current_driver_stats_html(data, active_driver) {
             const driversInfo = document.getElementById('driversInfo');
             driversInfo.innerHTML = '';
@@ -358,7 +363,7 @@
                     <div class="info-cell">${item.first_name} ${item.last_name}</div>
                     <div class="info-cell">${item.snowmobile}</div>
                     <div class="info-cell">${item.points}</div>
-                    <div class="info-cell">${item.finishtime}</div>
+                    <div class="info-cell">${secondsToMinutes(item.finishtime)}</div>
                 `;
                 if (item.penalty == 1) {
                     pen = `DNS`

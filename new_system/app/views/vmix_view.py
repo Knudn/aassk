@@ -29,6 +29,8 @@ def drivers_stats_cross_finale_rookie():
     
     return render_template('vmix/drivers_stats_cross_finale_rookie.html')
 
+
+
 @vmix_bp.route('/vmix/drivers_stats_cross_finale', methods=['GET'])
 def drivers_stats_cross_finale():
     
@@ -410,7 +412,7 @@ def get_startlist_loop():
     all_event = request.args.get('all', type=bool)
     display_current_heat = request.args.get('current_heat')
     from_active_event = request.args.get('from_active_event', type=bool)
-
+ 
     
 
 
