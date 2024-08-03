@@ -1,5 +1,5 @@
 from app import create_app, db, socketio  # Notice the added socketio import
-from app.models import GlobalConfig, ActiveDrivers, SpeakerPageSettings, InfoScreenAssets, MicroServices, CrossConfig
+from app.models import GlobalConfig, ActiveDrivers, SpeakerPageSettings, InfoScreenAssets, MicroServices, CrossConfig, ledpanel
 from app.lib.db_operation import update_active_event
 import os
 import logging
@@ -43,6 +43,7 @@ def create_tables(app):
         InfoScreenAssets_db = InfoScreenAssets.query.get(1)
         Cross_db = CrossConfig.query.all()
         MicroServices_db = MicroServices.query.all()
+        ledpanel_db = ledpanel.query.all()
 
         # If the database do not exist, it will be created here
         if GlobalConfig_db is None:
@@ -70,6 +71,20 @@ def create_tables(app):
             db.session.add(default_config)
             db.session.commit()
 
+        if ledpanel_db == []:
+            app.logger.info('Configuring DB for Ledpanel')
+            panels = [
+                ["192.168.20.219","none",100],
+                ["192.168.20.220","none",100],
+            ]
+            for a in panels:
+                new_entry = ledpanel(
+                    endpoint = a[0],
+                    active_playlist = a[1],
+                    brightness = a[2]
+                )
+                db.session.add(new_entry)
+            db.session.commit()
         if Cross_db == []:
             app.logger.info('Configuring DB for Cross Config')
             default_config = CrossConfig()

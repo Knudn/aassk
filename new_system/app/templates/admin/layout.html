@@ -61,8 +61,11 @@
                         
                     </div>
                 </li>
-
+                <li class="nav-item">
+                    <a class="nav-link {% if active_tab == 'ledpanel' %}active{% endif %}" href="{{ url_for('admin.admin', tab_name='ledpanel') }}">Ledpanel</a>
+                </li>
             </ul>
+
             <div class="tab-content">
                 {% block content %}
                 {% endblock %}

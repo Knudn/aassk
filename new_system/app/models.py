@@ -198,3 +198,13 @@ class RetryEntries(db.Model):
     def __repr__(self):
         return f"<CrossConfig(id={self.id}, cid={self.cid}, title={self.title}, driver_name={self.driver_name})>"
 
+
+class ledpanel(db.Model):
+    __tablename__ = 'ledpanel'
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    endpoint = db.Column(db.String(15), nullable=False)
+    active_playlist = db.Column(db.String(30), nullable=False)
+    brightness = db.Column(db.Integer, nullable=True)
+
+    def __repr__(self):
+        return f"<ledpanel(id={self.id}, endpoint={self.endpoint}, active_playlist={self.active_playlist}, brightness={self.brightness})>"

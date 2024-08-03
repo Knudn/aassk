@@ -37,6 +37,8 @@ def admin(tab_name):
         return clock_mgnt()
     elif tab_name == 'time_keeper':
         return timekeeperpage()
+    elif tab_name == 'ledpanel':
+        return led_panel()
     else:
         return "Invalid tab", 404
 
@@ -627,7 +629,6 @@ def export_data():
     from app import db
     
     if request.method == 'POST':
-        print("sdjfjkdfgkjdnfg")
         try:
             content_type = request.content_type
             if content_type.startswith("application/json"):
@@ -679,7 +680,6 @@ def clock_mgnt():
 
     if request.method == 'POST':
         data = request.get_json()
-        print(data)
         global_config.auto_commit_manual_clock = bool(data.get("autoCommit"))
         global_config.dual_start_manual_clock = bool(data.get("duelStart"))
         db.session.commit()
@@ -696,3 +696,117 @@ def clock_mgnt():
 
 def timekeeperpage():
     return render_template('admin/timekeeperpage.html')
+
+def led_panel():
+    from app.models import ledpanel
+    from app import db
+
+
+    def clear_display(endpoint):
+        requests.get(f"http://{endpoint}:5000/stop")
+        requests.get(f"http://{endpoint}/api/overlays/model/LED%20Panels/clear")
+        requests.get(f"http://{endpoint}/api/playlists/stop")
+        
+
+    def enable_display(endpoint):
+
+        data = requests.request("GET", "http://{0}/api/overlays/model/LED%20Panels/state".format(endpoint))
+        data = json.loads(data.content)
+        active_state = data["isActive"]
+        if active_state == 0:
+            url = "http://{0}/api/overlays/model/LED%20Panels/state".format(endpoint)
+
+            headers = {
+                "Accept": "*/*",
+                "X-Requested-With": "XMLHttpRequest",
+                "Accept-Language": "en-US",
+                "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.6478.127 Safari/537.36",
+                "Content-Type": "application/json",
+                "Origin": "http://192.168.20.219",
+                "Referer": "http://192.168.20.219/plugin.php?_menu=status&plugin=fpp-matrixtools&page=matrixtools.php",
+                "Accept-Encoding": "gzip, deflate, br",
+                "Connection": "keep-alive"
+            }
+
+            data = {"State": 1}
+
+            response = requests.put(url, json=data, headers=headers)
+
+    if request.method == "POST":
+        if request.json["command"] == "set_playlist":
+
+
+            endpoint = request.json['endpoint']
+            args = request.json['args']
+
+            payload = {
+                "command": "Start Playlist At Item",
+                "args": args
+            }
+
+            clear_display(endpoint)
+            
+            try:
+
+                response = requests.post(f"http://{endpoint}/api/command", json=payload)
+                response.raise_for_status()
+                return json.dumps({"success": True, "message": "Playlist started successfully"}), 200
+            except requests.RequestException as e:
+                return json.dumps({"success": False, "message": str(e)}), 500
+
+        elif request.json["command"] == "display_text":
+
+            endpoint = request.json["endpoint"]
+
+            headers = {
+                'Content-Type': 'application/json'
+            }
+
+            clear_display(endpoint)
+            enable_display(endpoint)
+        
+
+
+
+            payload = request.json
+            font_size = request.json["FontSize"]
+            Color = request.json["Color"]
+            Message = request.json["Message"]
+
+            payload = json.dumps({
+                "Message": Message,
+                "Position": "center",
+                "Font": "Helvetica",
+                "FontSize": font_size,
+                "AntiAlias": False,
+                "PixelsPerSecond": 20,
+                "Color": Color,
+                "AutoEnable": True
+                })
+
+
+            try:
+
+                response = requests.request("PUT", "http://{0}/api/overlays/model/LED Panels/text".format(endpoint), headers=headers, data=payload)
+
+                response.raise_for_status()
+                return json.dumps({"success": True, "message": "Playlist started successfully"}), 200
+
+            except requests.RequestException as e:
+                return json.dumps({"success": False, "message": str(e)}), 500
+
+        elif request.json["command"] == "stop":
+            endpoint = request.json["endpoint"]
+
+            clear_display(endpoint)
+            enable_display(endpoint)
+
+    else:
+
+        ledpanel_db = db.session.query(ledpanel).all()
+        panels = {}
+
+        for b in ledpanel_db:
+            panels[b.id] = [b.endpoint, b.active_playlist, b.brightness]
+        
+        return render_template('admin/ledpanel.html', panels=panels)

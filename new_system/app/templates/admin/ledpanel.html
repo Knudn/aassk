@@ -1,0 +1,512 @@
+{% extends 'admin/layout.html' %}
+
+{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LED Panel Configuration</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .config-panel {
+            border: 2px solid #ccc;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 5px;
+        }
+        .grayed-out {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        #restart_fppd1 {
+            background-color: red;
+        }
+        #restart_fppd2 {
+            background-color: red;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h1 class="mb-4">LED Panel Configuration</h1>
+        
+        <div class="mb-3 form-check">
+            <input type="checkbox" class="form-check-input" id="singlePanel">
+            <label class="form-check-label" for="singlePanel">Single Panel</label>
+        </div>
+        
+        <div class="row">
+            {% for panel_id, panel_config in panels.items() %}
+            <div class="col-md-6">
+                <div class="config-panel" id="display{{ panel_id }}Panel">
+                    <h2>Display {{ panel_id }} ({% if panel_id == 1 %}left{% else %}right{% endif %})</h2>
+                    <form id="form{{ panel_id }}" method="POST">
+                        <input type="hidden" name="panel_id" value="{{ panel_id }}">
+                        <div class="mb-3">
+
+                            <div class="btn-group w-100" role="group" aria-label="Driver Data">
+                                <button type="button" class="btn btn-primary" id="restart_fppd{{ panel_id }}">Restart FPPD service</button>
+                            </div>
+
+                        </div>
+                        <div class="mb-3">
+                            <button type="button" class="btn btn-primary mb-2 w-100" name="endpoint{{ panel_id }}" id="toggle_on_off{{ panel_id }}">Clear Display</button>
+                            <div class="text-center mb-2">
+                                <h5>Active Drivers</h5>
+                            </div>
+                            <div class="btn-group w-100" role="group" aria-label="Driver Data">
+                                <button type="button" class="btn btn-primary" id="driverDataOn{{ panel_id }}">On</button>
+                                <button type="button" class="btn btn-primary" id="driverDataOff{{ panel_id }}">Off</button>
+                            </div>
+                        </div>
+ 
+                        <div class="mb-3">
+                            <div class="input-group">
+                                <input type="text" class="form-control" name="endpoint" id="endpoint{{ panel_id }}" value="{{ panel_config[0] }}" placeholder="FPP endpoint">
+                                <button type="submit" class="btn btn-primary" name="action" value="save_endpoint">Save</button>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="input-group">
+                                <textarea class="form-control" id="displayText{{ panel_id }}" name="display_text" rows="3" placeholder="Enter display text"></textarea>
+                                <button type="button" class="btn btn-primary" id="sendText{{ panel_id }}">Send</button>
+                            </div>
+                        </div>
+                        <div class="mb-3 row">
+                            <div class="col-6">
+                                <label for="fontSize{{ panel_id }}" class="form-label">Font Size</label>
+                                <input type="number" class="form-control" id="fontSize{{ panel_id }}" name="font_size" value="60" min="1">
+                            </div>
+                            <div class="col-6">
+                                <label for="fontColor{{ panel_id }}" class="form-label">Font Color</label>
+                                <input type="color" class="form-control form-control-color" id="fontColor{{ panel_id }}" name="font_color" value="#FFFFFF">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <div class="input-group">
+                                <select class="form-select" id="playlist{{ panel_id }}" name="playlist">
+                                    <option selected>Choose playlist...</option>
+                                </select>
+                                <button type="button" class="btn btn-primary" name="action" value="run_playlist">Run</button>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="brightness{{ panel_id }}" class="form-label">Brightness</label>
+                            <input type="range" class="form-range" min="0" max="100" id="brightness{{ panel_id }}" name="brightness" value="{{ panel_config[2] }}">
+                        </div>
+                    </form>
+
+                    <div class="mt-3">
+                        <h3>Panel Content</h3>
+                        <canvas id="canvas{{ panel_id }}" width="192" height="128" style="border:1px solid #000; width:100%; height:auto;"></canvas>
+                        <button type="button" class="btn btn-secondary mt-2" id="refresh{{ panel_id }}">Refresh Display</button>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+function initializePage() {
+    console.log('Initializing page');
+
+    const singlePanelCheckbox = document.getElementById('singlePanel');
+    const display2Panel = document.getElementById('display2Panel');
+
+    if (!singlePanelCheckbox || !display2Panel) {
+        console.error('Required elements not found');
+        return;
+    }
+
+    function updateDisplay2State() {
+        if (singlePanelCheckbox.checked) {
+            display2Panel.classList.add('grayed-out');
+        } else {
+            display2Panel.classList.remove('grayed-out');
+        }
+    }
+
+    singlePanelCheckbox.addEventListener('change', updateDisplay2State);
+    updateDisplay2State();
+
+    function fetchStatus(panelId) {
+        const endpoint = document.getElementById(`endpoint${panelId}`).value;
+        if (!endpoint) {
+            console.warn(`No endpoint specified for panel ${panelId}`);
+            return;
+        }
+
+        fetch(`http://${endpoint}:5000/status`)
+            .then(response => response.json())
+            .then(data => {
+                console.log(`Status for panel ${panelId}:`, data);
+                updateDriverDataButtons(panelId, data.active_track === panelId);
+            })
+            .catch(error => {
+                console.error(`Error fetching status for panel ${panelId}:`, error);
+            });
+    }
+
+    function updateDriverDataButtons(panelId, isActive) {
+        const onButton = document.getElementById(`driverDataOn${panelId}`);
+        const offButton = document.getElementById(`driverDataOff${panelId}`);
+        const panel = document.getElementById(`display${panelId}Panel`);
+
+        if (isActive) {
+            onButton.classList.add('btn-success');
+            offButton.classList.remove('btn-danger');
+            panel.style.border = '2px solid green';
+        } else {
+            onButton.classList.remove('btn-success');
+            offButton.classList.add('btn-danger');
+            panel.style.border = '2px solid red';
+        }
+    }
+
+    function startDriverData(panelId) {
+        const endpoint = document.getElementById(`endpoint${panelId}`).value;
+        if (!endpoint) {
+            console.warn(`No endpoint specified for panel ${panelId}`);
+            return;
+        }
+
+        fetch(`http://${endpoint}:5000/driver_start?track=${panelId}`)
+            .then(response => response.json())
+            .then(data => {
+                console.log(`Started driver data for panel ${panelId}:`, data);
+                fetchStatus(panelId);
+                
+            })
+            .catch(error => {
+                console.error(`Error starting driver data for panel ${panelId}:`, error);
+            });
+            location.reload();
+    }
+
+    function stopDriverData(panelId) {
+        const endpoint = document.getElementById(`endpoint${panelId}`).value;
+        if (!endpoint) {
+            console.warn(`No endpoint specified for panel ${panelId}`);
+            return;
+        }
+
+        fetch(`http://${endpoint}:5000/stop`)
+            .then(response => response.json())
+            .then(data => {
+                console.log(`Stopped driver data for panel ${panelId}:`, data);
+                fetchStatus(panelId);
+            })
+            .catch(error => {
+                console.error(`Error stopping driver data for panel ${panelId}:`, error);
+            });
+    location.reload();
+    }
+    
+
+    function fetchPlaylists(panelId) {
+        console.log(`Fetching playlists for panel ${panelId}`);
+        const endpoint = document.getElementById(`endpoint${panelId}`);
+        
+        if (!endpoint || !endpoint.value) {
+            console.warn(`No endpoint specified for panel ${panelId}`);
+            return;
+        }
+
+        fetch(`http://${endpoint.value}/api/playlists`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(playlists => {
+                console.log(`Received playlists for panel ${panelId}:`, playlists);
+                
+                const playlistSelect = document.getElementById(`playlist${panelId}`);
+                playlistSelect.innerHTML = '<option selected>Choose playlist...</option>';
+                playlists.forEach(playlist => {
+                    const option = document.createElement('option');
+                    option.value = playlist;
+                    option.textContent = playlist;
+                    playlistSelect.appendChild(option);
+                });
+                console.log(`Updated playlist options for panel ${panelId}`);
+            })
+            .catch(error => {
+                console.error(`Error fetching playlists for panel ${panelId}:`, error);
+            });
+    }
+
+    function fetchAndDrawPanelContent(panelId) {
+        const endpoint = document.getElementById(`endpoint${panelId}`).value;
+        if (!endpoint) {
+            console.warn(`No endpoint specified for panel ${panelId}`);
+            return;
+        }
+
+        fetch(`http://${endpoint}/api/overlays/models`)
+            .then(response => response.json())
+            .then(models => {
+                const panelInfo = models.find(model => model.Name === "LED Panels");
+                if (!panelInfo) {
+                    throw new Error("LED Panels model not found");
+                }
+
+                return fetch(`http://${endpoint}/api/overlays/model/LED%20Panels/data/rle`)
+                    .then(response => response.json())
+                    .then(rleData => ({ panelInfo, rleData }));
+            })
+            .then(({ panelInfo, rleData }) => {
+                const canvas = document.getElementById(`canvas${panelId}`);
+                const ctx = canvas.getContext('2d');
+                
+                const pixelData = decodeRLE(rleData.data);
+                
+                const imageData = ctx.createImageData(panelInfo.width, panelInfo.height);
+                for (let i = 0; i < pixelData.length; i++) {
+                    imageData.data[i] = pixelData[i];
+                }
+                ctx.putImageData(imageData, 0, 0);
+            })
+            .catch(error => {
+                console.error(`Error fetching panel content for panel ${panelId}:`, error);
+            });
+    }
+
+    function decodeRLE(rleData) {
+        let pixelData = [];
+        for (let i = 0; i < rleData.length; i += 4) {
+            const count = rleData[i];
+            const color = rleData.slice(i + 1, i + 4);
+            for (let j = 0; j < count; j++) {
+                pixelData.push(...color, 255); // Add alpha channel
+            }
+        }
+        return pixelData;
+    }
+
+    function runPlaylist(panelId, playlist, endpoint) {
+        console.log(`Running playlist "${playlist}" on panel ${panelId}`);
+        
+        const data = {
+            command: "set_playlist",
+            endpoint: endpoint,
+            args: [playlist, 1, true, false]
+        };
+
+        fetch("/admin/ledpanel", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log(`Successfully started playlist "${playlist}" on panel ${panelId}`);
+        })
+        .catch(error => {
+            console.error(`Error starting playlist "${playlist}" on panel ${panelId}:`, error);
+        });
+    }
+
+    function turn_off_display(display) {
+        console.log(`Turning off display ${display}`);
+        const endpoint = document.getElementById(`endpoint${display}`);
+        if (!endpoint || !endpoint.value) {
+            console.error(`No endpoint specified for display ${display}`);
+            return;
+        }
+
+        const data = {
+            command: "stop",
+            endpoint: endpoint.value,
+        };
+
+        fetch("/admin/ledpanel", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log(`Successfully turned off display ${display}`);
+        })
+        .catch(error => {
+            console.error(`Error turning off display ${display}:`, error);
+        });
+        location.reload();
+    }
+
+
+    function restart_fppd(display) {
+        console.log(`Restarting FPPD service ${display}`);
+        console.log()
+        const endpoint = document.getElementById(`endpoint${display}`);
+        
+        if (!endpoint || !endpoint.value) {
+            console.error(`No endpoint specified for display ${display}`);
+            return;
+        }
+        console.log(endpoint.value)
+        fetch(`http://${endpoint.value}:5000/restart_service`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log(`Successfully turned off display ${display}`);
+        })
+        .catch(error => {
+            console.error(`Error turning off display ${display}:`, error);
+        });
+    }
+
+
+    function display_text(text, endpoint, fontSize, fontColor) {
+        const data = {
+            "endpoint": endpoint,
+            "command": "display_text",
+            "Message": text,
+            "Position": "center",
+            "Font": "Helvetica",
+            "FontSize": fontSize,
+            "AntiAlias": false,
+            "PixelsPerSecond": 20,
+            "Color": fontColor,
+            "AutoEnable": true
+        };
+
+        fetch("/admin/ledpanel", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data)
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log(`Successfully displayed text on panel`);
+        })
+        .catch(error => {
+            console.error(`Error displaying text on panel:`, error);
+        });
+    }
+
+    // Set up event listeners
+    for (let panelId = 1; panelId <= 2; panelId++) {
+        // Fetch playlists
+        fetchPlaylists(panelId);
+
+        // Update playlists when endpoint changes
+        const endpointInput = document.getElementById(`endpoint${panelId}`);
+        if (endpointInput) {
+            endpointInput.addEventListener('change', () => fetchPlaylists(panelId));
+        }
+
+        // Handle brightness change
+        const brightnessInput = document.getElementById(`brightness${panelId}`);
+        if (brightnessInput) {
+            brightnessInput.addEventListener('change', (event) => {
+                const form = event.target.closest('form');
+                form.submit();
+            });
+        }
+
+        // Set up on/off button
+        const onOffButton = document.getElementById(`toggle_on_off${panelId}`);
+        if (onOffButton) {
+            onOffButton.addEventListener('click', () => turn_off_display(panelId));
+        }
+
+        // Set up run playlist button
+        const playlistSelect = document.getElementById(`playlist${panelId}`);
+        const runButton = document.querySelector(`#form${panelId} button[name="action"][value="run_playlist"]`);
+        if (playlistSelect && runButton) {
+            runButton.addEventListener('click', (event) => {
+                event.preventDefault();
+                const selectedPlaylist = playlistSelect.value;
+                if (selectedPlaylist && selectedPlaylist !== 'Choose playlist...') {
+                    const endpoint = document.getElementById(`endpoint${panelId}`).value;
+                    runPlaylist(panelId, selectedPlaylist, endpoint);
+                } else {
+                    console.warn(`No playlist selected for panel ${panelId}`);
+                }
+            });
+        }
+
+        // Set up refresh button
+        const refreshButton = document.getElementById(`refresh${panelId}`);
+        if (refreshButton) {
+            refreshButton.addEventListener('click', () => fetchAndDrawPanelContent(panelId));
+        }
+
+        // Set up send text button
+        const sendButton = document.getElementById(`sendText${panelId}`);
+        const textArea = document.getElementById(`displayText${panelId}`);
+        const fontSizeInput = document.getElementById(`fontSize${panelId}`);
+        const fontColorInput = document.getElementById(`fontColor${panelId}`);
+        if (sendButton && textArea && fontSizeInput && fontColorInput) {
+            sendButton.addEventListener('click', (event) => {
+                event.preventDefault();
+                const text = textArea.value;
+                const fontSize = parseInt(fontSizeInput.value, 10);
+                const fontColor = fontColorInput.value;
+                const endpoint = document.getElementById(`endpoint${panelId}`).value;
+                if (text) {
+                    display_text(text, endpoint, fontSize, fontColor);
+                } else {
+                    console.warn(`No text entered for panel ${panelId}`);
+                }
+            });
+        }
+
+        // Set up driver data buttons
+        const restart_fppd_service_button = document.getElementById(`restart_fppd${panelId}`);
+        const driverDataOnButton = document.getElementById(`driverDataOn${panelId}`);
+        const driverDataOffButton = document.getElementById(`driverDataOff${panelId}`);
+        if (driverDataOnButton && driverDataOffButton && restart_fppd_service_button) {
+            driverDataOnButton.addEventListener('click', () => startDriverData(panelId));
+            driverDataOffButton.addEventListener('click', () => stopDriverData(panelId));
+            restart_fppd_service_button.addEventListener('click', () => restart_fppd(panelId));
+        }
+
+        // Initial fetch of panel content and status
+        fetchAndDrawPanelContent(panelId);
+        fetchStatus(panelId);
+    }
+}
+
+// Use both DOMContentLoaded and load events
+document.addEventListener('DOMContentLoaded', initializePage);
+window.addEventListener('load', initializePage);
+</script>
+{% endblock %}
