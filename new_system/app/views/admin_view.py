@@ -733,6 +733,8 @@ def led_panel():
             response = requests.put(url, json=data, headers=headers)
 
     if request.method == "POST":
+        print(request.json["command"])
+
         if request.json["command"] == "set_playlist":
 
 
@@ -753,6 +755,9 @@ def led_panel():
                 return json.dumps({"success": True, "message": "Playlist started successfully"}), 200
             except requests.RequestException as e:
                 return json.dumps({"success": False, "message": str(e)}), 500
+                
+        elif request.json["command"] == "edit_db_data":
+            pass
 
         elif request.json["command"] == "display_text":
 
@@ -800,6 +805,9 @@ def led_panel():
 
             clear_display(endpoint)
             enable_display(endpoint)
+        else:
+            print("askdhkajshdkjahsdkjh")
+            return json.dumps({"success": False, "message": str("asd")})
 
     else:
 
