@@ -54,8 +54,7 @@ def export_events(event_file=None):
         events = ActiveEvents.query.filter(ActiveEvents.event_file==event_file).order_by(ActiveEvents.sort_order).all()
     else: 
         events = ActiveEvents.query.order_by(ActiveEvents.sort_order).all()
-    for a in events:
-        print(a)
+
     data = []
     for a in events:
         event= [{'db_file':g_config["db_location"]+str(a.event_file)+".sqlite", 'SPESIFIC_HEAT':a.run}]
@@ -389,23 +388,23 @@ def format_startlist(event,include_timedata=False):
                                     drivers_in_race[1]["status"] = 2
 
                                 if "status" in drivers_in_race[0] and drivers_in_race[1]["time_info"]["FINISHTIME"] and drivers_in_race[1]["time_info"]["PENELTY"] == 0:
-                                    print(drivers_in_race[0]["first_name"], "WINNER 1")
+                                    #print(drivers_in_race[0]["first_name"], "WINNER 1")
                                     drivers_in_race[1]["status"] = 1
                                     drivers_in_race[0]["status"] = 2
                                     
                                 elif "status" in drivers_in_race[1] and drivers_in_race[0]["time_info"]["FINISHTIME"] and drivers_in_race[1]["time_info"]["PENELTY"] == 0:
-                                    print(drivers_in_race[1]["first_name"], "WINNER 0")
+                                    #print(drivers_in_race[1]["first_name"], "WINNER 0")
                                     drivers_in_race[0]["status"] = 1
                                     drivers_in_race[1]["status"] = 2
                                 
 
                                 if drivers_in_race[0]["time_info"]["FINISHTIME"] < drivers_in_race[1]["time_info"]["FINISHTIME"] and not "status" in drivers_in_race[0]:
-                                    print(drivers_in_race[0]["first_name"], "WINNER 1")
+                                    #print(drivers_in_race[0]["first_name"], "WINNER 1")
                                     drivers_in_race[0]["status"] = 1
                                     drivers_in_race[1]["status"] = 2
 
                                 elif drivers_in_race[0]["time_info"]["FINISHTIME"] > drivers_in_race[1]["time_info"]["FINISHTIME"] and not "status" in drivers_in_race[1]:
-                                    print(drivers_in_race[1]["first_name"], "WINNER 0")
+                                    #print(drivers_in_race[1]["first_name"], "WINNER 0")
                                     drivers_in_race[1]["status"] = 1
                                     drivers_in_race[0]["status"] = 2
 

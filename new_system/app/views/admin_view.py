@@ -66,11 +66,15 @@ def s_set_active_driver():
 
 
 def home_tab():
-    from app.models import ActiveDrivers, ActiveEvents, Session_Race_Records, GlobalConfig, MicroServices
+    from app.models import ActiveDrivers, ActiveEvents, Session_Race_Records, GlobalConfig, MicroServices, archive_server
     from app import db
     from sqlalchemy import func
 
-
+    archive_params = archive_server.query.first()
+    if archive_params == None:
+        archive_params_json = {"password":"", "hostname":""}  
+    else:
+        archive_params_json = {"password":archive_params.auth_token, "hostname":archive_params.hostname}  
 
     g_conf = db.session.query(GlobalConfig.db_location, GlobalConfig.event_dir, GlobalConfig.use_intermediate, GlobalConfig.intermediate_path).all()[0]
 
@@ -113,7 +117,30 @@ def home_tab():
 
     if request.method == "POST":
 
-        if "single_event" in request.form:
+
+        if "endpoint_server_update" in request.form:
+
+            hostname = request.form.get('hostname')
+            password = request.form.get('password')
+
+            if password == "":
+                token = False
+            else:
+                token = True
+
+            archive_params = archive_server.query.first()
+            if archive_params == None:
+                archive_params = archive_server(hostname=hostname, auth_token=password, use_use_token=token)
+                db.session.add(archive_params)
+                db.session.commit()
+            else:
+                archive_params.hostname = hostname
+                archive_params.auth_token = password
+                archive_params.use_use_token = token
+                db.session.commit()
+            return {"Success":"Updated configuration"}
+        
+        elif "single_event" in request.form:
             
             if request.form.get('event_file') == "active_event":
                 active_event = get_active_event()
@@ -123,8 +150,6 @@ def home_tab():
                 selectedEventFile = request.form.get('single_event')
                 
                 sync_state = request.form.get('sync')
-                print(selectedEventFile, "EVENT")
-                print(sync_state, "SYNC")
 
             if sync_state == "true":
                 from app.lib.utils import GetEnv
@@ -176,17 +201,11 @@ def home_tab():
             if service_name == None:
                 return "None"
 
-            print(service_name, service_state, params)
-
-
-            
             service_object = db.session.query(MicroServices).filter((MicroServices.name == service_name)).first()
-            print(service_object)
             if service_object is not None:
                 
                 if bool(service_object.state) == False and service_state == "start":
                     service_object.state = True
-                    print("asdasd")
 
                     if params != None:
                         service_object.params = params
@@ -213,7 +232,7 @@ def home_tab():
                 elif bool(service_object.state) == True and service_state == "restart":
                     print("Restart")
 
-    return render_template('admin/index.html', drivercount=drivers, num_run=number_runs, num_events=enabled_events, events=unique_events, microservices=services, mount_bool=mount_bool, mount_path=mount_path)
+    return render_template('admin/index.html', drivercount=drivers, num_run=number_runs, num_events=enabled_events, events=unique_events, microservices=services, mount_bool=mount_bool, mount_path=mount_path,  archive_params_json=archive_params_json)
 
 def cross_config_tab():
     from app.models import CrossConfig, db
@@ -629,24 +648,21 @@ def export_data():
     from app import db
     
     if request.method == 'POST':
-        try:
-            content_type = request.content_type
-            if content_type.startswith("application/json"):
+        content_type = request.content_type
+        
+        if content_type.startswith("application/json"):
+            if request.get_json()["action"] == "config":
                 archive_params = archive_server.query.first()
-                print(archive_params)
                 if archive_params == None:
-                    print(request.get_json()["endpoint_url"])
                     archive_params = archive_server(hostname=request.get_json()["endpoint_url"], auth_token=request.get_json()["auth_token"], use_use_token=request.get_json()["use_auth_token"])
                     db.session.add(archive_params)
+                    db.session.commit()
                 else:
                     archive_params.hostname = request.get_json()["endpoint_url"]
                     archive_params.auth_token = request.get_json()["auth_token"]
                     archive_params.use_use_token = request.get_json()["use_auth_token"]
-        except:
-            print(request.get_json()["endpoint_url"])  
-            db.session.commit()
-
-            print(request.get_json())
+                    db.session.commit()
+                return {"Success":"Updated configuration"}
 
     archive_params = archive_server.query.first()
     
@@ -806,7 +822,6 @@ def led_panel():
             clear_display(endpoint)
             enable_display(endpoint)
         else:
-            print("askdhkajshdkjahsdkjh")
             return json.dumps({"success": False, "message": str("asd")})
 
     else:

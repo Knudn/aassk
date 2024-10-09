@@ -7,6 +7,7 @@
 
 
 <style>
+    
     /* Microservices container styles */
     .microservices-container {
         width: 100%;
@@ -35,7 +36,21 @@
         overflow: hidden;
         transition: box-shadow 0.3s ease;
     }
-    
+    .external-website-card {
+        background-color: white;
+        flex: 0 0 auto;
+        width: 100%;
+        height: 50px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        text-align: center;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        overflow: hidden;
+        background-color: ;
+        transition: box-shadow 0.3s ease;
+    }
     .microservice-card:hover {
         box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
@@ -102,6 +117,82 @@
             font-size: 1rem;
         }
     }
+
+    .external-website-card {
+    background-color: white;
+    width: 100%;
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: box-shadow 0.3s ease;
+    flex-wrap: wrap;
+}
+
+.external-website-card:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    margin-left: 20px;
+}
+
+.status-active .status-dot {
+    background-color: #4CAF50;
+}
+
+.status-inactive .status-dot {
+    background-color: #F44336;
+}
+
+.button-group {
+    order: 2;
+}
+
+.btn {
+    padding: 6px 10px;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, opacity 0.3s ease;
+}
+
+.btn-primary {
+    background-color: #2196F3;
+    color: white;
+}
+
+.btn-secondary {
+    background-color: #f0f0f0;
+    color: #333;
+}
+
+.btn:hover {
+    opacity: 0.8;
+}
+.insert_fields {
+    width: 50%;
+    padding: 0px;
+}
+
+.endpoint_config_result {
+    display: flex;
+}
+
+
     </style>
 
 {% if mount_bool == "False" %}
@@ -109,6 +200,29 @@
     {{ mount_path }} not mounted!
 </div>
   {% endif %}
+
+  <div class="external-website-card">
+    
+    <div class="status-indicator status-active">
+        <span class="status-dot"></span>
+        <span>Active</span>
+    </div>
+
+    <div class="endpoint_config_result">
+        <input class="form-control insert_fields" type="text" placeholder="Server Endpoint" style="margin-right: 20px;" value="{{ archive_params_json.hostname }}">
+        <input class="form-control insert_fields" type="text" placeholder="Password" value="{{ archive_params_json.password }}">
+        <button class="btn btn-primary" onclick="save_endpoint_config()">Save</button>
+    </div>
+    <div class="button-group">
+        
+        <button class="btn btn-primary">Sync Event</button>
+        <button class="btn btn-secondary">Full Sync</button>
+        <button class="btn btn-secondary">Startlist Sync</button>
+        <button class="btn btn-secondary" style="margin-left: 30px;">Stop</button>
+        <button class="btn btn-primary">Start</button>
+    </div>
+    
+</div>
 
   <div class="container-fluid mt-5">
     <div class="microservices-container">
@@ -569,7 +683,19 @@ function update_active_driver(driver_one_id, driver_two_id, event_name, heat) {
     .catch((error) => console.error('Error:', error));
 }
 
-
+function save_endpoint_config() {
+    var endpoint = document.getElementsByClassName("insert_fields")[0].value;
+    var password = document.getElementsByClassName("insert_fields")[1].value;
+    console.log(endpoint, password)
+    $.ajax({
+        type: "POST",
+        url: "/admin/home",
+        data: {endpoint_server_update: "True", password: password, hostname: endpoint},
+        success: function(result) {
+            location.reload();
+        }
+    });
+}
 </script>
 
 

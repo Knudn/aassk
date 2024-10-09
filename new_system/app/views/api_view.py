@@ -1104,3 +1104,86 @@ def ready_state():
                 else:
                     return str(4)
         return str(4)
+
+@api_bp.route('/api/export/get_new_drivers', methods=['GET'])
+def get_new_drivers():
+    from app.models import ActiveDrivers, ActiveEvents, archive_server
+    from app import db
+    import requests
+    import json
+
+    archive_params = archive_server.query.first()
+
+    current_drivers = requests.get("http://{0}/get_drivers".format(archive_params.hostname))
+
+    current_drivers = json.loads(current_drivers.text)
+    current_events = export_events()
+
+    events_names = []
+    new_drivers = []
+
+    for event in current_events:
+        for run in event:
+            for heat in run:
+                if heat == "drivers":
+                    try:
+                        name = ({"first_name":run[heat][0]["first_name"], "last_name":run[heat][0]["last_name"]})
+                        if name not in events_names:
+                            events_names.append(name)
+                    except:
+                        print("Could not add driver")
+    
+    for a in events_names:
+        if (a["first_name"] + " " + a["last_name"]) not in current_drivers:
+
+            new_drivers.append({"name":a, "new":True})
+        else:
+            new_drivers.append({"name":a, "new":False})
+
+    return {"new_driver":new_drivers, "data":current_events}
+
+@api_bp.route('/api/export/archive_race', methods=['POST'])
+def archive_race():
+    import json
+    import requests
+    from app.models import archive_server
+
+
+    archive_params = archive_server.query.first()
+
+    race_data = request.json
+
+    updated_data = json.dumps(race_data)
+
+    if archive_params.use_use_token:
+        headers = {
+            'Content-Type': 'application/json',
+            'token': '{0}'.format(str(archive_params.auth_token))
+        }
+    else:
+        headers = {
+            'Content-Type': 'application/json',
+        }
+
+    url = 'http://{0}/upload-data/'.format(archive_params.hostname)
+
+
+    response = requests.post(url, headers=headers, data=updated_data)
+    #response.raise_for_status() 
+
+    data = response.json()
+    
+
+    return response.json(), response.status_code
+
+
+@api_bp.route('/api/export/archive_test', methods=['GET'])
+def archive_race_test():
+    import json
+    import requests
+    from app.models import archive_server
+
+
+    
+
+    return updated_data

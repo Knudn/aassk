@@ -186,6 +186,8 @@ if __name__ == '__main__':
     app.config['listen_address'] = IP
     app.config['current_event'] = None
     app.config['event_content'] = ""
+    app.config['remote_result_page_state'] = False
+    app.config['remote_result_page_enabled'] = False
     configure_logging(app)
     app.logger.info('App started')
     create_tables(app)
