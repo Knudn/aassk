@@ -17,7 +17,6 @@ def delete_events(directory_path, event=None):
         file_path = os.path.join(directory_path, file)
         
         if os.path.isfile(file_path):
-            print(file_path)
             os.remove(file_path)
     
 
@@ -34,7 +33,7 @@ def full_db_reload(add_intel_sort=False, sync=False, Event=None):
     
     if Event != None:
         db_data, driver_db_data = map_database_files(g_config, Event=Event)
-
+        
         for a in db_data:
             installed_heats = int(ActiveEvents.query.filter(ActiveEvents.event_file==Event).count())
             gotten_heats = int(a["HEATS"])
@@ -65,7 +64,6 @@ def full_db_reload(add_intel_sort=False, sync=False, Event=None):
                     sort_value = hightest_heat.sort_order + (k + 1)
                     event_entry = ActiveEvents(event_name=(a["TITLE1"] + " " + a["TITLE2"]), run=(b + 1), sort_order=sort_value, event_file=a["db_file"], mode=a["MODE"])
                     db.session.add(event_entry)
-                    print("True 1")
 
                 db.session.commit()
 
@@ -79,7 +77,6 @@ def full_db_reload(add_intel_sort=False, sync=False, Event=None):
                     ).delete()
 
                     print("remove:" )
-                    print("True 2")
 
                 entry_range = ActiveEvents.query.filter(
                     ActiveEvents.sort_order.between((hightest_heat.sort_order)+1, max_sort_order_subquery.c.max_sort_order)
@@ -90,12 +87,13 @@ def full_db_reload(add_intel_sort=False, sync=False, Event=None):
 
                 db.session.commit()
     else:
+
         db_data, driver_db_data = map_database_files(g_config)
         ActiveEvents.query.delete()
         count = 0
+
         #I moved this indise the if statement. 
         for a in db_data:
-
             for b in range(1, (int(a['HEATS']) + 1)):
                 count += 1
                 

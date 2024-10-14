@@ -1,3 +1,5 @@
+from sqlalchemy import func, and_, not_
+from sqlalchemy.orm import aliased
 
 def get_all_drivers():
     return "select * from drivers;"
@@ -174,6 +176,59 @@ ORDER BY r.id, ru.pair_id, ru.finishtime;
 
 """.format(driver)
 
+def get_single_placement_sqlalchemy(session, driver):
+    # Create an alias for self-joining
+    RD = aliased(RaceData)
+
+    # Subquery
+    subquery = (
+        session.query(
+            RD.date.label('race_date'),
+            (RD.event_title + ' - ' + RD.race_title).label('full_race_title'),
+            RD.id.label('race_id'),
+            RD.driver_name,
+            RD.vehicle,
+            RD.finishtime,
+            func.rank().over(
+                partition_by=RD.date,
+                order_by=RD.finishtime
+            ).label('placement'),
+            func.count().over(
+                partition_by=RD.date
+            ).label('total_drivers')
+        )
+        .filter(and_(
+            RD.mode == 0,
+            RD.finishtime > 0,
+            RD.penalty == 0
+        ))
+        .subquery()
+    )
+
+    # Main query
+    query = (
+        session.query(
+            subquery.c.race_date,
+            subquery.c.full_race_title,
+            subquery.c.race_id,
+            subquery.c.driver_name,
+            subquery.c.vehicle,
+            subquery.c.finishtime,
+            subquery.c.placement,
+            subquery.c.total_drivers
+        )
+        .filter(and_(
+            subquery.c.driver_name == driver,
+            not_(subquery.c.full_race_title.like('%Kval%'))
+        ))
+        .order_by(
+            subquery.c.race_date,
+            subquery.c.race_id,
+            subquery.c.finishtime
+        )
+    )
+
+    return query
 
 def get_single_placement_sql(driver):
     return """

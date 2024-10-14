@@ -69,12 +69,11 @@ def home_tab():
     from app.models import ActiveDrivers, ActiveEvents, Session_Race_Records, GlobalConfig, MicroServices, archive_server
     from app import db
     from sqlalchemy import func
+    import json
 
     archive_params = archive_server.query.first()
-    if archive_params == None:
-        archive_params_json = {"password":"", "hostname":""}  
-    else:
-        archive_params_json = {"password":archive_params.auth_token, "hostname":archive_params.hostname}  
+
+    archive_params_json = {"password": archive_params.auth_token, "hostname": archive_params.hostname, "enabled": archive_params.enabled}
 
     g_conf = db.session.query(GlobalConfig.db_location, GlobalConfig.event_dir, GlobalConfig.use_intermediate, GlobalConfig.intermediate_path).all()[0]
 
@@ -122,6 +121,7 @@ def home_tab():
 
             hostname = request.form.get('hostname')
             password = request.form.get('password')
+            state = request.form.get('state')
 
             if password == "":
                 token = False
@@ -129,15 +129,23 @@ def home_tab():
                 token = True
 
             archive_params = archive_server.query.first()
-            if archive_params == None:
-                archive_params = archive_server(hostname=hostname, auth_token=password, use_use_token=token)
-                db.session.add(archive_params)
-                db.session.commit()
-            else:
+
+            if state == "none":
                 archive_params.hostname = hostname
                 archive_params.auth_token = password
                 archive_params.use_use_token = token
                 db.session.commit()
+            else:
+                if state == "start":
+                    state = True
+                else:
+                    state = False
+                archive_params.hostname = hostname
+                archive_params.auth_token = password
+                archive_params.use_use_token = token
+                archive_params.enabled = state
+                db.session.commit()
+
             return {"Success":"Updated configuration"}
         
         elif "single_event" in request.form:
@@ -231,6 +239,7 @@ def home_tab():
                     
                 elif bool(service_object.state) == True and service_state == "restart":
                     print("Restart")
+
 
     return render_template('admin/index.html', drivercount=drivers, num_run=number_runs, num_events=enabled_events, events=unique_events, microservices=services, mount_bool=mount_bool, mount_path=mount_path,  archive_params_json=archive_params_json)
 
@@ -335,8 +344,6 @@ def global_config_tab():
                 ActiveEvents_list = []
                 for h in ActiveEvents_entries:
                     ActiveEvents_list.append(h.id)
-
-                #
 
             db.session.query(Session_Race_Records).delete()
             full_db_reload(add_intel_sort=True)

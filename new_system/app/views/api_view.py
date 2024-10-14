@@ -8,6 +8,25 @@ from sqlalchemy import func
 
 api_bp = Blueprint('api', __name__)
 
+
+@api_bp.route('/api/check_remote_heartbeat/', methods=['GET'])
+def check_remote_heartbeat():
+    from app.models import archive_server
+    import requests
+
+
+    microservices = archive_server.query.first()
+    url = f"http://{microservices.hostname}/heartbeat"
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        return "OK"
+    else:
+        return "ERROR"
+
+
+
+
 @api_bp.route('/api/init', methods=['POST'])
 def receive_init():
     from app.models import InfoScreenInitMessage
@@ -90,6 +109,42 @@ def get_current_startlist():
 
     return get_active_startlist()
 
+@api_bp.route('/api/upate_remote_data', methods=['GET'])
+def upate_remote_data():
+    from app.models import archive_server, EventKvaliRate
+    import requests
+    import json
+    from app.lib.utils import export_events
+
+    update_type = request.args.get('type', type=str)
+
+    archive_server_data = archive_server.query.first()
+    if archive_server_data:
+        password = archive_server_data.auth_token
+        hostname = archive_server_data.hostname
+
+    if update_type == "single":
+        send_data = get_active_startlist_w_timedate()
+        single_event = True
+        result = None
+
+    elif update_type == "full_sync":
+        single_event = False
+        data = EventKvaliRate.query.all()
+
+        result = [event.to_dict() for event in data]
+        send_data = export_events()
+
+        print(result)
+
+    data = {"token":password,
+            "data":send_data,
+            "single_event":single_event,
+            "kvali_ranking":json.dumps(result)}
+
+    response = requests.post(f"http://{hostname}/api/realtime_data", json=data)
+
+    return get_active_startlist_w_timedate()
 
 
 @api_bp.route('/api/get_current_startlist_w_data', methods=['GET'])
@@ -112,7 +167,6 @@ def get_current_startlist_w_data():
         ).first()
 
         event = [{'db_file':query.event_file, 'SPESIFIC_HEAT':query.run}]
-        print(event)
         return get_active_startlist_w_timedate(event_wl=event)
     
     return get_active_startlist_w_timedate()

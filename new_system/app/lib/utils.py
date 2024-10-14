@@ -81,7 +81,6 @@ def update_info_screen(id):
     from app.models import InfoScreenAssetAssociations, InfoScreenAssets, InfoScreenInitMessage
     assets = InfoScreenAssetAssociations.query.filter_by(infoscreen=id)
     infoscreen_url = InfoScreenInitMessage.query.filter_by(id=id).first()
-    print(infoscreen_url)
     port = "8000"
     infoscreen_url = f'http://{infoscreen_url.ip}:{port}/update_index'
     json_data = []
@@ -253,7 +252,6 @@ def get_event_data_all(event):
     import json
 
     g_config = GetEnv()
-    print(event[0]["db_file"])
     with sqlite3.connect(event[0]["db_file"]) as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM drivers;".format(event[0]["db_file"]))
@@ -461,7 +459,6 @@ def get_active_driver_name(db_path, cid):
     with sqlite3.connect(db_path) as con:
         cur = con.cursor()
         driver_name = cur.execute(query).fetchall()
-    print(driver_name)
     return driver_name[0][0] + " " + driver_name[0][1]
 
 def fifo_monitor(app, fifo_path='/tmp/file_monitor_fifo', callback=None, g_config=None):
@@ -507,7 +504,6 @@ def fifo_monitor(app, fifo_path='/tmp/file_monitor_fifo', callback=None, g_confi
                                 print("FAIL", data)
 
                             else:
-                                print(data[6:])
                                 #full_db_reload(add_intel_sort=False, Event=file)
                                 print("NOT ACTIVE", event_change)
                         except:

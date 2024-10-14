@@ -28,9 +28,26 @@ class archive_server(db.Model):
     auth_token = db.Column(db.String(128), nullable=False)
     use_use_token = db.Column(db.Boolean, default=False)
     state = db.Column(db.Boolean, default=False)
-
+    enabled = db.Column(db.Boolean, default=False)
+    
     def __repr__(self):
         return f'<archive_server {self.id} {self.hostname} {self.auth_token} {self.use_use_token}>'
+
+class EventKvaliRate(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    event = db.Column(db.String(128), nullable=False)
+    kvalinr = db.Column(db.Integer, primary_key=True)
+    
+    def __repr__(self):
+        return f'<event_kvali_rate {self.id} {self.event} {self.kvalinr}>'
+    
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'event': self.event,
+            'kvalinr': self.kvalinr
+        }
+    
 
 class InfoScreenAssetAssociations(db.Model):
     id = db.Column(db.Integer, primary_key=True)
