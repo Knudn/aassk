@@ -209,7 +209,7 @@
         <span id="serverStatusText">Checking...</span>
     </div>
 
-    <div class="status-indicator status-active">
+    <div class="status-indicator status-active" style="margin-right: 10%;">
         {% if archive_params_json.enabled == True %}
             <span class="status-dot"></span>
             <span>Enabled</span>
@@ -221,15 +221,14 @@
     </div>
 
     <div class="endpoint_config_result">
-        <input id="hostname_remote" class="form-control insert_fields" type="text" placeholder="Server Endpoint" style="margin-right: 20px;" value="{{ archive_params_json.hostname }}">
-        <input id="password_input" class="form-control insert_fields" type="text" placeholder="Password" value="{{ archive_params_json.password }}">
+        <input id="hostname_remote" class="form-control insert_fields" type="text" placeholder="Server Endpoint" style="width: 200px; margin-right: 9px;" value="{{ archive_params_json.hostname }}">
+        <input id="password_input" class="form-control insert_fields" type="text" placeholder="Password" value="{{ archive_params_json.password }}" style="width: 120px; margin-right: 9px;">
         <button class="btn btn-primary" onclick="save_endpoint_config('none')">Save</button>
     </div>
     <div class="button-group">
         
         <button class="btn btn-primary" onclick="sendSyncRequest('single')">Sync Event</button>
         <button class="btn btn-secondary" onclick="sendSyncRequest('full_sync')">Full Sync</button>
-        <button class="btn btn-secondary" onclick="sendSyncRequest('startlist')">Startlist Sync</button>
         
         <button class="btn btn-secondary" style="margin-left: 30px;" onclick="save_endpoint_config('stop')">Stop</button>
         <button class="btn btn-primary" onclick="save_endpoint_config('start')">Start</button>

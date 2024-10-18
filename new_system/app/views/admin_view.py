@@ -39,6 +39,8 @@ def admin(tab_name):
         return timekeeperpage()
     elif tab_name == 'ledpanel':
         return led_panel()
+    elif tab_name == 'kvali_criteria':
+        return kvali_criteria()
     else:
         return "Invalid tab", 404
 
@@ -242,6 +244,33 @@ def home_tab():
 
 
     return render_template('admin/index.html', drivercount=drivers, num_run=number_runs, num_events=enabled_events, events=unique_events, microservices=services, mount_bool=mount_bool, mount_path=mount_path,  archive_params_json=archive_params_json)
+
+def kvali_criteria():
+    from app.models import EventKvaliRate
+    from app import db
+
+    
+    if request.method == 'POST':
+        data = request.get_json()
+        print(data)
+        EventKvaliRate.query.delete()
+        data_len = len(data)
+
+        for k, a in enumerate(dict(data).keys()):
+            kvali_num = data[a]
+            new_entry = EventKvaliRate(
+                id= k+1,
+                event = a,
+                kvalinr = int(kvali_num)
+            )
+            db.session.add(new_entry)
+        db.session.commit()
+        return {"Success": "True"}
+
+    else:
+        kvali_criteria = [event.to_dict() for event in EventKvaliRate.query.all()]
+        return render_template('admin/kval_criteria.html', kvali_criteria=kvali_criteria)
+
 
 def cross_config_tab():
     from app.models import CrossConfig, db
@@ -758,7 +787,17 @@ def led_panel():
     if request.method == "POST":
         print(request.json["command"])
 
-        if request.json["command"] == "set_playlist":
+        if request.json["command"] == "save_endpoint":
+            endpoint = request.json["endpoint"]
+            entry_id = request.json["panel_id"]
+
+            # Update the existing entry
+            db.session.query(ledpanel).filter_by(id=entry_id).update({
+                "endpoint": endpoint,
+            })
+            db.session.commit()
+            return json.dumps({"success": True, "message": "Endpoint added successfully"}), 200
+        elif request.json["command"] == "set_playlist":
 
 
             endpoint = request.json['endpoint']
