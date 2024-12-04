@@ -7,6 +7,7 @@
 
 
 <style>
+    
     /* Microservices container styles */
     .microservices-container {
         width: 100%;
@@ -35,7 +36,21 @@
         overflow: hidden;
         transition: box-shadow 0.3s ease;
     }
-    
+    .external-website-card {
+        background-color: white;
+        flex: 0 0 auto;
+        width: 100%;
+        height: 50px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+        text-align: center;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        overflow: hidden;
+        background-color: ;
+        transition: box-shadow 0.3s ease;
+    }
     .microservice-card:hover {
         box-shadow: 0 4px 8px rgba(0,0,0,0.1);
     }
@@ -102,13 +117,124 @@
             font-size: 1rem;
         }
     }
+
+    .external-website-card {
+    background-color: white;
+    width: 100%;
+    padding: 10px;
+    display: flex;
+    justify-content: space-between;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    transition: box-shadow 0.3s ease;
+    flex-wrap: wrap;
+}
+
+.external-website-card:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.status-indicator {
+    display: flex;
+    align-items: center;
+
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    margin-left: 20px;
+}
+
+.status-active .status-dot {
+    background-color: #4CAF50;
+}
+
+.status-inactive .status-dot {
+    background-color: #F44336;
+}
+
+.button-group {
+    order: 2;
+}
+
+.btn {
+    padding: 6px 10px;
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background-color 0.3s ease, opacity 0.3s ease;
+}
+
+.btn-primary {
+    background-color: #2196F3;
+    color: white;
+}
+
+.btn-secondary {
+    background-color: #f0f0f0;
+    color: #333;
+}
+
+.btn:hover {
+    opacity: 0.8;
+}
+.insert_fields {
+    width: 50%;
+    padding: 0px;
+}
+
+.endpoint_config_result {
+    display: flex;
+}
+
+
     </style>
 
 {% if mount_bool == "False" %}
+
 <div class="alert alert-danger" role="alert">
     {{ mount_path }} not mounted!
 </div>
   {% endif %}
+
+  <div class="external-website-card">
+    
+    <div class="status-indicator" id="serverStatusIndicator">
+        <span class="status-dot"></span>
+        <span id="serverStatusText">Checking...</span>
+    </div>
+
+    <div class="status-indicator status-active" style="margin-right: 10%;">
+        {% if archive_params_json.enabled == True %}
+            <span class="status-dot"></span>
+            <span>Enabled</span>
+        {% else %}
+            <span class="status-dot" style="background-color: #dc3545;"></span>
+            <span>Disabled</span>
+        {% endif %}
+
+    </div>
+
+    <div class="endpoint_config_result">
+        <input id="hostname_remote" class="form-control insert_fields" type="text" placeholder="Server Endpoint" style="width: 200px; margin-right: 9px;" value="{{ archive_params_json.hostname }}">
+        <input id="password_input" class="form-control insert_fields" type="text" placeholder="Password" value="{{ archive_params_json.password }}" style="width: 120px; margin-right: 9px;">
+        <button class="btn btn-primary" onclick="save_endpoint_config('none')">Save</button>
+    </div>
+    <div class="button-group">
+        
+        <button class="btn btn-primary" onclick="sendSyncRequest('single')">Sync Event</button>
+        <button class="btn btn-secondary" onclick="sendSyncRequest('full_sync')">Full Sync</button>
+        
+        <button class="btn btn-secondary" style="margin-left: 30px;" onclick="save_endpoint_config('stop')">Stop</button>
+        <button class="btn btn-primary" onclick="save_endpoint_config('start')">Start</button>
+    </div>
+    
+</div>
 
   <div class="container-fluid mt-5">
     <div class="microservices-container">
@@ -313,7 +439,37 @@ document.getElementById('syncButton').addEventListener('click', function() {
         console.error('There has been a problem with your fetch operation:', error);
     });
 });
-    
+    async function checkServerHeartbeat() {
+        const statusIndicator = document.getElementById('serverStatusIndicator');
+        const statusDot = statusIndicator.querySelector('.status-dot');
+        const statusText = document.getElementById('serverStatusText');
+        try {
+            const hostnameRemoteAddress = document.getElementById('hostname_remote').value;
+            const response = await fetch(`/api/check_remote_heartbeat/`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            });
+            const responseText = await response.text();
+
+            if (responseText == 'OK') {
+                statusIndicator.classList.remove('status-inactive');
+                statusIndicator.classList.add('status-active');
+                statusDot.style.backgroundColor = '#4CAF50'; // Green
+                statusText.textContent = 'UP';
+            } else {
+                throw new Error('Server responded, but status was not OK.');
+            }
+        } catch (error) {
+            console.error('Error checking server heartbeat:', error);
+            statusIndicator.classList.remove('status-active');
+            statusIndicator.classList.add('status-inactive');
+            statusDot.style.backgroundColor = '#F44336'; // Red
+            statusText.textContent = 'DOWN';
+        }
+    }
+
 function changeStatus(element, action, service, params) {
     var card = $(element).closest('.microservice-card');
     var nameElement = card.find('.microservice-name');
@@ -383,7 +539,11 @@ function change_microservice_state(state, service) {
     });
 }
 
+
+
+
 $(document).ready(function() {
+
     function sendRequest(event, sync, event_name) {
         $.ajax({
             type: "POST",
@@ -555,6 +715,30 @@ function setActiveEventAndDriver() {
 }
 
 
+function sendSyncRequest(type) {
+    fetch(`/api/upate_remote_data?type=${type}`, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('Sync successful:', data);
+        // Handle successful response here
+        alert('Sync completed successfully!');
+    })
+    .catch(error => {
+        console.error('Sync failed:', error);
+        alert('Sync failed. Please try again.');
+    });
+}
+
 function update_active_driver(driver_one_id, driver_two_id, event_name, heat) {
     const endpoint = '/api/set_active_state';
     fetch(endpoint, {
@@ -569,7 +753,28 @@ function update_active_driver(driver_one_id, driver_two_id, event_name, heat) {
     .catch((error) => console.error('Error:', error));
 }
 
+function save_endpoint_config(state) {
+    var endpoint = document.getElementsByClassName("insert_fields")[0].value;
+    var password = document.getElementsByClassName("insert_fields")[1].value;
+    console.log(endpoint, password)
+    $.ajax({
+        type: "POST",
+        url: "/admin/home",
+        data: {endpoint_server_update: "True", password: password, hostname: endpoint, state: state},
+        success: function(result) {
+            location.reload();
+        }
+    });
+}
 
+
+
+
+document.addEventListener('DOMContentLoaded', () => {
+    checkServerHeartbeat();
+    // Optionally, you can set up an interval to check periodically
+    // setInterval(checkServerHeartbeat, 60000); // Check every minute
+});
 </script>
 
 

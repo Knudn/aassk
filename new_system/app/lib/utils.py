@@ -54,8 +54,7 @@ def export_events(event_file=None):
         events = ActiveEvents.query.filter(ActiveEvents.event_file==event_file).order_by(ActiveEvents.sort_order).all()
     else: 
         events = ActiveEvents.query.order_by(ActiveEvents.sort_order).all()
-    for a in events:
-        print(a)
+
     data = []
     for a in events:
         event= [{'db_file':g_config["db_location"]+str(a.event_file)+".sqlite", 'SPESIFIC_HEAT':a.run}]
@@ -82,7 +81,6 @@ def update_info_screen(id):
     from app.models import InfoScreenAssetAssociations, InfoScreenAssets, InfoScreenInitMessage
     assets = InfoScreenAssetAssociations.query.filter_by(infoscreen=id)
     infoscreen_url = InfoScreenInitMessage.query.filter_by(id=id).first()
-    print(infoscreen_url)
     port = "8000"
     infoscreen_url = f'http://{infoscreen_url.ip}:{port}/update_index'
     json_data = []
@@ -254,7 +252,6 @@ def get_event_data_all(event):
     import json
 
     g_config = GetEnv()
-    print(event[0]["db_file"])
     with sqlite3.connect(event[0]["db_file"]) as conn:
         cursor = conn.cursor()
         cursor.execute("SELECT * FROM drivers;".format(event[0]["db_file"]))
@@ -379,7 +376,9 @@ def format_startlist(event,include_timedata=False):
                         drivers_in_race.append(driver_info)
 
                         if event_data_dict["MODE"] == 3 or event_data_dict["MODE"] == 2:
+
                             if len(drivers_in_race) == 2:
+                                print(drivers_in_race[0]["time_info"]["PENELTY"])
                                 if drivers_in_race[0]["time_info"]["PENELTY"] > 0:
                                     drivers_in_race[1]["status"] = 1
                                     drivers_in_race[0]["status"] = 2
@@ -389,23 +388,23 @@ def format_startlist(event,include_timedata=False):
                                     drivers_in_race[1]["status"] = 2
 
                                 if "status" in drivers_in_race[0] and drivers_in_race[1]["time_info"]["FINISHTIME"] and drivers_in_race[1]["time_info"]["PENELTY"] == 0:
-                                    print(drivers_in_race[0]["first_name"], "WINNER 1")
+                                    #print(drivers_in_race[0]["first_name"], "WINNER 1")
                                     drivers_in_race[1]["status"] = 1
                                     drivers_in_race[0]["status"] = 2
                                     
                                 elif "status" in drivers_in_race[1] and drivers_in_race[0]["time_info"]["FINISHTIME"] and drivers_in_race[1]["time_info"]["PENELTY"] == 0:
-                                    print(drivers_in_race[1]["first_name"], "WINNER 0")
+                                    #print(drivers_in_race[1]["first_name"], "WINNER 0")
                                     drivers_in_race[0]["status"] = 1
                                     drivers_in_race[1]["status"] = 2
                                 
 
                                 if drivers_in_race[0]["time_info"]["FINISHTIME"] < drivers_in_race[1]["time_info"]["FINISHTIME"] and not "status" in drivers_in_race[0]:
-                                    print(drivers_in_race[0]["first_name"], "WINNER 1")
+                                    #print(drivers_in_race[0]["first_name"], "WINNER 1")
                                     drivers_in_race[0]["status"] = 1
                                     drivers_in_race[1]["status"] = 2
 
                                 elif drivers_in_race[0]["time_info"]["FINISHTIME"] > drivers_in_race[1]["time_info"]["FINISHTIME"] and not "status" in drivers_in_race[1]:
-                                    print(drivers_in_race[1]["first_name"], "WINNER 0")
+                                    #print(drivers_in_race[1]["first_name"], "WINNER 0")
                                     drivers_in_race[1]["status"] = 1
                                     drivers_in_race[0]["status"] = 2
 
@@ -462,7 +461,6 @@ def get_active_driver_name(db_path, cid):
     with sqlite3.connect(db_path) as con:
         cur = con.cursor()
         driver_name = cur.execute(query).fetchall()
-    print(driver_name)
     return driver_name[0][0] + " " + driver_name[0][1]
 
 def fifo_monitor(app, fifo_path='/tmp/file_monitor_fifo', callback=None, g_config=None):
@@ -508,7 +506,6 @@ def fifo_monitor(app, fifo_path='/tmp/file_monitor_fifo', callback=None, g_confi
                                 print("FAIL", data)
 
                             else:
-                                print(data[6:])
                                 #full_db_reload(add_intel_sort=False, Event=file)
                                 print("NOT ACTIVE", event_change)
                         except:

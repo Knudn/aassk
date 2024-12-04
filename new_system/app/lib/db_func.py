@@ -180,17 +180,45 @@ def init_database(event_files, driver_db_data, g_config, init_mode=True, exclude
                     '''.format(heat))
                     conn.commit()
 
+def calculate_kvali_nr(event_dict):
+    from app.models import EventKvaliRate
+    from app import db as my_db
+
+    # Delete all existing records and commit immediately
+    EventKvaliRate.query.delete()
+    my_db.session.commit()
+
+    count = 0
+    for event, value in event_dict.items():
+        count += 1
+        kvalinr = 16 if value >= 16 else 8 if value >= 8 else 4 if value >= 4 else 2 if value >= 2 else 1 if value >= 1 else 0
+        
+        try:
+            record = EventKvaliRate(id=count, event=event, kvalinr=kvalinr)
+            my_db.session.add(record)
+            my_db.session.commit()
+        except Exception as e:
+            my_db.session.rollback()
+            print(f"Error inserting record for event '{event}': {str(e)}")
+            raise
+
+    print("All records inserted successfully")
+        
+
 def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True, sync=False):
 
     from app.models import ActiveEvents
     from app import db as my_db
     from app.models import Session_Race_Records, CrossConfig
+    
 
+    event_dict_kvali = {}
 
     event_dir = g_config["event_dir"]
     db_location = g_config["db_location"]
     
     current_title = None
+
     try:
         for a in db:
             if "SPESIFIC_HEAT" in a.keys():
@@ -215,9 +243,9 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True, sync=Fa
             event_db_path = ext_event_db
             main_db_path = local_event_db
 
-
+            print("Inserting data for " + event_db_path)
+            print(mode)
             for b in range(0, int(heats)):
-
                 if g_config["cross"]:
                     pass
                 else:
@@ -232,6 +260,7 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True, sync=Fa
                     start_time_query = f"SELECT C_NUM, C_HOUR2 FROM TTIMERECORDS_HEAT{heat}_START"
                     query = f"SELECT C_NUM, C_INTER1, C_INTER2, C_INTER3, C_SPEED1, C_STATUS, C_TIME FROM TTIMEINFOS_HEAT{heat}"
 
+
                 elif mode == str(3):
                     heat_count = my_db.session.query(ActiveEvents).filter(ActiveEvents.event_file == a["db_file"]).count()
                     if spesific_heat == False:
@@ -240,18 +269,22 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True, sync=Fa
                         heat_count = (heat_count - int(heat)) +1 
                         
                     query = f"SELECT C_NUM, C_INTER1, C_INTER2, C_INTER3, C_SPEED1, C_STATUS, C_TIME FROM TTIMEINFOS_PARF_HEAT{heat_count}_RUN1"
+
                 else:
                     query = f"SELECT C_NUM, C_INTER1, C_INTER2, C_INTER3, C_SPEED1, C_STATUS, C_TIME FROM TTIMEINFOS_HEAT{heat}"
+
+
+                    
                 try:
                     with sqlite3.connect(event_db_path) as conn:
                         cursor = conn.cursor()
                         cursor.execute(query)
                         time_data = cursor.fetchall()
+                        time_data_lst = []
 
                         if g_config["cross"] and mode == str(0):
                             cursor.execute(start_time_query)
                             start_time_data = cursor.fetchall()
-
                             time_data_lst = [
                                 {
                                     "CID": data[0], "INTER_1": data[1], "INTER_2": data[2], "INTER_3": data[3],
@@ -259,7 +292,6 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True, sync=Fa
                                 } 
                                 for data in time_data
                             ]
-
 
                             start_time_lst = [
                                 {
@@ -269,17 +301,23 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True, sync=Fa
                             ]
 
                         else:
+                            if mode == str(2):
+                                for data in time_data:
+                                    if data[1] == 0 and data[6] == 0 and data[2] == 0 and data[5] == 0:
+                                        inter_time = 1
+                                    else:
+                                        inter_time = 0
 
-                            time_data_lst = [
-                                {
-                                    "CID": data[0], "INTER_1": data[1], "INTER_2": data[2], "INTER_3": data[3],
-                                    "SPEED": data[4], "PENELTY": data[5], "FINISHTIME": data[6]
-                                } 
-                                for data in time_data
-                            ]
-                except:
+                                    time_data_lst.append({"CID": data[0], "INTER_1": inter_time, "INTER_2": data[2], "INTER_3": data[2],"SPEED": data[4], "PENELTY": data[5], "FINISHTIME": data[6]})
+                            else:
+                                for data in time_data:
+                                    time_data_lst.append({"CID": data[0], "INTER_1": data[1], "INTER_2": data[2], "INTER_3": data[2],"SPEED": data[4], "PENELTY": data[5], "FINISHTIME": data[6]})
+
+                except Exception as e:
                     print("No session data inserted for, " + event_db_path)
+                    print(e)
                     continue
+
                 with sqlite3.connect(main_db_path) as conn:
                     cursor = conn.cursor()
                     sql = "SELECT * FROM startlist_r{0};".format(heat)
@@ -307,8 +345,7 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True, sync=Fa
                             if inter_1 == None:
                                 inter_1 = 0
 
-                            if v not in tmp_driver:
-                                
+                            if v not in tmp_driver:                                
                                 time_data_lst.append({
                                     "CID": v, 
                                     "INTER_1": 0, 
@@ -325,6 +362,8 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True, sync=Fa
                                     t["INTER_1"] = h["START"]
                                 
                     else:
+
+
                         for v in startlist_lst:
                             if v not in tmp_driver:
                                 time_data_lst.append({
@@ -420,7 +459,6 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True, sync=Fa
                             penalty_points = {'3': dsq_score, '1': dns_score, '2': dnf_score}
                             for driver_id, driver_info in session_data.items():
                                 penalty_code = driver_info[7]
-                                print(penalty_code)
                                 if str(penalty_code) in str(penalty_points.keys()):
                                     driver_info.append(penalty_points[str(penalty_code)])
 
@@ -470,6 +508,10 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True, sync=Fa
                         # Commit the deletion
                         my_db.session.commit()
                         # Add the new record
+                        if "Kvalifisering" in session_data[value][3]:
+                            if session_data[value][3] not in event_dict_kvali.keys():
+                                event_dict_kvali[session_data[value][3]] = len(session_data)
+
                         record = Session_Race_Records(cid=value, first_name=session_data[value][0], last_name=session_data[value][1], title_1=session_data[value][2], title_2=session_data[value][3], heat=session_data[value][4], finishtime=session_data[value][5], snowmobile=session_data[value][6], penalty=int(session_data[value][7]), points=int(session_data[value][8]))
                         my_db.session.add(record)
 
@@ -477,6 +519,9 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True, sync=Fa
                     my_db.session.commit()
 
                     cursor.executemany(sql, timedata_tuples)
+                    
+        if init_mode:
+            calculate_kvali_nr(event_dict_kvali)
 
     except Exception as e:
         print("An exception occurred:", str(e))

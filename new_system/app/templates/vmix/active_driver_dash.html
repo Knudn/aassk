@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <script>
-    const ws = new WebSocket("ws://192.168.1.50:4444/");
+    const ws = new WebSocket("ws://{{ip}}:4444/");
     var x;
     var arr = [];
     console.log(ws)
@@ -22,7 +22,7 @@
         }, 1);
     };
 
-    fetch('http://192.168.1.50:4433/api-ladder/1')
+    fetch('http://{{ip}}:4433/api-ladder/1')
       .then(response => response.text())
       .then(title => {
         let modifiedTitle = title.replace(",", "- ");

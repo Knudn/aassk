@@ -48,8 +48,10 @@ def active_driver_dash_cross():
 
 @vmix_bp.route('/vmix/active_driver_stats', methods=['GET'])
 def active_driver_stats():
-    
-    return render_template('vmix/active_driver_dash.html')
+    from flask import current_app
+    list_address = current_app.config['listen_address']
+
+    return render_template('vmix/active_driver_dash.html', ip=list_address)
 
 @vmix_bp.route('/vmix/active_driver_stats_single', methods=['GET'])
 def active_driver_stats_single():

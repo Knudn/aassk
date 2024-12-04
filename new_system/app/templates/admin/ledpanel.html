@@ -504,7 +504,43 @@ function initializePage() {
         fetchStatus(panelId);
     }
 }
+function saveEndpoint(panelId) {
+    const form = document.getElementById(`form${panelId}`);
+    const endpointInput = document.getElementById(`endpoint${panelId}`);
+    const formData = new FormData(form);
+    console.log(panelId)
+    fetch('/admin/ledpanel', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            panel_id: panelId,
+            endpoint: endpointInput.value,
+            command: 'save_endpoint'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Endpoint saved successfully:', data);
+        // You can add user feedback here, like showing a success message
+    })
+    .catch(error => {
+        console.error('Error saving endpoint:', error);
+        // You can add user feedback here, like showing an error message
+    });
+}
 
+// Add event listeners to the Save buttons
+for (let panelId = 1; panelId <= 2; panelId++) {
+    const saveButton = document.querySelector(`#form${panelId} button[value="save_endpoint"]`);
+    if (saveButton) {
+        saveButton.addEventListener('click', (event) => {
+            event.preventDefault();
+            saveEndpoint(panelId);
+        });
+    }
+}
 // Use both DOMContentLoaded and load events
 document.addEventListener('DOMContentLoaded', initializePage);
 window.addEventListener('load', initializePage);

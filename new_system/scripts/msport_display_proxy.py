@@ -100,6 +100,7 @@ async def data_clean(data, db_handler):
     data_decoded = strip_stx(data_decoded)
     data_new = str.splitlines(data_decoded)
     for b in data_new:
+        print(b[0])
         #Driver_time D1
         if b[0] == "1":
             driver_1_time = b[2:].rstrip()

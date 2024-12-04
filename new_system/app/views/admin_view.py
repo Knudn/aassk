@@ -39,6 +39,8 @@ def admin(tab_name):
         return timekeeperpage()
     elif tab_name == 'ledpanel':
         return led_panel()
+    elif tab_name == 'kvali_criteria':
+        return kvali_criteria()
     else:
         return "Invalid tab", 404
 
@@ -66,11 +68,14 @@ def s_set_active_driver():
 
 
 def home_tab():
-    from app.models import ActiveDrivers, ActiveEvents, Session_Race_Records, GlobalConfig, MicroServices
+    from app.models import ActiveDrivers, ActiveEvents, Session_Race_Records, GlobalConfig, MicroServices, archive_server
     from app import db
     from sqlalchemy import func
+    import json
 
+    archive_params = archive_server.query.first()
 
+    archive_params_json = {"password": archive_params.auth_token, "hostname": archive_params.hostname, "enabled": archive_params.enabled}
 
     g_conf = db.session.query(GlobalConfig.db_location, GlobalConfig.event_dir, GlobalConfig.use_intermediate, GlobalConfig.intermediate_path).all()[0]
 
@@ -113,7 +118,39 @@ def home_tab():
 
     if request.method == "POST":
 
-        if "single_event" in request.form:
+        if "endpoint_server_update" in request.form:
+
+            hostname = request.form.get('hostname')
+            password = request.form.get('password')
+            state = request.form.get('state')
+
+            if password == "":
+                token = False
+            else:
+                token = True
+
+            archive_params = archive_server.query.first()
+
+            if state == "none":
+                archive_params.hostname = hostname
+                archive_params.auth_token = password
+                archive_params.use_use_token = token
+                db.session.commit()
+            else:
+                if state == "start":
+                    state = True
+                else:
+                    state = False
+                archive_params.hostname = hostname
+                archive_params.auth_token = password
+                archive_params.use_use_token = token
+                archive_params.enabled = state
+
+                db.session.commit()
+
+            return {"Success":"Updated configuration"}
+        
+        elif "single_event" in request.form:
             
             if request.form.get('event_file') == "active_event":
                 active_event = get_active_event()
@@ -123,8 +160,6 @@ def home_tab():
                 selectedEventFile = request.form.get('single_event')
                 
                 sync_state = request.form.get('sync')
-                print(selectedEventFile, "EVENT")
-                print(sync_state, "SYNC")
 
             if sync_state == "true":
                 from app.lib.utils import GetEnv
@@ -176,17 +211,11 @@ def home_tab():
             if service_name == None:
                 return "None"
 
-            print(service_name, service_state, params)
-
-
-            
             service_object = db.session.query(MicroServices).filter((MicroServices.name == service_name)).first()
-            print(service_object)
             if service_object is not None:
                 
                 if bool(service_object.state) == False and service_state == "start":
                     service_object.state = True
-                    print("asdasd")
 
                     if params != None:
                         service_object.params = params
@@ -213,7 +242,35 @@ def home_tab():
                 elif bool(service_object.state) == True and service_state == "restart":
                     print("Restart")
 
-    return render_template('admin/index.html', drivercount=drivers, num_run=number_runs, num_events=enabled_events, events=unique_events, microservices=services, mount_bool=mount_bool, mount_path=mount_path)
+
+    return render_template('admin/index.html', drivercount=drivers, num_run=number_runs, num_events=enabled_events, events=unique_events, microservices=services, mount_bool=mount_bool, mount_path=mount_path,  archive_params_json=archive_params_json)
+
+def kvali_criteria():
+    from app.models import EventKvaliRate
+    from app import db
+
+    
+    if request.method == 'POST':
+        data = request.get_json()
+        print(data)
+        EventKvaliRate.query.delete()
+        data_len = len(data)
+
+        for k, a in enumerate(dict(data).keys()):
+            kvali_num = data[a]
+            new_entry = EventKvaliRate(
+                id= k+1,
+                event = a,
+                kvalinr = int(kvali_num)
+            )
+            db.session.add(new_entry)
+        db.session.commit()
+        return {"Success": "True"}
+
+    else:
+        kvali_criteria = [event.to_dict() for event in EventKvaliRate.query.all()]
+        return render_template('admin/kval_criteria.html', kvali_criteria=kvali_criteria)
+
 
 def cross_config_tab():
     from app.models import CrossConfig, db
@@ -316,8 +373,6 @@ def global_config_tab():
                 ActiveEvents_list = []
                 for h in ActiveEvents_entries:
                     ActiveEvents_list.append(h.id)
-
-                #
 
             db.session.query(Session_Race_Records).delete()
             full_db_reload(add_intel_sort=True)
@@ -629,24 +684,21 @@ def export_data():
     from app import db
     
     if request.method == 'POST':
-        try:
-            content_type = request.content_type
-            if content_type.startswith("application/json"):
+        content_type = request.content_type
+        
+        if content_type.startswith("application/json"):
+            if request.get_json()["action"] == "config":
                 archive_params = archive_server.query.first()
-                print(archive_params)
                 if archive_params == None:
-                    print(request.get_json()["endpoint_url"])
                     archive_params = archive_server(hostname=request.get_json()["endpoint_url"], auth_token=request.get_json()["auth_token"], use_use_token=request.get_json()["use_auth_token"])
                     db.session.add(archive_params)
+                    db.session.commit()
                 else:
                     archive_params.hostname = request.get_json()["endpoint_url"]
                     archive_params.auth_token = request.get_json()["auth_token"]
                     archive_params.use_use_token = request.get_json()["use_auth_token"]
-        except:
-            print(request.get_json()["endpoint_url"])  
-            db.session.commit()
-
-            print(request.get_json())
+                    db.session.commit()
+                return {"Success":"Updated configuration"}
 
     archive_params = archive_server.query.first()
     
@@ -735,7 +787,17 @@ def led_panel():
     if request.method == "POST":
         print(request.json["command"])
 
-        if request.json["command"] == "set_playlist":
+        if request.json["command"] == "save_endpoint":
+            endpoint = request.json["endpoint"]
+            entry_id = request.json["panel_id"]
+
+            # Update the existing entry
+            db.session.query(ledpanel).filter_by(id=entry_id).update({
+                "endpoint": endpoint,
+            })
+            db.session.commit()
+            return json.dumps({"success": True, "message": "Endpoint added successfully"}), 200
+        elif request.json["command"] == "set_playlist":
 
 
             endpoint = request.json['endpoint']
@@ -806,7 +868,6 @@ def led_panel():
             clear_display(endpoint)
             enable_display(endpoint)
         else:
-            print("askdhkajshdkjahsdkjh")
             return json.dumps({"success": False, "message": str("asd")})
 
     else:

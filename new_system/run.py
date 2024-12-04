@@ -1,5 +1,5 @@
 from app import create_app, db, socketio  # Notice the added socketio import
-from app.models import GlobalConfig, ActiveDrivers, SpeakerPageSettings, InfoScreenAssets, MicroServices, CrossConfig, ledpanel
+from app.models import GlobalConfig, ActiveDrivers, SpeakerPageSettings, InfoScreenAssets, MicroServices, CrossConfig, ledpanel, archive_server
 from app.lib.db_operation import update_active_event
 import os
 import logging
@@ -9,7 +9,7 @@ import socket
 import argparse
 
 pwd = os.getcwd()
-#BLABLA
+
 
 # In-memory timestamp request tracker
 virtual_clock_request = [
@@ -34,6 +34,7 @@ def configure_logging(app):
     
 
 def create_tables(app):
+
     with app.app_context():
         db.create_all() 
 
@@ -44,6 +45,19 @@ def create_tables(app):
         Cross_db = CrossConfig.query.all()
         MicroServices_db = MicroServices.query.all()
         ledpanel_db = ledpanel.query.all()
+        archive_server_db = archive_server.query.all()
+
+        if archive_server_db == []:
+            default_config = archive_server(
+                hostname = "192.168.20.218:5000",
+                auth_token = "1234",
+                use_use_token = True,
+                state = False,
+                enabled = False
+            )
+
+            db.session.add(default_config)
+            db.session.commit()
 
         # If the database do not exist, it will be created here
         if GlobalConfig_db is None:
@@ -186,7 +200,10 @@ if __name__ == '__main__':
     app.config['listen_address'] = IP
     app.config['current_event'] = None
     app.config['event_content'] = ""
+    app.config['remote_result_page_state'] = False
+    app.config['remote_result_page_enabled'] = False
+    
     configure_logging(app)
     app.logger.info('App started')
     create_tables(app)
-    socketio.run(app, debug=True, host=args.host, port=7777) 
+    socketio.run(app, debug=True, host=args.host, port=7777)

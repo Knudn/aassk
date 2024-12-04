@@ -1,3 +1,4 @@
+import app.config
 from flask import Blueprint, request, send_from_directory, session
 import sqlite3
 from app.lib.db_operation import reload_event as reload_event_func
@@ -7,6 +8,25 @@ from app.lib.utils import intel_sort, update_info_screen, export_events, GetEnv
 from sqlalchemy import func
 
 api_bp = Blueprint('api', __name__)
+
+
+@api_bp.route('/api/check_remote_heartbeat/', methods=['GET'])
+def check_remote_heartbeat():
+    from app.models import archive_server
+    import requests
+
+
+    microservices = archive_server.query.first()
+    url = f"http://{microservices.hostname}/heartbeat"
+    response = requests.get(url)
+
+    if response.status_code == 200:
+        return "OK"
+    else:
+        return "ERROR"
+
+
+
 
 @api_bp.route('/api/init', methods=['POST'])
 def receive_init():
@@ -54,15 +74,19 @@ def update_active_drivers():
 @api_bp.route('/api/active_event_update', methods=['GET'])
 def active_event_update():
     from flask import current_app
+    import requests
+    from app.models import archive_server
 
     update_active_event_stats()
+
     event_data = get_active_startlist()
     if current_app.config['event_content'] != event_data:
         send_data_to_room(event_data)
         current_app.config['event_content'] = event_data
-
+    remote_server_state = archive_server.query.first()
+    if remote_server_state.enabled:
+        requests.get('http://localhost:7777/api/upate_remote_data?type=single')
     
-
     return "Updated"
 
 @api_bp.route('/api/update_active_startlist', methods=['GET'])
@@ -90,6 +114,56 @@ def get_current_startlist():
 
     return get_active_startlist()
 
+@api_bp.route('/api/upate_remote_data', methods=['GET'])
+def upate_remote_data():
+    from app.models import archive_server, EventKvaliRate, ActiveEvents
+    import requests
+    import json
+    from app.lib.utils import export_events
+    import app
+
+    update_type = request.args.get('type', type=str)
+
+    archive_server_data = archive_server.query.first()
+
+
+
+
+    if archive_server_data:
+        password = archive_server_data.auth_token
+        hostname = archive_server_data.hostname
+
+    if update_type == "single":
+        send_data = get_active_startlist_w_timedate()
+        single_event = True
+        result = None
+        event_data = None
+
+    elif update_type == "full_sync":
+        from app.models import Session_Race_Records
+
+        title_1_filter = Session_Race_Records.query.first().title_1
+        event_data = []
+
+        single_event = False
+        data = EventKvaliRate.query.all()
+        events = ActiveEvents.query.filter(ActiveEvents.enabled == 1).order_by(ActiveEvents.sort_order).all()
+        for k, a in enumerate(events):
+            event_data.append({"order":k, "event_name":a.event_name.replace(title_1_filter, ""), "run":a.run, "mode":a.mode})
+
+        result = [event.to_dict() for event in data]
+        send_data = export_events()
+
+    data = {"token":password,
+            "data":send_data,
+            "single_event":single_event,
+            "kvali_ranking":json.dumps(result),
+            "event_data":json.dumps(event_data)
+            }
+
+    requests.post(f"http://{hostname}/api/realtime_data", json=data)
+
+    return get_active_startlist_w_timedate()
 
 
 @api_bp.route('/api/get_current_startlist_w_data', methods=['GET'])
@@ -112,7 +186,6 @@ def get_current_startlist_w_data():
         ).first()
 
         event = [{'db_file':query.event_file, 'SPESIFIC_HEAT':query.run}]
-        print(event)
         return get_active_startlist_w_timedate(event_wl=event)
     
     return get_active_startlist_w_timedate()
@@ -121,7 +194,7 @@ def get_current_startlist_w_data():
 def update_event():
         from app.lib.db_operation import get_active_event
         from app.lib.utils import GetEnv
-            
+        print("asdasd")
         g_config = GetEnv()
         active_event = get_active_event()
         print(active_event)
@@ -147,6 +220,7 @@ def update_event():
 
 
         print("Getting:", selectedEventFile)
+        
 
         with sqlite3.connect(db_location + selectedEventFile + ".sqlite") as con:
             cur = con.cursor()
@@ -1104,3 +1178,86 @@ def ready_state():
                 else:
                     return str(4)
         return str(4)
+
+@api_bp.route('/api/export/get_new_drivers', methods=['GET'])
+def get_new_drivers():
+    from app.models import ActiveDrivers, ActiveEvents, archive_server
+    from app import db
+    import requests
+    import json
+
+    archive_params = archive_server.query.first()
+
+    current_drivers = requests.get("http://{0}/get_drivers".format(archive_params.hostname))
+
+    current_drivers = json.loads(current_drivers.text)
+    current_events = export_events()
+
+    events_names = []
+    new_drivers = []
+
+    for event in current_events:
+        for run in event:
+            for heat in run:
+                if heat == "drivers":
+                    try:
+                        name = ({"first_name":run[heat][0]["first_name"], "last_name":run[heat][0]["last_name"]})
+                        if name not in events_names:
+                            events_names.append(name)
+                    except:
+                        print("Could not add driver")
+    
+    for a in events_names:
+        if (a["first_name"] + " " + a["last_name"]) not in current_drivers:
+
+            new_drivers.append({"name":a, "new":True})
+        else:
+            new_drivers.append({"name":a, "new":False})
+
+    return {"new_driver":new_drivers, "data":current_events}
+
+@api_bp.route('/api/export/archive_race', methods=['POST'])
+def archive_race():
+    import json
+    import requests
+    from app.models import archive_server
+
+
+    archive_params = archive_server.query.first()
+
+    race_data = request.json
+
+    updated_data = json.dumps(race_data)
+
+    if archive_params.use_use_token:
+        headers = {
+            'Content-Type': 'application/json',
+            'token': '{0}'.format(str(archive_params.auth_token))
+        }
+    else:
+        headers = {
+            'Content-Type': 'application/json',
+        }
+
+    url = 'http://{0}/upload-data/'.format(archive_params.hostname)
+
+
+    response = requests.post(url, headers=headers, data=updated_data)
+    #response.raise_for_status() 
+
+    data = response.json()
+    
+
+    return response.json(), response.status_code
+
+
+@api_bp.route('/api/export/archive_test', methods=['GET'])
+def archive_race_test():
+    import json
+    import requests
+    from app.models import archive_server
+
+
+    
+
+    return updated_data
