@@ -26,7 +26,10 @@ URL = 'http://localhost:10000/entry'
 
 with sqlite3.connect(DB_PATH) as con:
     cur = con.cursor()
+
     listen_ip = cur.execute("SELECT params FROM microservices WHERE path = 'msport_display_proxy.py';").fetchone()[0]
+    
+    use_inter = cur.execute("SELECT use_intermediate from global_config;").fetchone()[0]
 
 data_sock = {
     "Driver1": {"first_name": "", "last_name":"" , "time": "0", "bid":"0"},
@@ -43,6 +46,8 @@ d_history = ""
 
 d1_update = False
 d2_update = False
+
+old_main_driver = ""
 
 async def async_update_event(listen_ip):
     async with aiohttp.ClientSession() as session:
@@ -92,6 +97,7 @@ def strip_stx(input_string):
 async def data_clean(data, db_handler):
     global d1_update
     global d2_update
+    global old_main_driver
 
     update_event = False
 
@@ -99,8 +105,8 @@ async def data_clean(data, db_handler):
     
     data_decoded = strip_stx(data_decoded)
     data_new = str.splitlines(data_decoded)
+    
     for b in data_new:
-        print(b[0])
         #Driver_time D1
         if b[0] == "1":
             driver_1_time = b[2:].rstrip()
@@ -150,7 +156,7 @@ async def data_clean(data, db_handler):
             
             
             driver_1_bid = b[2:].rstrip()
-            if driver_1_bid != "":
+            if driver_1_bid != "" and "date" not in driver_1_bid:
                 print("Updating BID for driver 1 to", driver_1_bid)
 
                 db_handler.update_driver(D1=driver_1_bid)
@@ -211,7 +217,12 @@ async def data_clean(data, db_handler):
 
     if update_event  == True:
         print("Updating....")
-        asyncio.create_task(async_update_event(listen_ip))
+
+        if str(use_inter) != "1" or old_main_driver != data_sock["Driver1"]["bid"]:
+            asyncio.create_task(async_update_event(listen_ip))
+            old_main_driver = data_sock["Driver1"]["bid"]
+
+
         d1_update = False
         d2_update = False
         update_event = False
@@ -230,9 +241,6 @@ async def server(ws, path):
         await asyncio.sleep(0.1)
         if ws.open:
             try:
-                
-                    
-
                 message_to_send = json.dumps(data_sock, indent=4)
                 await ws.send(message_to_send)
                 # Check and act on update_field

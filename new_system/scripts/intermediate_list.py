@@ -4,8 +4,24 @@ import shutil
 from datetime import datetime
 import json
 import fcntl
+import sqlite3
+import requests
+
 
 FIFO_PATH = '/tmp/file_monitor_fifo'
+ACTIVE_EVENT_QUERY = "SELECT C_VALUE FROM TPARAMETERS WHERE C_PARAM = 'HEAT' OR C_PARAM = 'EVENT';"
+MODE_QUERY = "SELECT C_VALUE FROM TPARAMETERS WHERE C_PARAM='MODULE';"
+
+STARTLIST_DICT = []
+ACTIVE_STATE = {"event":0, "heat":0, "mode":0}
+
+ACTIVE_EVENT = ""
+
+with sqlite3.connect("site.db") as con:
+    cur = con.cursor()
+        
+    use_inter = cur.execute("SELECT use_intermediate from global_config;").fetchone()[0]
+
 
 def create_fifo():
     if not os.path.exists(FIFO_PATH):
@@ -78,12 +94,95 @@ def monitor_files(source_dir, intermediate_dir, use_fifo=False, interval=1):
                     continue
                 
                 if last_modified_times[file] is None or current_mtime > last_modified_times[file]:
-                    print(f"File changed: {file} at {datetime.fromtimestamp(current_mtime)}")
+                    update = False
+                    #print(f"File changed: {file} at {datetime.fromtimestamp(current_mtime)}")
                     dest_path = os.path.join(intermediate_dir, os.path.basename(file))
+                    filename = os.path.basename(file)
+                    db_file = filename.split('.')[0].replace("scdb", "")
+
+
                     if copy_file(file, dest_path):
                         if use_fifo:
                             notify_change(fifo, file)
                         last_modified_times[file] = current_mtime
+                    
+                    if db_file == "Online":
+                        try: 
+                            with sqlite3.connect(intermediate_dir+"/Online.scdb") as conn:
+                                cursor = conn.cursor()
+                                cursor.execute(ACTIVE_EVENT_QUERY)
+                                active_data = cursor.fetchall()
+                                
+                                event = active_data[0][0]
+                                heat = active_data[1][0]
+                                requests.get("http://localhost:7777/api/active_event_update")
+
+                                
+
+                            if event.zfill(3) != ACTIVE_STATE["event"]:
+                                ACTIVE_STATE["event"] = event.zfill(3)
+                                ACTIVE_STATE["heat"] = heat
+
+                                STARTLIST_DICT = []
+
+                                with sqlite3.connect(intermediate_dir+"/Event"+ACTIVE_STATE["event"]+".scdb") as conn:
+                                    cursor = conn.cursor()
+                                    cursor.execute(MODE_QUERY)
+                                    mode = cursor.fetchall()[0][0]
+                                    ACTIVE_STATE["mode"] = mode
+
+                        except Exception as e:
+                            print(e)
+                            print("Could not access online file")
+
+                    if db_file == "Event{0}Ex".format(ACTIVE_STATE["event"]):
+                        
+                        try:
+                            starters = False
+                            STARTLIST_DICT = []
+                            query = "SELECT C_NUM, C_INTER1, C_INTER2, C_INTER3, C_SPEED1, C_STATUS, C_TIME FROM TTIMEINFOS_HEAT{0}".format(ACTIVE_STATE["heat"])
+
+                            with sqlite3.connect(intermediate_dir+"/Event"+ACTIVE_STATE["event"]+"Ex"+".scdb") as conn:
+                                cursor = conn.cursor()
+                                cursor.execute(query)
+                                time_data = cursor.fetchall()
+                                #STARTLIST_DICT
+                                send_update = True
+                                for a in time_data:
+                                    if a[1] == 0 and a[2] == 0 and a[3] == 0 and a[4] == 0 and a[5] == 0 and a[6] == 0:
+                                        STARTLIST_DICT.append({"CID":a[0], "STATUS":"STARTED"})
+
+
+
+
+                                        starters = False
+                                        send_update = False
+                                    else:
+
+                                        STARTLIST_DICT.append({"CID":a[0], "STATUS":"FINISHED"})
+
+
+                                
+                                if int(mode) == int(0):
+
+                                    if starters == False:
+                                        requests.get("http://localhost:7777/api/active_event_update")
+                                else:
+
+                                    if str(use_inter) == str(1):
+                                        if send_update == True:
+                                            requests.get("http://localhost:7777/api/active_event_update")
+                                            
+                                url = "http://localhost:7777/api/start_status"
+                                headers = {
+                                    'Content-Type': 'application/json'
+                                }
+                                
+                                response = requests.post(url, json=STARTLIST_DICT, headers=headers)
+                                
+                                
+                        except Exception as e:
+                            print(e)
 
             time.sleep(interval)
     finally:

@@ -17,235 +17,150 @@
 
 
   <style>
-.retry-indicator-container {
-    position: relative;
-}
-
-.retry-indicator {
-    position: absolute;
-    top: -20px; /* Adjust this value to position the indicator vertically */
-    right: 0;
-    padding: 5px 10px;
-    background-color: #dc3545;
-    color: #fff;
-    font-weight: bold;
-    border-radius: 4px;
-}
-
-.custom-btn {
-    padding: 10px 15px;
-    font-size: 12px;
-
-}
-
-.custom-icon {
-    font-size: 1.5em; /* Adjust based on the button's font size */
-}
-body, html {
-  overflow-x: hidden; /* Prevent horizontal scrolling */
-  max-width: 100vw; /* Prevent width changes */
-  font-size: 14px; /* Adjust base font size to make text smaller */
-}
-.accordion-header, .accordion-button {
-    padding: 0.5rem 0.8rem; /* Adjust padding as needed */
-}
-
-
-.accordion-button {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
-
-.accordion-title {
-    margin: 0; /* Remove default margin */
-    flex-grow: 1; /* Allows the title to take up available space */
-    text-align: center; /* Center the title text */
-    font-size: 18px;
-    font-family: Tahoma, sans-serif;
-}
-
-.accordion-item {
-    margin-bottom: 0.5rem; /* Less space between items */
-    border: 1px solid #e7e7e7; /* Lighter border */
-}
-
-.accordion-body {
-    padding: 0.5rem 1rem; /* Slimmer padding */
-}
-
-
-    .modal-dialog top_race {
-    width: auto;
-    max-width: 100%; 
+    .qualify-line {
+        text-align: center;
+        padding: 1px;
+        position: relative;
+        color: aqua;
     }
 
-    .table-responsive {
-    overflow-x: auto;
+    .qualify-line::before,
+    .qualify-line::after {
+        content: "";
+        position: absolute;
+        top: 50%;
+        width: 40%;
+        height: 3px;
+        background-color: #1170ff;
     }
 
-
-    #driver_status {
-        width: 98%;
-        
+    .qualify-line::before {
+        left: 0;
     }
+
+    .qualify-line::after {
+        right: 0;
+    }
+
+    .qualify-text {
+        display: inline-block;
+        padding: 0 0.75rem;
+        background-color: white;
+        position: relative;
+        z-index: 1;
+        font-weight: 500;
+        color: #6b7280;
+        font-size: 0.875rem;
+    }
+    body, html {
+      overflow-x: hidden;
+      max-width: 100vw;
+      font-size: 14px;
+    }
+
+    /* Button styles */
+    .custom-btn {
+      padding: 10px 15px;
+      font-size: 12px;
+    }
+
+    .custom-icon {
+      font-size: 1.5em;
+    }
+
+    /* Driver container styles */
     .driver-container {
       display: flex;
       justify-content: space-between;
       align-items: flex-start;
     }
-    .table-responsive {
-    overflow-x: auto;
-}
+
     .driver {
       width: 48%;
       border-top: 1px solid black;
       padding: 10px;
-      box-sizing: border-box;
       display: flex;
       flex-direction: column;
       align-items: center;
-      justify-content: center;
       flex-shrink: 0;
-      flex-grow: 0;
-
-      
     }
+
     .driver-info {
       text-align: center;
       margin-bottom: 20px;
     }
-    .driver-details {
-      margin-top: 10px;
-      font-size: 0.9em;
+
+    .drivername {
+      font-size: x-large;
+    }
+
+    /* Middle container styles */
+    .middle-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      max-width: 10px;
+    }
+
+
+    /* Header styles */
+    .header_title {
       text-align: center;
     }
-    .drivername {
-        font-size: x-large;
+
+    /* Status styles */
+    .winner {
+      background-color: rgba(37, 255, 37, 0.658);
+      color: rgb(0, 0, 0);
     }
-    .race-entry {
-    margin-bottom: 10px;
-    padding: 10px;
-}
 
-.date-title-group {
-    width: 100%;
-    margin-bottom: 15px;
-}
+    .loser {
+      background-color: rgba(255, 48, 48, 0.623);
+      color: rgb(0, 0, 0);
+    }
 
-.date-group {
-    width: 100%;
-    margin-bottom: 15px;
-    font-size: 1.2em;
-}
+    /* Driver status styles */
+    #driver_status {
+      width: 98%;
+    }
 
-.race-entry {
-    
-    padding: 0px;
-}
+    /* Modal styles */
+    .modal-dialog {
+      width: auto;
+      max-width: 100%;
+    }
 
-.date-title {
-    text-align: center;
-    font-weight: bold;
-    margin-bottom: 10px;
-}
+    .table-responsive {
+      overflow-x: auto;
+    }
 
-.table {
-    text-align: center;
-}
+    /* Tab styles */
+    .nav-tabs .nav-item {
+      width: 50%;
+      text-align: center;
+    }
 
-.driver-details {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
+    .nav-tabs .nav-link {
+      border-radius: 0;
+    }
 
-.driver-left, .driver-right {
-    width: 45%;
-    padding: 5px;
-    text-align: center;
-}
+    /* Top driver bar styles */
+    #top_driver_bar {
+      display: flex;
+      justify-content: space-between;
+    }
 
-.driver-separator {
-    width: 10%;
-    font-weight: bold;
-}
+    #top_driver_bar span {
+      display: inline-block;
+      vertical-align: middle;
+      padding: 0 2%;
+    }
 
-.winner {
-    background-color: rgba(37, 255, 37, 0.658);
-    color: rgb(0, 0, 0);
-}
-
-.loser {
-    background-color: rgba(255, 48, 48, 0.623);
-    color: rgb(0, 0, 0);
-}
-
-.top-driver-match {
-    background-color: aqua;
-}
-
-
-.driver-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: flex-start;
-}
-
-.middle-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    max-width: 10px;
-}
-
-.arrow-buttons {
-    margin-top: 5px;
-    padding-left: 50%;
-    padding-right: 50%;
-}
-
-
-#arrow-right {
-    margin-top: 5px;
-}
-
-#settingbutton {
-    margin-top: 5px;
-}
-
-.header_title {
-    text-align: center;
-}
-
-.strikethrough {
-    text-decoration: line-through;
-}
-
-/* Custom CSS to make tabs take full width */
-.nav-tabs .nav-item {
-    width: 50%; /* Adjust this value based on the number of tabs */
-    text-align: center;
-}
-
-.nav-tabs .nav-link {
-    border-radius: 0;
-}
-
-
-#top_driver_bar {
-    display: flex;
-
-    justify-content: space-between; /* Distribute content evenly */
-}
-
-#top_driver_bar span {
-    display: inline-block;
-    vertical-align: middle;
-    padding-left: 2%;
-    padding-right: 2%;
-}
+    .strikethrough {
+      text-decoration: line-through;
+    }
+  </style>
 
 
 
@@ -270,17 +185,13 @@ body, html {
 
     <div class="driver-container">
         <div id="left-driver" class="driver">
-            <!-- Left Driver Content -->
-        
+            <div id="left-results" class="left-results"></div>
         </div>
     
         <div class="middle-container">
             <div>
                 <h1 class="heat_num" style="font-size: 30px">1/1</h1>
                 </div>
-            <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#exampleModal" id="settingbutton">
-                <span id="boot-icon" class="bi bi-gear" style="font-size: 28px; opacity: 1; -webkit-text-stroke-width: 0px;"></span>
-            </button>
             <br>
             <button type="button" class="btn btn-primary" id="loadDataButton" data-bs-toggle="modal" data-bs-target="#eventsModal">
 
@@ -298,21 +209,11 @@ body, html {
             <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#mockDataModal">
                 <span id="boot-icon" class="bi bi-arrow-clockwise" style="font-size: 28px; opacity: 1; -webkit-text-stroke-width: 0px;"></span>
             </button>
-        
-            <div class="arrow-buttons" style="padding-top: 20px;">
-                <button id="arrow-left" class="btn btn-secondary custom-btn">
-                    <i class="bi bi-arrow-left custom-icon"></i>
-                </button>
-                <button id="arrow-right" class="btn btn-secondary custom-btn">
-                    <i class="bi bi-arrow-right custom-icon"></i>
-                </button>
-            </div>
 
-            
         </div>
     
         <div id="right-driver" class="driver">
-            <!-- Right Driver Content -->
+            <div id="right-retry-table" class="right-retry-table-class"></div>
         </div>
     </div>
 
@@ -346,7 +247,7 @@ body, html {
 </div>    
 <!-- EVENT ORDER MODEL -->
 <div class="modal fade" id="eventsModal" tabindex="-1" role="dialog" aria-labelledby="eventsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document"> <!-- Use modal-lg for larger modal -->
+    <div class="modal-dialog" role="document" style="width: 80%;">
       <div class="modal-content">
         <div class="modal-header" style="text-align: center;">
           <h5 class="modal-title" id="eventsModalLabel" >Event Rekkefølge</h5>
@@ -454,43 +355,6 @@ body, html {
     </div>
   </div>
     
-<!--SETTINGS MODEL -->
-        <div class="modal fade" id="exampleModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel" aria-hidden="true">
-            <div class="modal-dialog" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                <h5 class="modal-title" id="exampleModalLabel">Speaker page settings</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </button>
-                
-                </div>
-                <div class="modal-body">
-                    <div class="input-group">
-                        <div class="input-group-prepend">
-                        <span class="input-group-text" id="">Archive endpoint:</span>
-                        </div>
-                        <input type="text" class="form-control" value="{{ SpeakerPageConfig_json.h_server_url }}" id="h_server_url">
-                    </div>
-                    <br>
-                    <div class="form-check">
-                        {% if SpeakerPageConfig_json.matching_parallel == False %}
-                        <input class="form-check-input" type="checkbox" value="True" id="matching_parallel">
-                        {% else %}
-                        <input class="form-check-input" type="checkbox" value="True" id="matching_parallel" checked>
-                        {% endif %}
-                        
-                        <label class="form-check-label" for="matching_parallel">
-                            Only display matching parallel races
-                        </label>
-                        </div>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-primary" data-bs-dismiss="modal" aria-label="Close">Close</button>
-                    <button type="button" class="btn btn-primary" id="saveChanges">Save Changes</button>
-                </div>
-            </div>
-            </div>
-        </div>
         </div>
       </div>
     </div>
@@ -498,9 +362,13 @@ body, html {
 
 <script>
     h_server_url = "{{ SpeakerPageConfig_json.h_server_url }}"
-    
+    kvaliCriteria = JSON.parse('{{ kvali_criteria | safe }}');
 </script>
-  <script>
+
+<script>
+
+let title_name = []
+
 function add_websocket_live_timer() {
     const ws = new WebSocket("ws://192.168.1.50:4444/");
     var x;
@@ -641,9 +509,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
 });
 
-
-
-
   </script>
   
   <script>
@@ -674,9 +539,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 h_server_url:h_server_url
             };
     
-            // Send the data to the server
             $.ajax({
-                url: '/board/speaker',  // Replace with your API endpoint
+                url: '/board/speaker',  
                 type: 'POST',
                 contentType: 'application/json',
                 data: JSON.stringify(settingsData),
@@ -694,12 +558,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-
-
     </script>
-    
-
-
     <script>
         {% if SpeakerPageConfig_json.matching_parallel == True %}
             let parallel_only = true;
@@ -708,13 +567,11 @@ document.addEventListener('DOMContentLoaded', function() {
         {% endif %}
     </script>
 
-
   <script>
 
     function validate_mode(data) {
 
         current_mode = data[0]["race_config"]["MODE"]
-        console.log(current_mode)
 
         if (current_mode != old_mode) {
             location.reload()
@@ -732,28 +589,29 @@ document.addEventListener('DOMContentLoaded', function() {
 
     let array_checksum = ""
     var old_results = ""
-    let title_name = []
 
-
+    
     $(document).ready(function() {
         // API call to fetch initial data
         $.ajax({
             url: '/api/get_current_startlist_w_data', // API URL
             type: 'GET',
             success: function(data) {
-                
                 old_mode = data[0]["race_config"]["MODE"]
                 validate_mode(data)
-                displayActiveDrivers(data);
                 document.getElementsByClassName("header_title")[0].innerHTML = data[0]["race_config"]["TITLE_1"] + "-" + data[0]["race_config"]["TITLE_2"] + " (" + data[0]["race_config"]["HEAT"] + "/" + data[0]["race_config"]["HEATS"]+")";
-                title_name = [data[0]["race_config"]["TITLE_1"], data[0]["race_config"]["TITLE_2"], data[0]["race_config"]["HEAT"]]
-                console.log(data)
+                let title_name = [data[0]["race_config"]["TITLE_1"], data[0]["race_config"]["TITLE_2"], data[0]["race_config"]["HEAT"]]
+                displayActiveDrivers(data, title_name);
+                display_startlist(data);
+                display_results(data);
+
                 if (data[1] == undefined) {
                     insert_alert("NO DRIVERS! (JOSTEIN STRESSER SANNSYNELIGVIS MED Å SETTE OPP STARTLISTENE)")
                 } else {
                     insert_alert("clean")
                 }
                 
+
                 old_results = MD5(JSON.stringify(data));
             },
             error: function() {
@@ -769,6 +627,7 @@ document.addEventListener('DOMContentLoaded', function() {
             
 
             socket.emit('join', { username: 'John', room: 'room1' });
+
         });
         add_websocket_live_timer()
 
@@ -778,23 +637,21 @@ document.addEventListener('DOMContentLoaded', function() {
             new_title = data[0]["race_config"]["TITLE_1"] + "-" + data[0]["race_config"]["TITLE_2"] + " (" + data[0]["race_config"]["HEAT"] + "/" + data[0]["race_config"]["HEATS"]+")";
             
             if (!data[0]["drivers"]) {
-                location.reload()
+//                location.reload()
             }
             var new_result = MD5(JSON.stringify(dataString)); 
-
             if (!(new_result == old_results)) {
-                displayActiveDrivers(data);
-                validate_mode(data)
+
                 title_name = [data[0]["race_config"]["TITLE_1"], data[0]["race_config"]["TITLE_2"], data[0]["race_config"]["HEAT"]]
                 document.getElementsByClassName("header_title")[0].innerHTML = new_title;
+                displayActiveDrivers(data, title_name);
+                validate_mode(data)
+                display_startlist(data);
+                display_results(data)
                 old_results = new_result
             } else {
                 console.log("Nope dude")
             }
-            
-
-            //renderData(data);
-            
         });
 
         const socket_retry = io.connect('http://' + document.domain + ':' + location.port);
@@ -805,16 +662,17 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         
         socket_retry.on('response', function(dataString) {
-            console.log(dataString);
+            console.log(dataString)
             const data = JSON.parse(dataString);
-            display_retry_entries(data);
+            retry_entry_table(data)
+            //display_retry_entries(data);
         });
         // Function to display active drivers
         let driverPairs = [];
 
 let currentPairIndex = 0;
 
-async function displayActiveDrivers(data) {
+async function displayActiveDrivers(data, title_name) {
     // Store all driver pairs
     driverPairs = data.filter(item => item.drivers);
 
@@ -827,37 +685,24 @@ async function displayActiveDrivers(data) {
     }
 
     // Call to update the display with the current pair
-    await updateDriverDisplay();
+    await updateDriverDisplay(title_name);
 }
 
-document.getElementById('arrow-left').addEventListener('click', function() {
-    if (currentPairIndex > 0) {
-        currentPairIndex--;
-        updateDriverDisplay();
-    }
-});
 
-document.getElementById('arrow-right').addEventListener('click', function() {
-    if (currentPairIndex < driverPairs.length - 1) {
-        currentPairIndex++;
-        updateDriverDisplay();
-    }
-});
 
 let driver_names = []
 
-async function updateDriverDisplay() {
-    
+
+
+async function updateDriverDisplay(title_name) {
     if (driverPairs[currentPairIndex] && driverPairs[currentPairIndex].drivers) {
         const drivers = driverPairs[currentPairIndex].drivers;
         document.getElementsByClassName("heat_num")[0].innerHTML = (currentPairIndex + 1)+"/"+driverPairs.length;
         active_session = (driverPairs.findIndex(pair => pair.drivers.some(driver => driver.active)) + 1)
         if (active_session == (currentPairIndex + 1)) {
-            // Change the text color
-            document.getElementsByClassName("heat_num")[0].style.color = "red"; // Change 'red' to your desired color
+            document.getElementsByClassName("heat_num")[0].style.color = "red";
         } else {
-            // Optional: set a default color if the condition is not met
-            document.getElementsByClassName("heat_num")[0].style.color = "black"; // Change 'black' to your desired default color
+            document.getElementsByClassName("heat_num")[0].style.color = "black";
         }
         const leftDriver = drivers[0] || {};
         const rightDriver = drivers[1] || {};
@@ -872,45 +717,21 @@ async function updateDriverDisplay() {
         driver_names.push(right_driver_name)
 
 
-
-        // Update the HTML content of the driver divs
         $('#left-driver').html(websocket_driver_data(leftDriver, 1));
         $('#right-driver').html(websocket_driver_data(rightDriver, 2));
         try {
-            
-            // Load and append snowmobile models
-            $('#left-driver').append(get_overal_table(1));
-            $('#right-driver').append(get_overal_table(2));
-
-            //WINS - LADDER
-            const leftSnomobileModels = await get_snomobile_models(left_driver_name);
-            $('#left-driver').append(display_snowmobile_models(leftSnomobileModels, 1));
-            const rightSnomobileModels = await get_snomobile_models(right_driver_name);            
-            $('#right-driver').append(display_snowmobile_models(rightSnomobileModels, 2));
-
-            //WINS -SINGLE
-            const leftsingle_result = await get_single_results(left_driver_name);
-            $('#left-driver').append(display_single_position(leftsingle_result, 1));
-            const rightsingle_result = await get_single_results(right_driver_name);            
-            $('#right-driver').append(display_single_position(rightsingle_result, 2));
-
             try {
-            //TOP TIME
             const top_speed_data = await get_top_driver_header(title_name);
             display_get_top_driver_header(top_speed_data)
-            } catch (error) {
+            const retry_entries_data = await get_retry_entries(title_name);
+            retry_entry_table(retry_entries_data)
+            
+        } catch (error) {
                 console.log('Error getting top speeds for current:', error)
             }
-            // Load and append ladder data
-            const leftLadderData = await get_ladder_data(left_driver_name);
-            $('#left-driver').append(display_parallel_history(leftLadderData, left_driver_name, right_driver_name, 1));
 
-            const rightLadderData = await get_ladder_data(right_driver_name);
-            $('#right-driver').append(display_parallel_history(rightLadderData, left_driver_name, right_driver_name, 2));
-
-            //Retry entries
-            const retry_entries = await get_retry_entries("retry");
-            $('#left-driver').append(display_retry_entries(retry_entries));
+            //const retry_entries = await get_retry_entries("retry");
+            //$('#left-driver').append(display_retry_entries(retry_entries));
 
         } catch (error) {
             console.error('Error updating driver display:', error);
@@ -947,6 +768,8 @@ function get_retry_entries(title_name) {
         });
     });
 }
+
+
 
 function milliseconds_to_sec(ms) {
     return (ms / 1000).toFixed(3)
@@ -992,22 +815,6 @@ function display_get_top_driver_header(data) {
     }
 }
 
-    function get_overal_table(num) {
-        table_base = `
-        <table id="overal_driver_table${num}" class="table">
-            <thead class="thead-dark">
-                <tr>
-                    <th scope="col">Year</th>
-                    <th scope="col">Wins</th>
-                    <th scope="col">loses</th>
-                </tr>
-            </thead>
-            <tbody>
-            </tbody>
-        </table>
-        `
-        return(table_base)
-    }
 
     // Function to format driver information
     function websocket_driver_data(driver,num) {
@@ -1075,364 +882,6 @@ function display_get_top_driver_header(data) {
     }
     
 });
-    function get_ladder_data(driver_name) {
-    return new Promise((resolve, reject) => {
-        $.ajax({
-            url: `${h_server_url}/get_parallel_results/${driver_name}`,
-            type: 'GET',
-            success: function(data) {
-                resolve(data);
-            },
-            error: function() {
-                reject('Error fetching ladder data');
-            }
-        });
-    });
-}
-
-
-
-function get_snomobile_models(driver_name) {
-    return new Promise((resolve, reject) => {
-        $.ajax({
-            url: `${h_server_url}/get_ladder_placement_sql/${driver_name}`,
-            type: 'GET',
-            success: function(data) {
-                resolve(data);
-            },
-            error: function() {
-                reject('Error fetching snowmobile models');
-            }
-        });
-    });
-}
-
-function get_single_results(driver_name) {
-    return new Promise((resolve, reject) => {
-        $.ajax({
-            url: `${h_server_url}/get_single_placement_sql/${driver_name}`,
-            type: 'GET',
-            success: function(data) {
-                resolve(data);
-            },
-            error: function() {
-                reject('Error fetching snowmobile models');
-            }
-        });
-    });
-}
-
-
-
-
-function display_parallel_history(data, topDriver1, topDriver2, driver_int) {
-    // Group data by date and title_day
-    if (data[0]["None"]) {
-        return
-    }
-    var groupedByDateAndTitle = data.reduce(function (acc, item) {
-        var groupKey = item.date + ' - ' + item.title_day + ' ' + item.title;
-        acc[groupKey] = acc[groupKey] || [];
-        acc[groupKey].push(item);
-        return acc;
-    }, {});
-
-    // Sort keys in descending order of date
-    var sortedKeys = Object.keys(groupedByDateAndTitle).sort(function(a, b) {
-        return new Date(b.split(' - ')[0]) - new Date(a.split(' - ')[0]);
-    });
-
-    var displayHTML = "";    
-    driver_status = {d1:{win:0, lose:0}, d2:{win:0, lose:0}}
-    driver_status_year = {"Totale":{d1:{win:0, lose:0}, d2:{win:0, lose:0}}}
-
-    // Iterate over each group and create HTML
-    sortedKeys.forEach(function(key) {
-        let count = 0;
-        groupedByDateAndTitle[key].forEach(function(item) {
-            var isTopDriverMatch = (item.d1_name === topDriver1 && item.d2_name === topDriver2) || (item.d1_name === topDriver2 && item.d2_name === topDriver1);
-            let key_len = groupedByDateAndTitle[key].length
-
-            if (item.d1_result == "Winner") {
-                driver_status.d1.win += 1
-                driver_status.d2.lose += 1
-            } else if (item.d2_result == "Winner") {
-                driver_status.d2.win += 1
-                driver_status.d1.lose += 1
-            }
-            
-
-            if (count == 0) {
-                now_data_year = key.slice(0, 4)
-                if (driver_status_year[now_data_year] == undefined) {
-                    driver_status_year[now_data_year] = {d1:{win:0, lose:0}, d2:{win:0, lose:0}}
-                }
-            }
-            
-            if (item.d1_result == "Winner") {
-                driver_status_year[now_data_year].d1.win += 1
-                driver_status_year["Totale"].d1.win += 1
-                driver_status_year[now_data_year].d2.lose += 1
-            } else if (item.d2_result == "Winner") {
-                driver_status_year[now_data_year].d2.win += 1
-                driver_status_year[now_data_year].d1.lose += 1
-                driver_status_year["Totale"].d1.lose += 1
-            }
-
-            if (isTopDriverMatch || parallel_only == false) {
-
-            if (count == 0) {
-                displayHTML += "<div class='date-title-group'>";
-                displayHTML += "<div class='date-title'>" + key + "</div>";
-            }
-            
-            var rowClass = isTopDriverMatch ? 'top-driver-match' : '';
-
-            let d1_finishtime_str= (item.d1_finishtime / 1000).toFixed(3);
-            let d2_finishtime_str= (item.d2_finishtime / 1000).toFixed(3);
-
-            displayHTML += "<div class='race-entry " + rowClass + "'>";
-            displayHTML += "<div class='driver-details'>";
-            displayHTML += "<div class='driver-left " + (item.d2_result === "Loser" ? "loser" : "winner") + "'>" + item.d2_name + " - " + d2_finishtime_str + "</div>";
-            displayHTML += "<div class='driver-separator'><></div>";
-            displayHTML += "<div class='driver-right " + (item.d1_result === "Loser" ? "loser" : "winner") + "'>" + item.d1_name + " - " + d1_finishtime_str + "</div>";
-            displayHTML += "</div>";
-            displayHTML += "</div>";
-            
-            if (count == (key_len - 1)) {
-                displayHTML += "</div>"; 
-            }
-            count += 1;
-        }
-        
-
-        });
-        
-
-    });
-
-
-    for (var key in driver_status_year) {
-        document.querySelector(`#overal_driver_table${driver_int} tbody`).insertAdjacentHTML('beforeend', `
-        <tr>
-            <th scope="row">${key}</th>
-            <td>${driver_status_year[key].d1.win}</td>
-            <td>${driver_status_year[key].d1.lose}</td>
-        </tr>`);
-    }
-
-
-    return displayHTML;
-}
-
-
-function countPlacementsByYear(data) {
-    const countsByYear = {};
-
-    data.forEach(item => {
-        let record;
-        let date;
-
-        // Check if placement is undefined and set record accordingly
-        if (item.placement === undefined) {
-            record = item.position;
-            date = item.date;
-        } else {
-            record = item.placement;
-            date = item.race_date;
-        }
-
-        
-
-        // Only consider record values 1, 2, and 3
-        if (record >= 1 && record <= 3) {
-            const year = new Date(date).getFullYear();
-
-            // Initialize the year array if not already
-            if (!countsByYear[year]) {
-                countsByYear[year] = [0, 0, 0]; // Array for records 1, 2, 3
-            }
-
-            // Increment the count for the relevant record
-            countsByYear[year][record - 1]++;
-        }
-    });
-
-    return countsByYear;
-}
-function display_snowmobile_models(data, driver) {
-    let wins = countPlacementsByYear(data)
-
-    // Start with a table container inside a div
-    var displayHTML = "<div class='accordion w-100' id='accordionExample'>"; // Ensure full width
-
-    // Accordion item
-    displayHTML += "<div class='accordion-item'>";
-
-    // Accordion header
-    displayHTML += "<h2 class='accordion-header' id='headingOne'>";
-    displayHTML += `<button class='accordion-button collapsed' type='button' data-bs-toggle='collapse' data-bs-target='#parallel_accor${driver}' aria-expanded='false' aria-controls='collapseOne'>`;
-    
-
-    var string = "<h4 class='accordion-title'> Drag: "; // Add a class for easier CSS targeting
-
-    Object.keys(wins).forEach(key => {
-        string += `${key}: `;
-        string += `<span style='color: gold; font-weight: bold'>${wins[key][0]}</span>`; // Gold for 1st place
-        string += `-<span style='color: silver; font-weight: bold'>${wins[key][1]}</span>`; // Silver for 2nd place
-        string += `-<span style='color: #cd7f32; font-weight: bold'>${wins[key][2]}</span> `; // Bronze for 3rd place
-        });
-    string += "</h4>"
-    displayHTML += `${string}`;
-
-    displayHTML += "</button></h2>";
-    // Accordion collapse content with table
-    displayHTML += `<div id='parallel_accor${driver}' class='accordion-collapse collapse' aria-labelledby='headingOne' data-bs-parent='#accordionExample'>`;
-    displayHTML += "<div class='accordion-body'>";
-
-    // Table container inside a div
-    displayHTML += "<div class='container-fluid'><table class='table table-striped'>"; // Use container-fluid for full width
-        
-    // Table header
-    displayHTML += "<thead class='thead-dark'><tr>";
-    displayHTML += "<th scope='col'>Date</th>";
-    displayHTML += "<th scope='col'>Titles</th>";
-    displayHTML += "<th scope='col'>Snowmobile</th>";
-    displayHTML += "<th scope='col'>Position</th>";
-    displayHTML += "</tr></thead>";
-
-    // Table body
-    displayHTML += "<tbody>";
-
-
-    // Iterate over each item in the data array
-    data.forEach(function(key) {
-
-
-        if (key.position == 1) {
-            color = "style=background:#FFD700"
-        } else if ( key.position == 2 ) {
-            color = "style=background:#C0C0C0"
-        } else if ( key.position == 3 ) {
-            color = "style=background:#CD7F32"
-        } else {
-            color = ""
-        }
-
-        displayHTML += "<tr>";
-
-        // Column for the date
-        displayHTML += "<td><b>" + key.date + "</b></td>";
-
-        // Column for the titles
-        displayHTML += "<td>" + key.title_1 + " " +  key.title_2 + "</td>";
-
-        // Column for the snowmobile
-        displayHTML += "<td>" + key.snowmobile +"</td>";
-
-        // Column for the position
-        displayHTML += "<td>" + key.position + "/" + key.total_drivers + "</td>";
-        displayHTML += "<td " + color + ">" + " "  + "</td>";
-
-        // Close the row
-        displayHTML += "</tr>";
-    });
-
-    // Close the table and the container div
-    displayHTML += "</tbody></table></div>";
-
-    // Optional: horizontal rule with style
-    displayHTML += "<hr class='my-4' style='border-top: 3px solid green;'>";
-
-    return displayHTML;
-}
-
-function display_single_position(data, driver) {
-    let wins = countPlacementsByYear(data)
-
-    var displayHTML = "<div class='accordion w-100' id='accordionExample'>";
-
-    displayHTML += "<div class='accordion-item'>";
-
-    displayHTML += "<h2 class='accordion-header' id='headingOne'>";
-    var string = "<h4 class='accordion-title'>Bakkelop: ";
-
-    try {
-    displayHTML += `<button class='accordion-button collapsed' type='button' data-bs-toggle='collapse' data-bs-target='#single_accor${driver}' aria-expanded='false' aria-controls='collapseOne'>`;
-        Object.keys(wins).forEach(key => {
-        string += `${key}: `;
-        string += `<span style='color: gold;font-weight: bold;'>${wins[key][0]}</span>`; 
-        string += `-<span style='color: silver;font-weight: bold;'>${wins[key][1]}</span>`; 
-        string += `-<span style='color: #cd7f32;font-weight: bold;'>${wins[key][2]}</span> `;
-        });
-    string += "</h4>"
-    displayHTML += `${string}`;
-
-    } catch {
-        console.log("Error")
-    }
-
-    displayHTML += "</button></h2>";
-
-    displayHTML += `<div id='single_accor${driver}' class='accordion-collapse collapse' aria-labelledby='headingOne' data-bs-parent='#accordionExample'>`;
-    displayHTML += "<div class='accordion-body'>";
-
-    displayHTML += "<div class='container-fluid'><table class='table table-striped'>"; // Use container-fluid for full width
-
-    displayHTML += "<thead class='thead-dark'><tr>";
-    displayHTML += "<th scope='col'>Date</th>";
-    displayHTML += "<th scope='col'>Titles</th>";
-    displayHTML += "<th scope='col'>Snowmobile</th>";
-    displayHTML += "<th scope='col'>Position</th>";
-    displayHTML += "</tr></thead>";
-
-    displayHTML += "<tbody>";
-
-
-
-    // Iterate over each item in the data array
-    data.forEach(function(key) {
-
-        if (key.placement == 1) {
-            color = "style=background:#FFD700"
-        } else if ( key.placement == 2 ) {
-            color = "style=background:#C0C0C0"
-        } else if ( key.placement == 3 ) {
-            color = "style=background:#CD7F32"
-        } else {
-            color = ""
-        }
-
-        displayHTML += "<tr>";
-
-        // Column for the date
-        displayHTML += "<td><b>" + key.race_date + "</b></td>";
-
-        // Column for the titles
-        displayHTML += "<td>" + key.full_race_title + "</td>";
-
-        // Column for the snowmobile
-        displayHTML += "<td>" + key.vehicle +"</td>";
-
-        // Column for the position
-        displayHTML += "<td>" + key.placement + "/" + key.totale_drivers + "</td>";
-        displayHTML += "<td " + color + ">" + " "  + "</td>";
-
-        // Close the row
-        displayHTML += "</tr>";
-    });
-
-   // Close the table and the container div
-   displayHTML += "</tbody></table></div>";
-
-// Close accordion body, item, and container
-displayHTML += "</div></div></div></div>";
-
-// Optional: horizontal rule with style
-displayHTML += "<hr class='my-4' style='border-top: 3px solid green;'>";
-
-return displayHTML;
-}
 
 function display_retry_entries(entries) {
     const tableBody = document.querySelector('#mockDataModal .modal-body table tbody');
@@ -1483,10 +932,370 @@ function display_retry_entries(entries) {
     });
 }
 
+function display_startlist(data) {
+  // First check if div exists and remove it
+  const existingDiv = document.getElementById('right-startlist');
+  if (existingDiv) {
+      existingDiv.remove();
+  }
+
+  const newDiv = document.createElement('div');
+  newDiv.id = 'right-startlist';
+  newDiv.className = 'right-startlist-class';
+  newDiv.style = "width: 90%;";
+  
+  let html = `
+   <div> <h4 style="text-align: center;"> Startliste </h4> </div>
+      <table class="table table-sm mb-0">
+          <tbody>`;
+  
+  for (let i = 1; i < data.length; i++) {
+      const race = data[i];
+      const driver1 = race.drivers[0];
+      const driver2 = race.drivers[1];
+
+      if (driver1.active == true || driver2.active == true) {
+           active_class = "badge bg-danger"
+      } else {
+           active_class = "badge bg-secondary"
+      }
+      
+      html += `
+          <tr class="align-middle">
+              <td style="width: 5%">
+                  <button class="btn btn-warning btn-sm" onclick="addRetry(${driver1.id})" style="font-size: 0.7rem;">
+                      FLYTT
+                  </button>
+              </td>
+              <td class="text-end pe-3" style="width: 37%">
+                  <div class="text-truncate" style="font-size: 0.95rem;">
+                      ${driver1.first_name} ${driver1.last_name}
+                  </div>
+                  <div class="text-muted" style="font-size: 0.75rem;">${driver1.vehicle}</div>
+              </td>
+              <td class="text-center px-0" style="width: 5%">
+                  <span class="${active_class}" style="font-size: 0.8rem background-color: red;">${race.race_id}</span>
+              </td>
+              <td class="text-start ps-3" style="width: 37%">
+                  <div class="text-truncate" style="font-size: 0.95rem;">
+                      ${driver2.first_name} ${driver2.last_name}
+                  </div>
+                  <div class="text-muted" style="font-size: 0.75rem;">${driver2.vehicle}</div>
+              </td>
+              <td style="width: 5%">
+                  <button class="btn btn-warning btn-sm" onclick="addRetry(${driver2.id})" style="font-size: 0.7rem;">
+                      FLYTT
+                  </button>
+              </td>
+          </tr>`;
+  }
+
+  html += `
+          </tbody>
+      </table>`;
+
+  newDiv.innerHTML = html;
+  const parentDiv = document.getElementById('right-driver');
+  parentDiv.appendChild(newDiv);
+}
+
+function addRetry(cid) {
+   $.ajax({
+       url: '/api/retry_entries',
+       type: 'POST',
+       contentType: 'application/json',
+       data: JSON.stringify({
+           cid: cid.toString(),
+           method: "add"
+       }),
+       success: function(response) {
+           console.log('Driver added to retry successfully');
+       },
+       error: function(xhr, status, error) {
+           console.error('Error adding driver to retry:', error);
+       }
+   });
+}
+
+function display_results(data) {      
+    const newDiv = document.createElement('div');
+    newDiv.id = 'left-results';
+    newDiv.className = 'left-results-class';
+    newDiv.style = "width: 90%;";
+
+    const isQualification = data[0]?.race_config?.TITLE_2?.includes('Kvalifisering');
+    const eventTitle = data[0]?.race_config?.TITLE_2;
+    const eventTitle_full = data[0]?.race_config?.TITLE_1 + " " + data[0]?.race_config?.TITLE_2
+    
 
 
+    function sortDrivers(drivers) {
+        return drivers.sort((a, b) => {
+            const penaltyA = a.time_info.PENELTY;
+            const penaltyB = b.time_info.PENELTY;
+            const finishTimeA = a.time_info.FINISHTIME;
+            const finishTimeB = b.time_info.FINISHTIME;
 
-  </script>
+            // If either has a special penalty (DNS, DNF, DSQ), put them at the bottom
+            if ([1, 2, 3].includes(penaltyA) && ![1, 2, 3].includes(penaltyB)) return 1;
+            if ([1, 2, 3].includes(penaltyB) && ![1, 2, 3].includes(penaltyA)) return -1;
+
+            // If both have special penalties, sort them (DNS, DNF, DSQ order)
+            if ([1, 2, 3].includes(penaltyA) && [1, 2, 3].includes(penaltyB)) {
+                return penaltyA - penaltyB;
+            }
+
+            // For normal times, sort by total time
+            const totalTimeA = finishTimeA + (penaltyA > 3 ? penaltyA : 0);
+            const totalTimeB = finishTimeB + (penaltyB > 3 ? penaltyB : 0);
+            return totalTimeA - totalTimeB;
+        });
+    }
+
+    // Get initial drivers, filtering out those who haven't started
+    let currentDrivers = sortDrivers(
+        data.slice(1).flatMap(race => race.drivers)
+            .filter(driver => driver.time_info.FINISHTIME > 0 || driver.time_info.PENELTY !== 0)
+    );
+
+    async function handleToggle(event) {
+        try {
+            console.log(encodeURIComponent(eventTitle))
+            if (event.target.checked) {
+                const response = await fetch(`/api/get_current_startlist_w_data?event_comb=${encodeURIComponent(eventTitle_full)}`);
+                if (!response.ok) throw new Error('Network response was not ok');
+                const combinedData = await response.json();
+
+                const driverBestTimes = new Map();
+
+                combinedData.forEach(eventData => {
+                    eventData.slice(1).flatMap(race => race.drivers)
+                        .filter(driver => driver.time_info.FINISHTIME > 0 || driver.time_info.PENELTY !== 0)
+                        .forEach(driver => {
+                            const totalTime = driver.time_info.FINISHTIME + 
+                                            (driver.time_info.PENELTY > 3 ? driver.time_info.PENELTY : 0);
+                            const driverId = driver.id;
+                            
+                            if (!driverBestTimes.has(driverId) || 
+                                totalTime < driverBestTimes.get(driverId).time_info.FINISHTIME + 
+                                          (driverBestTimes.get(driverId).time_info.PENELTY > 3 ? 
+                                           driverBestTimes.get(driverId).time_info.PENELTY : 0)) {
+                                driverBestTimes.set(driverId, driver);
+                            }
+                        });
+                });
+
+                currentDrivers = sortDrivers(Array.from(driverBestTimes.values()));
+            } else {
+                // Restore to original data
+                currentDrivers = sortDrivers(
+                    data.slice(1).flatMap(race => race.drivers)
+                        .filter(driver => driver.time_info.FINISHTIME > 0 || driver.time_info.PENELTY !== 0)
+                );
+            }
+            
+            // Update the display
+            newDiv.innerHTML = createContent(currentDrivers, event.target.checked);
+            
+            // Reattach event listener
+            const newToggle = document.getElementById('seeCombinedToggle');
+            if (newToggle) {
+                newToggle.checked = event.target.checked;
+                newToggle.addEventListener('change', handleToggle);
+            }
+            
+        } catch (error) {
+            console.error('Error fetching combined data:', error);
+            alert('Error loading combined results');
+            newDiv.innerHTML = createContent(currentDrivers, false);
+            
+            const newToggle = document.getElementById('seeCombinedToggle');
+            if (newToggle) {
+                newToggle.checked = false;
+                newToggle.addEventListener('change', handleToggle);
+            }
+        }
+    }
+
+    function createContent(drivers, isChecked = false) {
+        let html = '';
+        kvaliCriteria.forEach(criteria => {
+            if (criteria.event == eventTitle) {
+                    kvali_nr = criteria.kvalinr
+                }
+        })
+        if (isQualification) {
+            html += `
+            <div class="d-flex justify-content-end mb-2">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" id="seeCombinedToggle" ${isChecked ? 'checked' : ''}>
+                    <label class="form-check-label" for="seeCombinedToggle">Bestetid fra Kvalifisering</label>
+                </div>
+            </div>`;
+        }
+
+
+        html += `
+            <table class="table table-sm mb-0">
+                <thead>
+                    <tr class="text-muted" style="font-size: 0.8rem;">
+                        <th class="text-center" style="width: 10%">#</th>
+                        <th style="width: 45%">Fører</th>
+                        <th class="text-end" style="width: 15%">Tid</th>
+                    </tr>
+                </thead>
+                <tbody>`;
+
+        drivers.forEach((driver, index) => {
+            const penalty = driver.time_info.PENELTY;
+            if (penalty == 1) {
+                driver.status = "DNS";
+            } else if (penalty == 2) {
+                driver.status = "DNF";
+            } else if (penalty == 3) {
+                driver.status = "DSQ";
+            } else {
+                const finishTime = driver.time_info.FINISHTIME;
+                const totalTime = finishTime + (penalty > 3 ? penalty : 0);
+                driver.status = totalTime > 0 ? (totalTime / 1000).toFixed(3) : '-';
+            }
+
+
+            html += `
+                <tr class="align-middle">
+                    <td class="text-center" style="font-size: 0.9rem;">${index + 1}</td>
+                    <td>
+                        <div class="text-truncate" style="font-size: 0.95rem;">
+                            ${driver.first_name} ${driver.last_name}
+                        </div>
+                    </td>
+                    <td class="text-end fw-bold" style="font-size: 0.9rem;">
+                        ${driver.status}
+                    </td>
+                </tr>`;
+            if (isQualification) {
+            if (index +1 == kvali_nr && isChecked) {
+            html += `<tr>
+                <td colspan="3" class="qualify-line">
+                    <span class="qualify-text">Kvalifisering til Stige/Finale</span>
+                </td>
+            </tr>
+            `
+            }
+        }
+        });
+
+
+        html += `
+                </tbody>
+            </table>`;
+        return html;
+    }
+
+    // Initial render
+    newDiv.innerHTML = createContent(currentDrivers);
+    const parentDiv = document.getElementById('left-driver');
+    parentDiv.appendChild(newDiv);
+
+    // Attach initial event listener
+    if (isQualification) {
+        const toggle = document.getElementById('seeCombinedToggle');
+        if (toggle) {
+            toggle.addEventListener('change', handleToggle);
+        }
+    }
+}
+
+function retry_entry_table(data) {
+    const TABLE_ID = 'right-retry-table';
+    const STARTLIST_ID = 'right-startlist';
+    
+    // Early return if no data
+    if (!data?.length) {
+        $(`#${TABLE_ID}`).remove();
+        return;
+    }
+    
+    // Create or get table container
+    let $tableContainer = $(`#${TABLE_ID}`);
+    
+    if (!$tableContainer.length) {
+        $tableContainer = $('<div>', {
+            id: TABLE_ID,
+            class: 'shadow-sm rounded overflow-hidden',
+            style: 'width: 90%; text-align: center;'
+        });
+        $(`#${STARTLIST_ID}`).before($tableContainer);
+    }
+    
+
+    const tableHTML = `
+    <h4> KJØRE PÅ NY LISTE </h4> 
+        <table class="table table-hover mb-0 border">
+            <thead>
+                <tr class="bg-light">
+                    <th class="px-3 py-2 border-bottom">Number</th>
+                    <th class="px-3 py-2 border-bottom">Driver</th>
+                    <th class="px-3 py-2 border-bottom text-center">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${data.map(driver => `
+                    <tr>
+                        <td class="px-3 py-2 align-middle">${driver.CID}</td>
+                        <td class="px-3 py-2 align-middle">${driver.driver_name}</td>
+                        <td class="px-3 py-2 align-middle text-center">
+                            <button 
+                                class="btn btn-outline-danger btn-sm"
+                                onclick="removeDriver(${driver.CID})"
+                                aria-label="Remove ${driver.driver_name}"
+                            >
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+    
+    // Update container content
+    $tableContainer.html(tableHTML);
+}
+
+function get_retry_entries() {
+    return new Promise((resolve, reject) => {
+         $.ajax({
+              url: '/api/retry_entries',
+              type: 'GET',
+              success: function(data) {
+                return data;
+              },
+              error: function() {
+                reject('Error fetching retry entries');
+              }
+         });
+    });
+}
+
+function removeDriver(cid) {
+   $.ajax({
+       url: '/api/retry_entries',
+       type: 'POST',
+       contentType: 'application/json',
+       data: JSON.stringify({
+           cid: cid.toString(),
+           method: "remove"
+       }),
+       success: function(response) {
+           console.log('Driver removed successfully');
+       },
+       error: function(xhr, status, error) {
+           console.error('Error removing driver:', error);
+       }
+   });
+}
+</script>
   
 </body>
 </html>

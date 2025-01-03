@@ -130,11 +130,20 @@
                     </td>
                 </tr>
                 <tr>
-                    <td>Keep order event order?</td>
+                    <td>Keep event order?</td>
                     <td>
                         <div class="form-check">
                             <input class="form-check-input" type="checkbox" name="keep_previous_sort" {% if config.keep_previous_sort %}checked{% endif %}>
                             <i class="form-text text-muted">This will make it so the order of the event stay unchanged after reload.</i>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td>Keep qualification criteria?</td>
+                    <td>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" name="keep_qualification" {% if config.keep_qualification %}checked{% endif %}>
+                            <i class="form-text text-muted">This will keep the qualification from previous session, configure <a href="/admin/kvali_criteria">HERE</a></i>
                         </div>
                     </td>
                 </tr>

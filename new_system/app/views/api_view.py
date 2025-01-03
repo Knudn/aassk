@@ -25,7 +25,37 @@ def check_remote_heartbeat():
     else:
         return "ERROR"
 
+@api_bp.route('/api/start_status', methods=['GET', 'POST'])
+def start_status():
+    import requests
+    from flask import current_app
 
+    if request.method == "POST":
+        data = request.get_json()
+        current_app.config['start_list_state'] = data
+        return "Updated"
+    else:
+        try:
+            with sqlite3.connect("site.db") as con:
+                query = "SELECT D1, D2 FROM active_drivers;"
+                cur = con.cursor()
+                active_driver = cur.execute(query).fetchall()
+                D1 = active_driver[0][0]
+                D2 = active_driver[0][1]
+
+                for a in current_app.config['start_list_state']:
+                    print(a)
+                    if int(D1) == int(a["CID"]) and a["STATUS"] == "STARTED":
+                        return "STARTED"
+                    elif int(D2) == int(a["CID"]) and a["STATUS"] == "STARTED":
+                        return "STARTED"
+
+                return "FINISHED"
+                
+            return current_app.config['start_list_state']
+        except:
+            return []
+        
 
 
 @api_bp.route('/api/init', methods=['POST'])
@@ -76,12 +106,15 @@ def active_event_update():
     from flask import current_app
     import requests
     from app.models import archive_server
+    import json
 
     update_active_event_stats()
 
     event_data = get_active_startlist()
     if current_app.config['event_content'] != event_data:
+
         send_data_to_room(event_data)
+        
         current_app.config['event_content'] = event_data
     remote_server_state = archive_server.query.first()
     if remote_server_state.enabled:
@@ -170,10 +203,25 @@ def upate_remote_data():
 def get_current_startlist_w_data():
     from app.models import Session_Race_Records, ActiveEvents
     from app import db
+    
 
     upcoming = request.args.get('upcoming')
     event = request.args.get('event')
     heat = request.args.get('heat')
+    event_comb = request.args.get('event_comb')
+
+    if event_comb != None:
+        from app.lib.db_operation import get_active_event
+        events = []
+        active_event_current = get_active_event()
+        #event_comb should be equal to TITLE_2
+        query = db.session.query(ActiveEvents.event_file, ActiveEvents.run).distinct().filter(
+                    ActiveEvents.event_name.like(f"%{event_comb}%")).all()
+
+        for a in query:
+            events.append([{'db_file':a.event_file, 'SPESIFIC_HEAT':a.run}])
+
+        return get_active_startlist_w_timedate(event_comb=events)
 
     if upcoming != None:
         if upcoming.lower() == "true":
@@ -194,11 +242,8 @@ def get_current_startlist_w_data():
 def update_event():
         from app.lib.db_operation import get_active_event
         from app.lib.utils import GetEnv
-        print("asdasd")
         g_config = GetEnv()
         active_event = get_active_event()
-        print(active_event)
-        print(request.form.get('single_event'))
         
         if request.form.get('event_file') == "active_event":
             active_event = get_active_event()
@@ -1257,7 +1302,40 @@ def archive_race_test():
     import requests
     from app.models import archive_server
 
-
-    
-
     return updated_data
+
+@api_bp.route('/api/set_active_driver_to_next', methods=['GET'])
+def set_active_driver_to_next():
+    import json
+    from app.lib.utils import Set_active_driver
+    import requests
+
+    current_startlist = get_active_startlist()
+    current_startlist_json = json.loads(current_startlist)
+    active = False
+
+    for k, a in enumerate(current_startlist_json):
+        if k == 0:
+            mode = a["race_config"]["MODE"]
+        else:
+            if mode == 0:
+                if active == True:
+                    Set_active_driver(cid_1=a["drivers"][0]["id"])
+                    event_data = get_active_startlist()
+                    send_data_to_room(event_data)
+                    requests.get("http://127.0.0.1:7777/api/active_event_update")
+                    return "Driver set"
+                if a["drivers"][0]["active"] == True:
+                    if int(a["drivers"][0]["time_info"]["FINISHTIME"]) != 0 or int(a["drivers"][0]["time_info"]["PENELTY"]) != 0:
+                        active = True
+
+    return "event_name"
+
+@api_bp.route('/api/get_kavli_crit', methods=['GET'])
+
+def get_kavli_crit():
+    from app.models import EventKvaliRate
+    from app import db
+
+    kvali_criteria = [event.to_dict() for event in EventKvaliRate.query.all()]
+    return kvali_criteria

@@ -107,9 +107,10 @@ def scoreboard_loop_old():
 @board_bp.route('/board/speaker/', methods = ['GET', 'POST'])
 def speaker():
     from app.lib.db_operation import get_active_event
-    from app.models import ActiveEvents
+    from app.models import ActiveEvents, EventKvaliRate
     from app import db
     from app.lib.utils import GetEnv
+    import json
     g_config = GetEnv()
 
 
@@ -121,7 +122,10 @@ def speaker():
     mode = results[2]
 
     SpeakerPageConfig = SpeakerPageSettings.query.first()
-    
+
+    kvali_criteria = [event.to_dict() for event in EventKvaliRate.query.all()]
+
+
     if request.method == 'POST':
         data = request.get_json()
 
@@ -136,7 +140,7 @@ def speaker():
         return render_template('board/speaker_board_cross.html', SpeakerPageConfig_json=SpeakerPageConfig_json)
     
     elif mode == 1 or mode == 2 or mode == 3:
-        return render_template('board/speaker_board_p.html', SpeakerPageConfig_json=SpeakerPageConfig_json)
+        return render_template('board/speaker_board_p.html', SpeakerPageConfig_json=SpeakerPageConfig_json, kvali_criteria=json.dumps(kvali_criteria))
     else:
         return render_template('board/speaker_board_s.html', SpeakerPageConfig_json=SpeakerPageConfig_json)
     

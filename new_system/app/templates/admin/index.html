@@ -195,10 +195,15 @@
 
     </style>
 
-{% if mount_bool == "False" %}
+{% if mount_bool == "2" %}
 
 <div class="alert alert-danger" role="alert">
     {{ mount_path }} not mounted!
+</div>
+{% endif %}
+{% if mount_bool == "3" %}
+<div class="alert alert-danger" role="alert">
+    {{ mount_path }} is empty!
 </div>
   {% endif %}
 

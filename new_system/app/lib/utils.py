@@ -378,7 +378,6 @@ def format_startlist(event,include_timedata=False):
                         if event_data_dict["MODE"] == 3 or event_data_dict["MODE"] == 2:
 
                             if len(drivers_in_race) == 2:
-                                print(drivers_in_race[0]["time_info"]["PENELTY"])
                                 if drivers_in_race[0]["time_info"]["PENELTY"] > 0:
                                     drivers_in_race[1]["status"] = 1
                                     drivers_in_race[0]["status"] = 2

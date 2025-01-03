@@ -278,6 +278,7 @@ body, html {
         </div>
     
         <div id="right-driver" class="driver">
+
             <!-- Right Driver Content -->
         </div>
     </div>
@@ -444,6 +445,20 @@ body, html {
     }
 </script>
   <script>
+
+    const socket_retry = io.connect('http://' + document.domain + ':' + location.port);
+
+    socket_retry.on('connect', function() {
+        console.log('Connected to the server');
+        socket_retry.emit('join', { username: 'socket_retry', room: 'socket_retry' });
+    });
+
+    socket_retry.on('response', function(dataString) {
+        console.log(dataString)
+        const data = JSON.parse(dataString);
+        retry_entry_table(data)
+        //display_retry_entries(data);
+    });
 
 document.getElementById('loadDataButton').addEventListener('click', function() {
     fetch('/api/get_event_order')
@@ -654,15 +669,10 @@ document.addEventListener('DOMContentLoaded', function() {
     let title_name = []
     function score_table(data) {
         //console.log(data)
-        let table = `<table class="table table-striped table-bordered table-hover">
+        let table = ` <h3> RESULTATLISTE </h3>
+                    <table class="table table-striped table-bordered table-hover">
                     <thead class="thead-dark">
-                        <tr>
-                            <th>#</th>
-                            <th>Name</th>
-                            <th>Snowmobile</th>
-                            <th>Time</th>
-                            <th>Status</th>
-                        </tr>
+
                     </thead>
                     <tbody>`;
 
@@ -674,8 +684,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 name = (data[key]["drivers"][0]["first_name"] + " " + data[key]["drivers"][0]["last_name"])
                 penalty = data[key]["drivers"][0]["time_info"]["PENELTY"]
                 time = data[key]["drivers"][0]["time_info"]["FINISHTIME"]
+                cid = data[key]["drivers"][0]["id"]
 
-                drivers.push({"Name":name, "snowmobile":snowmobile, "time":time, "penalty":penalty})
+                drivers.push({"Name":name, "snowmobile":snowmobile, "time":time, "penalty":penalty, "cid":cid})
             }
             
         }
@@ -696,13 +707,133 @@ document.addEventListener('DOMContentLoaded', function() {
                     <td>${item.snowmobile}</td>
                     <td>${item.time !== 0 ? milliseconds_to_sec(item.time) : ''}</td>
                     <td>${item.penalty !== 0 ? 'DNF' : (item.time === 0 ? 'Not Started' : 'Finished')}</td>
-                  </tr>`;
+                    <td><button class="btn btn-warning btn-sm" onclick="addRetry(${item.cid})" style="font-size: 0.7rem;">
+                        FLYTT
+                        </button></td>
+                    </tr>`;
         });
         table += "</tbody></table>";
 
         $('#right-driver').html(table);
 
     }
+
+    function removeDriver(cid) {
+        $.ajax({
+            url: '/api/retry_entries',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                cid: cid.toString(),
+                method: "remove"
+            }),
+            success: function(response) {
+                console.log('Driver removed successfully');
+                // Refresh the retry entries table after successful removal
+                fetchAndUpdateRetryTable();
+            },
+            error: function(xhr, status, error) {
+                console.error('Error removing driver:', error);
+            }
+        });
+    }
+
+    function addRetry(cid) {
+        $.ajax({
+            url: '/api/retry_entries',
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({
+                cid: cid.toString(),
+                method: "add"
+            }),
+            success: function(response) {
+                console.log('Driver added to retry successfully');
+            },
+            error: function(xhr, status, error) {
+                console.error('Error adding driver to retry:', error);
+            }
+        });
+        }
+
+    function fetchAndUpdateRetryTable() {
+        $.ajax({
+            url: '/api/retry_entries',
+            type: 'GET',
+            success: function(data) {
+                retry_entry_table(data);
+            },
+            error: function(error) {
+                console.error('Error fetching retry entries:', error);
+            }
+        });
+    }
+
+function retry_entry_table(data) {
+    const TABLE_ID = 'right-retry-table';
+    const DRIVER_ID = 'right-driver';
+    
+    // Early return if no data
+    if (!data?.length) {
+        $(`#${TABLE_ID}`).remove();
+        return;
+    }
+    
+    // Create or get table container
+    let $tableContainer = $(`#${TABLE_ID}`);
+    
+    if (!$tableContainer.length) {
+        $tableContainer = $('<div>', {
+            id: TABLE_ID,
+            class: 'shadow-sm rounded overflow-hidden mt-3',
+            style: 'width: 90%; text-align: center; margin-left: auto; margin-right: auto; padding-bottom: 30px;'
+        });
+        
+        // Get the parent container
+        const $driverContainer = $(`#${DRIVER_ID}`);
+        
+        // If there are existing elements, prepend the table
+        // If empty, append works the same as prepend
+        $driverContainer.prepend($tableContainer);
+    } else {
+        // If table exists but isn't first, move it to first position
+        const $driverContainer = $(`#${DRIVER_ID}`);
+        if ($driverContainer.children().first().attr('id') !== TABLE_ID) {
+            $driverContainer.prepend($tableContainer);
+        }
+    }
+    
+    const tableHTML = `
+        <h4 class="mt-2">KJØRE PÅ NY LISTE</h4>
+        <table class="table table-hover mb-0 border">
+            <thead>
+                <tr class="bg-light">
+                    <th class="px-3 py-2 border-bottom">Number</th>
+                    <th class="px-3 py-2 border-bottom">Driver</th>
+                    <th class="px-3 py-2 border-bottom text-center">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                ${data.map(driver => `
+                    <tr>
+                        <td class="px-3 py-2 align-middle">${driver.CID}</td>
+                        <td class="px-3 py-2 align-middle">${driver.driver_name}</td>
+                        <td class="px-3 py-2 align-middle text-center">
+                            <button 
+                                class="btn btn-outline-danger btn-sm" 
+                                onclick="removeDriver(${driver.CID})" 
+                                aria-label="Remove ${driver.driver_name}">
+                                <i class="bi bi-x-lg"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `).join('')}
+            </tbody>
+        </table>
+    `;
+    
+    $tableContainer.html(tableHTML);
+}
 
     $(document).ready(function() {
         // API call to fetch initial data
@@ -717,7 +848,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 
                 document.getElementsByClassName("header_title")[0].innerHTML = data[0]["race_config"]["TITLE_1"] + "-" + data[0]["race_config"]["TITLE_2"] + " (" + data[0]["race_config"]["HEAT"] + "/" + data[0]["race_config"]["HEATS"]+")";
                 title_name = [data[0]["race_config"]["TITLE_1"], data[0]["race_config"]["TITLE_2"], data[0]["race_config"]["HEAT"]]
-                
                 old_results = MD5(JSON.stringify(data));
             },
             error: function() {
@@ -796,6 +926,24 @@ function append_all_results_right(data) {
     console.log()
 }
 
+function addRetry(cid) {
+   $.ajax({
+       url: '/api/retry_entries',
+       type: 'POST',
+       contentType: 'application/json',
+       data: JSON.stringify({
+           cid: cid.toString(),
+           method: "add"
+       }),
+       success: function(response) {
+           console.log('Driver added to retry successfully');
+       },
+       error: function(xhr, status, error) {
+           console.error('Error adding driver to retry:', error);
+       }
+   });
+}
+
 async function updateDriverDisplay() {
     if (driverPairs[currentPairIndex] && driverPairs[currentPairIndex].drivers) {
         const drivers = driverPairs[currentPairIndex].drivers;
@@ -820,23 +968,16 @@ async function updateDriverDisplay() {
         driver_names.push(left_driver_name)
         driver_names.push(right_driver_name)
 
+
+
         console.log(drivers)
 
         // Update the HTML content of the driver divs
         $('#left-driver').html(websocket_driver_data(leftDriver, 1));
         try {
+            const retry_entries_data = await get_retry_entries(title_name);
+            retry_entry_table(retry_entries_data)
             
-            // Load and append snowmobile models
-            $('#left-driver').append(get_overal_table(1));
-
-            //WINS - LADDER
-            const leftSnomobileModels = await get_snomobile_models(left_driver_name);
-            $('#left-driver').append(display_snowmobile_models(leftSnomobileModels, 1));
-
-            //WINS -SINGLE
-            const leftsingle_result = await get_single_results(left_driver_name);
-            $('#left-driver').append(display_single_position(leftsingle_result, 1));
-
             try {
             //TOP TIME
             const top_speed_data = await get_top_driver_header(title_name);
@@ -845,8 +986,8 @@ async function updateDriverDisplay() {
                 console.log('Error getting top speeds for current:', error)
             }
             // Load and append ladder data
-            const leftLadderData = await get_ladder_data(left_driver_name);
-            $('#left-driver').append(display_parallel_history(leftLadderData, left_driver_name, right_driver_name, 1));
+            //const leftLadderData = await get_ladder_data(left_driver_name);
+            //$('#left-driver').append(display_parallel_history(leftLadderData, left_driver_name, right_driver_name, 1));
 
 
 
@@ -856,8 +997,10 @@ async function updateDriverDisplay() {
     }
 }
 
+
 function get_top_driver_header(title_name) {
     return new Promise((resolve, reject) => {
+        console.log(`/api/get_timedata/?title_1=${title_name[0]}&title_2=${title_name[1]}&heat=${title_name[2]}&single_all=true&entries_per_filter=1&unique_names=true`)
         $.ajax({
             url: `/api/get_timedata/?title_1=${title_name[0]}&title_2=${title_name[1]}&heat=${title_name[2]}&single_all=true&entries_per_filter=1&unique_names=true`,
             type: 'GET',
@@ -895,23 +1038,20 @@ function display_get_top_driver_header(data) {
         document.getElementById('dayTitle').innerHTML = `<strong>DAY:</strong> Not started`;
     }
 }
-
-    function get_overal_table(num) {
-        table_base = `
-        <table id="overal_driver_table${num}" class="table">
-            <thead class="thead-dark">
-                <tr>
-                    <th scope="col">Year</th>
-                    <th scope="col">Wins</th>
-                    <th scope="col">loses</th>
-                </tr>
-            </thead>
-            <tbody>
-            </tbody>
-        </table>
-        `
-        return(table_base)
-    }
+function get_retry_entries(title_name) {
+    return new Promise((resolve, reject) => {
+        $.ajax({
+            url: `/api/retry_entries`,
+            type: 'GET',
+            success: function(data) {
+                resolve(data);
+            },
+            error: function() {
+                reject('Error fetching snowmobile models');
+            }
+        });
+    });
+}
 
     // Function to format driver information
     function websocket_driver_data(driver,num) {
@@ -975,416 +1115,8 @@ function display_get_top_driver_header(data) {
     }
     
 });
-    function get_ladder_data(driver_name) {
-    return new Promise((resolve, reject) => {
-        $.ajax({
-            url: `${h_server_url}/get_parallel_results/${driver_name}`,
-            type: 'GET',
-            success: function(data) {
-                resolve(data);
-            },
-            error: function() {
-                reject('Error fetching ladder data');
-            }
-        });
-    });
-}
 
-
-
-function get_snomobile_models(driver_name) {
-    return new Promise((resolve, reject) => {
-        $.ajax({
-            url: `${h_server_url}/get_ladder_placement_sql/${driver_name}`,
-            type: 'GET',
-            success: function(data) {
-                resolve(data);
-            },
-            error: function() {
-                reject('Error fetching snowmobile models');
-            }
-        });
-    });
-}
-
-function get_single_results(driver_name) {
-    return new Promise((resolve, reject) => {
-        $.ajax({
-            url: `${h_server_url}/get_single_placement_sql/${driver_name}`,
-            type: 'GET',
-            success: function(data) {
-                resolve(data);
-            },
-            error: function() {
-                reject('Error fetching snowmobile models');
-            }
-        });
-    });
-}
-
-
-
-
-function display_parallel_history(data, topDriver1, topDriver2, driver_int) {
-    // Group data by date and title_day
-    if (data[0]["None"]) {
-        return
-    }
-    var groupedByDateAndTitle = data.reduce(function (acc, item) {
-        var groupKey = item.date + ' - ' + item.title_day + ' ' + item.title;
-        acc[groupKey] = acc[groupKey] || [];
-        acc[groupKey].push(item);
-        return acc;
-    }, {});
-
-    // Sort keys in descending order of date
-    var sortedKeys = Object.keys(groupedByDateAndTitle).sort(function(a, b) {
-        return new Date(b.split(' - ')[0]) - new Date(a.split(' - ')[0]);
-    });
-
-    var displayHTML = "";    
-    driver_status = {d1:{win:0, lose:0}, d2:{win:0, lose:0}}
-    driver_status_year = {"Totale":{d1:{win:0, lose:0}, d2:{win:0, lose:0}}}
-
-    // Iterate over each group and create HTML
-    sortedKeys.forEach(function(key) {
-        let count = 0;
-        groupedByDateAndTitle[key].forEach(function(item) {
-            var isTopDriverMatch = (item.d1_name === topDriver1 && item.d2_name === topDriver2) || (item.d1_name === topDriver2 && item.d2_name === topDriver1);
-            let key_len = groupedByDateAndTitle[key].length
-
-            if (item.d1_result == "Winner") {
-                driver_status.d1.win += 1
-                driver_status.d2.lose += 1
-            } else if (item.d2_result == "Winner") {
-                driver_status.d2.win += 1
-                driver_status.d1.lose += 1
-            }
-            
-
-            if (count == 0) {
-                now_data_year = key.slice(0, 4)
-                if (driver_status_year[now_data_year] == undefined) {
-                    driver_status_year[now_data_year] = {d1:{win:0, lose:0}, d2:{win:0, lose:0}}
-                }
-            }
-            
-            if (item.d1_result == "Winner") {
-                driver_status_year[now_data_year].d1.win += 1
-                driver_status_year["Totale"].d1.win += 1
-                driver_status_year[now_data_year].d2.lose += 1
-            } else if (item.d2_result == "Winner") {
-                driver_status_year[now_data_year].d2.win += 1
-                driver_status_year[now_data_year].d1.lose += 1
-                driver_status_year["Totale"].d1.lose += 1
-            }
-
-            if (isTopDriverMatch || parallel_only == false) {
-
-            if (count == 0) {
-                displayHTML += "<div class='date-title-group'>";
-                displayHTML += "<div class='date-title'>" + key + "</div>";
-            }
-            
-            var rowClass = isTopDriverMatch ? 'top-driver-match' : '';
-
-            let d1_finishtime_str= (item.d1_finishtime / 1000).toFixed(3) + " sec";
-            let d2_finishtime_str= (item.d2_finishtime / 1000).toFixed(3) + " sec";
-
-            displayHTML += "<div class='race-entry " + rowClass + "'>";
-            displayHTML += "<div class='driver-details'>";
-            displayHTML += "<div class='driver-left " + (item.d2_result === "Loser" ? "loser" : "winner") + "'>" + item.d2_name + " - " + d2_finishtime_str + "</div>";
-            displayHTML += "<div class='driver-separator'><></div>";
-            displayHTML += "<div class='driver-right " + (item.d1_result === "Loser" ? "loser" : "winner") + "'>" + item.d1_name + " - " + d1_finishtime_str + "</div>";
-            displayHTML += "</div>";
-            displayHTML += "</div>";
-            
-            if (count == (key_len - 1)) {
-                displayHTML += "</div>"; 
-            }
-            count += 1;
-        }
-        
-
-        });
-        
-
-    });
-
-
-    for (var key in driver_status_year) {
-        document.querySelector(`#overal_driver_table${driver_int} tbody`).insertAdjacentHTML('beforeend', `
-        <tr>
-            <th scope="row">${key}</th>
-            <td>${driver_status_year[key].d1.win}</td>
-            <td>${driver_status_year[key].d1.lose}</td>
-        </tr>`);
-    }
-
-
-    return displayHTML;
-}
-
-
-function countPlacementsByYear(data) {
-    const countsByYear = {};
-
-    data.forEach(item => {
-        let record;
-        let date;
-
-        // Check if placement is undefined and set record accordingly
-        if (item.placement === undefined) {
-            record = item.position;
-            date = item.date;
-        } else {
-            record = item.placement;
-            date = item.race_date;
-        }
-
-        
-
-        // Only consider record values 1, 2, and 3
-        if (record >= 1 && record <= 3) {
-            const year = new Date(date).getFullYear();
-
-            // Initialize the year array if not already
-            if (!countsByYear[year]) {
-                countsByYear[year] = [0, 0, 0]; // Array for records 1, 2, 3
-            }
-
-            // Increment the count for the relevant record
-            countsByYear[year][record - 1]++;
-        }
-    });
-
-    return countsByYear;
-}
-function display_snowmobile_models(data, driver) {
-    let wins = countPlacementsByYear(data)
-
-    // Start with a table container inside a div
-    var displayHTML = "<div class='accordion w-100' id='accordionExample'>"; // Ensure full width
-
-    // Accordion item
-    displayHTML += "<div class='accordion-item'>";
-
-    // Accordion header
-    displayHTML += "<h2 class='accordion-header' id='headingOne'>";
-    displayHTML += `<button class='accordion-button collapsed' type='button' data-bs-toggle='collapse' data-bs-target='#parallel_accor${driver}' aria-expanded='false' aria-controls='collapseOne'>`;
-    
-
-    var string = "<h4 class='accordion-title'> Drag: "; // Add a class for easier CSS targeting
-
-    Object.keys(wins).forEach(key => {
-        string += `${key}: `;
-        string += `<span style='color: gold;'>${wins[key][0]}</span>`; // Gold for 1st place
-        string += `-<span style='color: silver;'>${wins[key][1]}</span>`; // Silver for 2nd place
-        string += `-<span style='color: #cd7f32;'>${wins[key][2]}</span> `; // Bronze for 3rd place
-        });
-    string += "</h4>"
-    displayHTML += `${string}`;
-
-    displayHTML += "</button></h2>";
-    // Accordion collapse content with table
-    displayHTML += `<div id='parallel_accor${driver}' class='accordion-collapse collapse' aria-labelledby='headingOne' data-bs-parent='#accordionExample'>`;
-    displayHTML += "<div class='accordion-body'>";
-
-    // Table container inside a div
-    displayHTML += "<div class='container-fluid'><table class='table table-striped'>"; // Use container-fluid for full width
-        
-    // Table header
-    displayHTML += "<thead class='thead-dark'><tr>";
-    displayHTML += "<th scope='col'>Date</th>";
-    displayHTML += "<th scope='col'>Titles</th>";
-    displayHTML += "<th scope='col'>Snowmobile</th>";
-    displayHTML += "<th scope='col'>Position</th>";
-    displayHTML += "</tr></thead>";
-
-    // Table body
-    displayHTML += "<tbody>";
-
-
-    // Iterate over each item in the data array
-    data.forEach(function(key) {
-
-
-        if (key.position == 1) {
-            color = "style=background:#FFD700"
-        } else if ( key.position == 2 ) {
-            color = "style=background:#C0C0C0"
-        } else if ( key.position == 3 ) {
-            color = "style=background:#CD7F32"
-        } else {
-            color = ""
-        }
-
-        displayHTML += "<tr>";
-
-        // Column for the date
-        displayHTML += "<td><b>" + key.date + "</b></td>";
-
-        // Column for the titles
-        displayHTML += "<td>" + key.title_1 + " " +  key.title_2 + "</td>";
-
-        // Column for the snowmobile
-        displayHTML += "<td>" + key.snowmobile +"</td>";
-
-        // Column for the position
-        displayHTML += "<td>" + key.position + "/" + key.total_drivers + "</td>";
-        displayHTML += "<td " + color + ">" + " "  + "</td>";
-
-        // Close the row
-        displayHTML += "</tr>";
-    });
-
-    // Close the table and the container div
-    displayHTML += "</tbody></table></div>";
-
-    // Optional: horizontal rule with style
-    displayHTML += "<hr class='my-4' style='border-top: 3px solid green;'>";
-
-    return displayHTML;
-}
-
-function display_single_position(data, driver) {
-    let wins = countPlacementsByYear(data)
-
-    var displayHTML = "<div class='accordion w-100' id='accordionExample'>";
-
-    displayHTML += "<div class='accordion-item'>";
-
-    displayHTML += "<h2 class='accordion-header' id='headingOne'>";
-    var string = "<h4 class='accordion-title'>Bakkelop: ";
-
-    try {
-    displayHTML += `<button class='accordion-button collapsed' type='button' data-bs-toggle='collapse' data-bs-target='#single_accor${driver}' aria-expanded='false' aria-controls='collapseOne'>`;
-        Object.keys(wins).forEach(key => {
-        string += `${key}: `;
-        string += `<span style='color: gold;'>${wins[key][0]}</span>`; 
-        string += `-<span style='color: silver;'>${wins[key][1]}</span>`; 
-        string += `-<span style='color: #cd7f32;'>${wins[key][2]}</span> `;
-        });
-    string += "</h4>"
-    displayHTML += `${string}`;
-
-    } catch {
-        console.log("Error")
-    }
-
-    displayHTML += "</button></h2>";
-
-    displayHTML += `<div id='single_accor${driver}' class='accordion-collapse collapse' aria-labelledby='headingOne' data-bs-parent='#accordionExample'>`;
-    displayHTML += "<div class='accordion-body'>";
-
-    displayHTML += "<div class='container-fluid'><table class='table table-striped'>"; // Use container-fluid for full width
-
-    displayHTML += "<thead class='thead-dark'><tr>";
-    displayHTML += "<th scope='col'>Date</th>";
-    displayHTML += "<th scope='col'>Titles</th>";
-    displayHTML += "<th scope='col'>Snowmobile</th>";
-    displayHTML += "<th scope='col'>Position</th>";
-    displayHTML += "</tr></thead>";
-
-    displayHTML += "<tbody>";
-
-
-
-    // Iterate over each item in the data array
-    data.forEach(function(key) {
-
-        if (key.placement == 1) {
-            color = "style=background:#FFD700"
-        } else if ( key.placement == 2 ) {
-            color = "style=background:#C0C0C0"
-        } else if ( key.placement == 3 ) {
-            color = "style=background:#CD7F32"
-        } else {
-            color = ""
-        }
-
-        displayHTML += "<tr>";
-
-        // Column for the date
-        displayHTML += "<td><b>" + key.race_date + "</b></td>";
-
-        // Column for the titles
-        displayHTML += "<td>" + key.full_race_title + "</td>";
-
-        // Column for the snowmobile
-        displayHTML += "<td>" + key.vehicle +"</td>";
-
-        // Column for the position
-        displayHTML += "<td>" + key.placement + "/" + key.totale_drivers + "</td>";
-        displayHTML += "<td " + color + ">" + " "  + "</td>";
-
-        // Close the row
-        displayHTML += "</tr>";
-    });
-
-   // Close the table and the container div
-   displayHTML += "</tbody></table></div>";
-
-// Close accordion body, item, and container
-displayHTML += "</div></div></div></div>";
-
-// Optional: horizontal rule with style
-displayHTML += "<hr class='my-4' style='border-top: 3px solid green;'>";
-
-return displayHTML;
-}
-
-function display_retry_entries(entries) {
-    const tableBody = document.querySelector('#mockDataModal .modal-body table tbody');
-    tableBody.innerHTML = ''; // Clear the existing table rows
-
-    // Convert entry driver names to lowercase for case-insensitive comparison
-    const entryDriverNamesLower = entries.map(entry => entry.driver_name.toLowerCase());
-
-    // Prepare driver containers and their default T text elements
-    const driverContainersInfo = [
-        { containerId: 'left-driver', tClass: '.T1' },
-        { containerId: 'right-driver', tClass: '.T2' }
-    ];
-
-    driverContainersInfo.forEach(info => {
-        const container = document.getElementById(info.containerId);
-        const tEl = container.querySelector(info.tClass);
-
-        // Reset T text to default state for all drivers first
-        if (tEl) {
-            tEl.textContent = '0'; // Default state
-            tEl.style.color = ''; // Reset color to default
-        }
-
-        // Find the driver name element within the container
-        const driverNameEl = container.querySelector('.active_drivers');
-        if (driverNameEl) {
-            const driverNameLower = driverNameEl.textContent.trim().toLowerCase();
-
-            // Mark as "RETRY" if the driver's name is in the entry list
-            if (entryDriverNamesLower.includes(driverNameLower)) {
-                if (tEl) {
-                    tEl.style.color = 'red';
-                }
-            }
-        }
-    });
-
-    // Populate the modal table with the current entries
-    entries.forEach(entry => {
-        const row = document.createElement('tr');
-        row.innerHTML = `
-            <td>${entry.driver_name}</td>
-            <td>${entry.title}</td>
-            <td>${entry.CID}</td>
-        `;
-        tableBody.appendChild(row);
-    });
-}
-
-
-  </script>
+</script>
   
 </body>
 </html>

@@ -65,8 +65,6 @@ def s_set_active_driver():
 
     return render_template('admin/s_set_active_driver.html') 
 
-
-
 def home_tab():
     from app.models import ActiveDrivers, ActiveEvents, Session_Race_Records, GlobalConfig, MicroServices, archive_server
     from app import db
@@ -84,10 +82,21 @@ def home_tab():
     use_inter = g_conf[2]
     intermediate_path = g_conf[3]
 
-    if use_inter == True:
-        mount_path = g_conf[3]
+    mount_bool = os.path.ismount(mount_path)
 
-    mount_bool = str(os.path.ismount(mount_path))
+    if mount_bool == False:
+        mount_bool = str(2)
+    else:
+        if use_inter == True:
+            inter_files = g_conf[3]
+            dir = os.listdir(inter_files)
+
+            if len(dir) == 0: 
+                mount_bool = str(3)
+            else:
+                mount_bool = str(1)
+        else:
+            mount_bool = str(1)
 
     # Query to get distinct event names and their counts
     enabled_events = (ActiveEvents.query
@@ -252,7 +261,6 @@ def kvali_criteria():
     
     if request.method == 'POST':
         data = request.get_json()
-        print(data)
         EventKvaliRate.query.delete()
         data_len = len(data)
 
@@ -342,6 +350,18 @@ def global_config_tab():
                 if form.use_intermediate.data == False:
                     form.intermediate_path.data = form.event_dir.data
 
+                if form.intermediate_path.data[-1:] != "/":
+                    form.intermediate_path.data += "/"
+
+                if form.project_dir.data[-1:] != "/":
+                    form.project_dir.data += "/"
+
+                if form.db_location.data[-1:] != "/":
+                    form.db_location.data += "/"
+                
+                if form.event_dir.data[-1:] != "/":
+                    form.event_dir.data += "/"
+
                 config.session_name = form.session_name.data
                 config.project_dir = form.project_dir.data
                 config.db_location = form.db_location.data
@@ -356,6 +376,8 @@ def global_config_tab():
                 config.use_intermediate = form.use_intermediate.data
                 config.intermediate_path = form.intermediate_path.data
                 config.autocommit = form.autocommit.data
+                config.keep_qualification = form.keep_qualification.data
+
 
                 if bool(form.cross.data):
                     db.session.query(MicroServices).filter(MicroServices.name == "Cross Clock Server").update({"state": True})
@@ -366,7 +388,6 @@ def global_config_tab():
             print("asdasd")
         else:
             keep_previous_sort = global_config[0].keep_previous_sort
-            print(keep_previous_sort)
 
             if global_config[0].keep_previous_sort == True:
                 ActiveEvents_entries = ActiveEvents.query.filter(ActiveEvents.id).order_by(asc(ActiveEvents.sort_order)).all()
@@ -470,7 +491,6 @@ def active_events():
                 # Commit the changes to the database
                 db.session.commit()
                 
-                
         return redirect(url_for('admin.admin', tab_name='active_events'))
 
     # For GET requests or after POST processing, retrieve and display the active events
@@ -478,7 +498,6 @@ def active_events():
     event_types = EventType.query.order_by(EventType.order).all()
     event_order = EventOrder.query.order_by(EventOrder.order).all()
     global_config_new = GlobalConfig.query.first()
-
     return render_template('admin/active_events.html', active_events=active_events, event_types=event_types, event_order=event_order, global_config_new=global_config_new)
 
 def active_events_driver_data():

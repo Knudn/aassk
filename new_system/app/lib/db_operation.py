@@ -197,10 +197,24 @@ def get_active_startlist():
     return data
 
 
-def get_active_startlist_w_timedate(upcoming=False, event_wl=None):
+def get_active_startlist_w_timedate(upcoming=False, event_wl=None, event_comb=None):
     from app.models import ActiveEvents
 
     g_config = GetEnv()
+
+    if event_comb != None:
+        combined_data = []
+        event_comb_old = event_comb
+        print(event_comb_old)
+        for k, b in enumerate(event_comb_old):
+            event_db_file = (g_config["db_location"]+b[0]["db_file"]+".sqlite")
+            
+            event_comb[k][0]["db_file"] = event_db_file
+            data = format_startlist([event_comb[k][0]], include_timedata=True)
+            combined_data.append(data)
+
+        return combined_data
+
 
     if event_wl != None:
         event_db_file = (g_config["db_location"]+event_wl[0]["db_file"]+".sqlite")

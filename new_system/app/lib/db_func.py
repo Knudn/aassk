@@ -244,7 +244,6 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True, sync=Fa
             main_db_path = local_event_db
 
             print("Inserting data for " + event_db_path)
-            print(mode)
             for b in range(0, int(heats)):
                 if g_config["cross"]:
                     pass
@@ -521,7 +520,8 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True, sync=Fa
                     cursor.executemany(sql, timedata_tuples)
                     
         if init_mode:
-            calculate_kvali_nr(event_dict_kvali)
+            if bool(g_config["keep_qualification"]) == False:
+                calculate_kvali_nr(event_dict_kvali)
 
     except Exception as e:
         print("An exception occurred:", str(e))
