@@ -112,7 +112,7 @@ def active_event_update():
 
     event_data = get_active_startlist()
     if current_app.config['event_content'] != event_data:
-
+        print(event_data)
         send_data_to_room(event_data)
         
         current_app.config['event_content'] = event_data

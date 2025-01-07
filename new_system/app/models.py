@@ -225,6 +225,8 @@ class ledpanel(db.Model):
     endpoint = db.Column(db.String(15), nullable=False)
     active_playlist = db.Column(db.String(30), nullable=False)
     brightness = db.Column(db.Integer, nullable=True)
+    mode = db.Column(db.Integer, nullable=True, default=2)
+    track = db.Column(db.Integer, nullable=True, default=1)
 
     def __repr__(self):
         return f"<ledpanel(id={self.id}, endpoint={self.endpoint}, active_playlist={self.active_playlist}, brightness={self.brightness})>"

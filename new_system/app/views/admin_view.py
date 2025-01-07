@@ -810,12 +810,60 @@ def led_panel():
             endpoint = request.json["endpoint"]
             entry_id = request.json["panel_id"]
 
-            # Update the existing entry
             db.session.query(ledpanel).filter_by(id=entry_id).update({
                 "endpoint": endpoint,
             })
             db.session.commit()
             return json.dumps({"success": True, "message": "Endpoint added successfully"}), 200
+
+        elif request.json["command"] == "save_mode_config":
+        
+            ledpanel_db = db.session.query(ledpanel).all()
+
+            if request.json["mode"] == "parallel":
+                mode = 2
+                for b in range(1, 3):
+                    db.session.query(ledpanel).filter_by(id=b).update({
+                        "track": request.json["display{0}_driver".format(str(b))],
+                        "mode": mode,
+                    })
+                db.session.commit()
+            else:
+                mode = 1
+                for b in range(1, 3):
+                    db.session.query(ledpanel).filter_by(id=b).update({
+                        "track": request.json["display"],
+                        "mode": mode,
+                        })
+                db.session.commit()
+
+            for a in ledpanel_db:
+                if a.mode == 1:
+                    mode = "single"
+                else:
+                    mode = "parallel"
+
+                track = a.track
+
+                config_data = {
+                    "mode": mode,
+                    "track": track
+                }
+
+                try:
+                    response = requests.post(
+                        "http://{0}:5000/update_config".format(a.endpoint),
+                        json=config_data,
+                        timeout=1.5,
+                        headers={'Content-Type': 'application/json'}
+                    )
+                except requests.RequestException as e:
+                    print("Failed to send config to {0}".format(a.endpoint))
+                
+            return json.dumps({"success": True, "message": "Mode updated successfully"}), 200
+
+
+
         elif request.json["command"] == "set_playlist":
 
 
@@ -893,8 +941,20 @@ def led_panel():
 
         ledpanel_db = db.session.query(ledpanel).all()
         panels = {}
-
+        mode_config = {}
         for b in ledpanel_db:
-            panels[b.id] = [b.endpoint, b.active_playlist, b.brightness]
-        
-        return render_template('admin/ledpanel.html', panels=panels)
+            panels[b.id] = [b.endpoint, b.active_playlist, b.brightness, b.mode, b.track]
+            if b.id == 1:
+                if b.mode == 1:
+                    mode_config["mode"] = "single"
+                    mode_config["display"] = b.track
+
+                else:
+                    mode_config["mode"] = "parallel"
+
+                mode_config["display1_driver"] = b.track
+            else:
+                mode_config["display2_driver"] = b.track
+
+        print(mode_config)
+        return render_template('admin/ledpanel.html', panels=panels, mode_config=mode_config)
