@@ -28,7 +28,7 @@ with sqlite3.connect(DB_PATH) as con:
     cur = con.cursor()
 
     listen_ip = cur.execute("SELECT params FROM microservices WHERE path = 'msport_display_proxy.py';").fetchone()[0]
-    
+    print(listen_ip)
     use_inter = cur.execute("SELECT use_intermediate from global_config;").fetchone()[0]
 
 data_sock = {
