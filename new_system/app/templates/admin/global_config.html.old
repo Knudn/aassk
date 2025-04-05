@@ -2,48 +2,67 @@
 {% block content %}
 
 <style>
-    /* Base styles */
-    .table-responsive {
-        margin-bottom: 20px;
-    }
-    
-    /* Loading overlay styles */
-    .loading-overlay {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(255, 255, 255, 0.8);
-        z-index: 9999;
-        justify-content: center;
-        align-items: center;
-    }
-
-    .spinner {
-        width: 50px;
-        height: 50px;
-        border: 5px solid #f3f3f3;
-        border-radius: 50%;
-        border-top: 5px solid #3498db;
-        animation: spin 1s linear infinite;
-    }
-
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
+    /* Additional custom styles can be added here */
 </style>
 
-<!-- Loading Overlay -->
-<div id="loadingOverlay" class="loading-overlay">
-    <div class="spinner"></div>
-</div>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        toggleCrossWhitelist();
+        toggleIntermediatePath();
+        toggleSortingFields();
+    });
+    function toggleSortingFields() {
+        var checkBox = document.getElementById("enable_sorting");
+        var search1 = document.getElementById("search_string1");
+        var search2 = document.getElementById("search_string2");
+
+        if (checkBox.checked == true) {
+            search1.style.display = "table-row";
+            search2.style.display = "table-row";
+        } else {
+            search1.style.display = "none";
+            search2.style.display = "none";
+        }
+    }
+
+    function confirmAction() {
+        return confirm("ALL CURRENT RACE DATA WILL BE RELOADED");
+    }
+
+    function toggleModal() {
+        var modal = document.getElementById("crossProfileModal");
+        modal.style.display = modal.style.display === "none" ? "block" : "none";
+    }
+
+    function closeModal() {
+        toggleModal();
+        // Additional logic to handle the checkbox state if needed
+    }
+
+    function toggleCrossWhitelist() {
+        var crossCheckbox = document.getElementById("cross_checkbox");
+        var wlCrossTitleInput = document.getElementById("wl_cross_title");
+
+        // Disable the input field if the checkbox is not checked
+        if (!crossCheckbox.checked) {
+            wlCrossTitleInput.disabled = true;
+        } else {
+            wlCrossTitleInput.disabled = false;
+        }
+    }
+
+    function toggleIntermediatePath() {
+        var useIntermediateCheckbox = document.getElementById("use_intermediate");
+        var intermediatePathInput = document.getElementById("intermediate_path");
+
+        // Disable the input field if the checkbox is not checked
+        intermediatePathInput.disabled = !useIntermediateCheckbox.checked;
+    }
+</script>
 
 <h3>Global Config</h3>
 
-<form method="post" id="configForm">
+<form method="post">
     {{ form.hidden_tag() }}
     <div class="table-responsive">
         <table class="table table-bordered">
@@ -158,6 +177,7 @@
                     <td>Search String 2</td>
                     <td><input type="text" class="form-control" name="search_string2" value="{{ config.search_string2 }}"></td>
                 </tr>
+
                 {% endfor %}
             </tbody>
         </table>
@@ -167,68 +187,5 @@
     <input type="submit" name="reload" value="Reload" class="btn btn-warning" onclick="return confirmAction()">
     <input type="submit" name="update" value="Update" class="btn btn-success">
 </form>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        toggleCrossWhitelist();
-        toggleIntermediatePath();
-        toggleSortingFields();
-
-        // Add form submission handler
-        document.getElementById('configForm').addEventListener('submit', function(e) {
-            // Check if the clicked button was the reload button
-            if (e.submitter && e.submitter.name === 'reload') {
-                showLoadingSpinner();
-            }
-        });
-    });
-
-    function showLoadingSpinner() {
-        document.getElementById('loadingOverlay').style.display = 'flex';
-    }
-
-    function toggleSortingFields() {
-        var checkBox = document.getElementById("enable_sorting");
-        var search1 = document.getElementById("search_string1");
-        var search2 = document.getElementById("search_string2");
-
-        if (checkBox.checked == true) {
-            search1.style.display = "table-row";
-            search2.style.display = "table-row";
-        } else {
-            search1.style.display = "none";
-            search2.style.display = "none";
-        }
-    }
-
-    function confirmAction() {
-        if (confirm("ALL CURRENT RACE DATA WILL BE RELOADED")) {
-            showLoadingSpinner();
-            return true;
-        }
-        return false;
-    }
-
-    function toggleModal() {
-        var modal = document.getElementById("crossProfileModal");
-        modal.style.display = modal.style.display === "none" ? "block" : "none";
-    }
-
-    function closeModal() {
-        toggleModal();
-    }
-
-    function toggleCrossWhitelist() {
-        var crossCheckbox = document.getElementById("cross_checkbox");
-        var wlCrossTitleInput = document.getElementById("wl_cross_title");
-        wlCrossTitleInput.disabled = !crossCheckbox.checked;
-    }
-
-    function toggleIntermediatePath() {
-        var useIntermediateCheckbox = document.getElementById("use_intermediate");
-        var intermediatePathInput = document.getElementById("intermediate_path");
-        intermediatePathInput.disabled = !useIntermediateCheckbox.checked;
-    }
-</script>
 
 {% endblock %}

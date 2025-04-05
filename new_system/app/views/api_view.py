@@ -112,13 +112,13 @@ def active_event_update():
 
     event_data = get_active_startlist()
     if current_app.config['event_content'] != event_data:
-        print(event_data)
         send_data_to_room(event_data)
         
         current_app.config['event_content'] = event_data
+
     remote_server_state = archive_server.query.first()
     if remote_server_state.enabled:
-        requests.get('http://localhost:7777/api/upate_remote_data?type=single')
+        requests.get('http://192.168.1.50:7777/api/upate_remote_data?type=single')
     
     return "Updated"
 
@@ -198,13 +198,71 @@ def upate_remote_data():
 
     return get_active_startlist_w_timedate()
 
+@api_bp.route('/api/prestage_drivers', methods=['GET'])
+def prestage_drivers():
+    import json
+    from random import randint
+    from flask import current_app
+    from app.lib.utils import get_best_kvali_time
+    import json
+
+    event = [{'db_file': 'Event082', 'SPESIFIC_HEAT': '4'}]
+    with sqlite3.connect("site.db") as con:
+        query = "SELECT D1, D2 FROM active_drivers;"
+        cur = con.cursor()
+        active_driver = cur.execute(query).fetchall()
+        D1 = active_driver[0][0]
+        D2 = active_driver[0][1]
+
+    try:
+        current_event_data = json.loads(current_app.config['event_content'])
+    except:
+        return json.dumps({"D1":["X","green"], "D2":["X","green"]})
+    
+    next_event = False
+    next_drivers = False
+
+    for k, a in enumerate(current_event_data):
+        if next_drivers:
+            if "stige" in current_app.config['current_title_2'].lower():
+                kval_title = current_app.config['current_title_2'].replace("Stige", "Kvalifisering")
+                best_time = get_best_kvali_time({"D1":a["drivers"][0]["id"], "D2":a["drivers"][1]["id"]}, kval_title)
+                if best_time.index(a["drivers"][0]["id"]) == 0:
+                    data = {"D1":[a["drivers"][0]["id"],"green"], "D2":[a["drivers"][1]["id"],"white"]}
+                else:
+                    data = {"D1":[a["drivers"][0]["id"],"white"], "D2":[a["drivers"][1]["id"],"green"]}
+                break
+            else:
+                data = {"D1":[a["drivers"][0]["id"],"white"], "D2":[a["drivers"][1]["id"],"white"]}
+                break
+
+        if "race_config" in a:
+            continue
+
+        if a["drivers"][0]["id"] == D1 or a["drivers"][0]["id"] == D2:
+            if len(current_event_data) == k+1:
+                next_event = True
+                next_drivers = False
+                break
+            else:
+                next_event = False
+                next_drivers = True
+                
+
+    if next_event:
+        nxt_event = get_active_startlist_w_timedate(upcoming=True)
+        data = {"D1":[nxt_event[1]["drivers"][0]["id"],"white"], "D2":[nxt_event[1]["drivers"][1]["id"],"white"]}
+    
+    if "stige" in current_app.config['current_title_2'].lower():
+        pass
+
+    return data
 
 @api_bp.route('/api/get_current_startlist_w_data', methods=['GET'])
 def get_current_startlist_w_data():
     from app.models import Session_Race_Records, ActiveEvents
     from app import db
     
-
     upcoming = request.args.get('upcoming')
     event = request.args.get('event')
     heat = request.args.get('heat')
@@ -352,6 +410,8 @@ def get_current_startlist_w_data_loop():
         
     title_combo = entries[session['index']]
 
+    print(title_combo)
+
     query = db.session.query(ActiveEvents.event_file, ActiveEvents.run, ActiveEvents.mode).filter(
         ActiveEvents.event_name == title_combo
     )
@@ -361,6 +421,7 @@ def get_current_startlist_w_data_loop():
     heat = 0
 
     for a in results:
+        print(a)
         if a.title_1 + " " + a.title_2 == title_combo:
 
             if heat == 0:
@@ -375,6 +436,7 @@ def get_current_startlist_w_data_loop():
 
     event_db_file = (g_config["db_location"]+event_file+".sqlite")
     event = [{"SPESIFIC_HEAT":heat, "db_file":event_db_file}]
+    print(event)
     return get_active_startlist_w_timedate(event_wl=event)
 
 
@@ -1217,6 +1279,7 @@ def ready_state():
 
     else:
         for a in driver_data:
+            print(a, D1)
             if int(a[0]) == int(D1):
                 if a[1] != 0:
                     return str(1)
@@ -1323,7 +1386,7 @@ def set_active_driver_to_next():
                     Set_active_driver(cid_1=a["drivers"][0]["id"])
                     event_data = get_active_startlist()
                     send_data_to_room(event_data)
-                    requests.get("http://127.0.0.1:7777/api/active_event_update")
+                    requests.get("http://192.168.1.50:7777/api/active_event_update")
                     return "Driver set"
                 if a["drivers"][0]["active"] == True:
                     if int(a["drivers"][0]["time_info"]["FINISHTIME"]) != 0 or int(a["drivers"][0]["time_info"]["PENELTY"]) != 0:
@@ -1339,3 +1402,45 @@ def get_kavli_crit():
 
     kvali_criteria = [event.to_dict() for event in EventKvaliRate.query.all()]
     return kvali_criteria
+
+@api_bp.route('/api/staging_state')
+def staging_state():
+    from flask import current_app
+    from app.lib.utils import get_best_kvali_time
+
+    button = request.args.get('button', '')
+    status = request.args.get('status', '')
+
+    current_app.config['stage_ready'] = int(button)
+
+    return {
+        'success': True,
+        'message': f'Staging state updated: button={button}, status={status}'
+            }
+
+@api_bp.route('/api/staging_state_led')
+def staging_state_led():
+    from flask import current_app
+    from app.lib.utils import get_best_kvali_time
+    import json
+
+    g_config = GetEnv()
+    if current_app.config['stage_ready'] == 1:
+        return json.dumps({"picker":None, "ready":True})
+    elif "stige" not in current_app.config['current_title_2'].lower():
+        return json.dumps({"picker":None, "ready":True})
+    
+    else:
+        with sqlite3.connect(g_config["project_dir"]+"site.db") as conn:
+            cursor = conn.cursor()
+            active_drivers_sql = cursor.execute("SELECT D1, D2 FROM active_drivers").fetchall()
+            
+            active_drivers = {"D1":active_drivers_sql[0][0],"D2":active_drivers_sql[0][1]}
+
+            kval_title = current_app.config['current_title_2'].replace("Stige", "Kvalifisering")
+            active_driver_best_time = get_best_kvali_time(active_drivers, kval_title)
+
+            return json.dumps({"picker":active_driver_best_time[0], "ready":False})
+
+    print(active_driver_best_time)
+    return "asdasd"

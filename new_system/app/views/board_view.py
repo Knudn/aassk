@@ -136,15 +136,15 @@ def speaker():
     
     SpeakerPageConfig_json = {"matching_parallel":SpeakerPageConfig.match_parrallel,"h_server_url":SpeakerPageConfig.h_server_url}
     cross_state = g_config["cross"]
+    print(mode)
     if str(cross_state) == "True":
         return render_template('board/speaker_board_cross.html', SpeakerPageConfig_json=SpeakerPageConfig_json)
-    
-    elif mode == 1 or mode == 2 or mode == 3:
+    elif mode == 3:
+        return render_template('board/speaker_board_stige.html', SpeakerPageConfig_json=SpeakerPageConfig_json)
+    elif mode == 1 or mode == 2:
         return render_template('board/speaker_board_p.html', SpeakerPageConfig_json=SpeakerPageConfig_json, kvali_criteria=json.dumps(kvali_criteria))
     else:
         return render_template('board/speaker_board_s.html', SpeakerPageConfig_json=SpeakerPageConfig_json)
-    
-
     
 
 @board_bp.route('/board/startlist_active_simple_single')

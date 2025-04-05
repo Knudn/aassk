@@ -163,6 +163,7 @@ def update_active_event_stats(Emit=True):
     if current_app.config['current_event'] != active_event:
         current_app.config['current_event'] = active_event
         change_active_driver = True
+        print(active_event)
     
     #print(event, heat)
     #db_data, driver_db_data = map_database_files(g_config, "Event008")

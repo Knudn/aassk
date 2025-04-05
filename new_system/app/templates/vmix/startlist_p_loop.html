@@ -1,108 +1,363 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Starliste</title>
+    <title>Startliste</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: rgba(0, 0, 0, 0.8);
+            --secondary-color: rgba(0, 0, 0, 0.7);
+            --accent-color: rgba(190, 190, 190, 0.9);
+            --text-color: #dbdbdb;
+            --border-color: rgba(190, 190, 190, 0.3);
+            --highlight-color: rgba(200, 200, 200, 0.9);
+        }
 
-<style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Arial', sans-serif;
+        }
 
+        body {
+            color: var(--text-color);
+            background: transparent;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            margin: 0;
+            position: relative;
+            overflow-x: hidden;
+        }
 
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Arial', sans-serif; /* Updated font family */
-}
+        .container {
+            background-color: var(--primary-color);
+            padding: 20px;
+            border: 2px solid var(--highlight-color);
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            max-width: 70%;
+            width: 100%;
+            position: absolute;
+            top: 50px;
+            overflow: hidden;
+            min-height: 900px;
+        }
 
-body {
-    color: #FFD700; /* Gold text color */
-    font-family: 'Arial', sans-serif;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    margin: 0;
-    position: relative;
-}
+        h1.main_manue {
+            text-align: center;
+            font-size: 2rem;
+            color: var(--text-color);
+            padding-bottom: 20px;
+        }
 
-h1 {
-    text-align: center;
-    font-size: 2rem;
-    color: #FFD700; /* Gold color */
-}
+        hr {
+            border: none;
+            height: 1px;
+            background: var(--border-color);
+            margin-bottom: 10px;
+        }
 
-.main_manue {
-    text-align: center;
-    padding-bottom: 20px;
-    color: #f2f2f2; /* Gold color */
-}
+        .table-wrapper {
+            overflow: hidden;
+        }
 
-.container {
-    background-color: rgba(0, 0, 0, 0.8); /* Semi-transparent black for the container background */
-    padding: 20px;
-    border: 2px solid #FFD700; /* Gold border */
-    border-radius: 10px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-    max-width: 70%;
-    margin: 0 auto;
-    width: 100%;
-    position: absolute;
-    top: 50px;
-}
+        .rows {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            justify-content: center;
+            align-items: center;
+            padding: 5px 2px;
+        }
 
-.rows {
-    display: flex;
-    border-bottom: 1px solid rgba(255, 215, 0, 0.3); /* Gold border */
-    justify-content: center;
-}
+        .rows:nth-child(even) {
+            background-color: rgba(190, 190, 190, 0.1);
+        }
 
-.rows:nth-child(even) {
-    background-color: rgba(255, 215, 0, 0.1); /* Slight gold background for alternating rows */
-}
+        .cell_r {
+            font-size: 25px;
+            text-align: center;
+            width: 45%;
+            color: var(--text-color);
+        }
 
-.cell_r {
-    font-size: 25px;
-    text-align: center;
-    width: 45%;
-    color: #eaeaea; /* Lighter text for readability */
-}
+        .cell_r h2 {
+            font-size: 20px;
+            margin: 1%;
+            text-align: center;
+            color: var(--text-color);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        
+        .cell_r p {
+            font-size: 16px;
+            margin: 1%;
+            text-align: center;
+            color: var(--text-color);
+            opacity: 0.8;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
 
-.cell_r h2, .cell_r p {
-    font-size: 20px;
-    margin: 1%;
-    text-align: center;
-    color: #dbdbdb; /* Gold color */
-}
+        .matchup {
+            color: var(--highlight-color);
+            font-size: 2.3rem;
+            font-weight: bold;
+            padding: 2px;
+            text-align: center;
+            min-width: 40px;
+        }
 
-.matchup {
-    color: #FFD700; /* Gold color */
-    font-size: 2.3rem;
-    font-weight: bold;
-    padding: 2px;
-}
+        /* Animations */
+        .animate__animated {
+            animation-duration: 0.8s;
+        }
+        
+        @keyframes slideInDown {
+            from {
+                transform: translate3d(0, -100%, 0);
+                opacity: 0;
+            }
+            to {
+                transform: translate3d(0, 0, 0);
+                opacity: 1;
+            }
+        }
+        
+        .slide-in-down {
+            animation-name: slideInDown;
+        }
+        
+        @keyframes fadeOut {
+            from {
+                opacity: 1;
+            }
+            to {
+                opacity: 0;
+            }
+        }
+        
+        .fade-out {
+            animation-name: fadeOut;
+        }
+        
+        /* Custom animations for row transitions */
+        @keyframes rowInFromLeft {
+            from {
+                transform: translateX(-100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        .row-in-from-left {
+            animation-name: rowInFromLeft;
+        }
+        
+        @keyframes rowOutToRight {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+        
+        .row-out-to-right {
+            animation-name: rowOutToRight;
+        }
 
-
-</style>
-<script>
-
-var urlParams = new URLSearchParams(window.location.search);
-var timer = urlParams.get('timer')
-if (timer == null) {
-    timer = 10000
-} else {
-    timer = timer * 1000
-}
-console.log(timer)
-setTimeout(function(){
-   window.location.reload(1);
-}, timer);
-
-</script>
+        /* Auto-scaling for different sizes */
+        @media (max-height: 900px) {
+            .container {
+                max-width: 85%;
+                min-height: 900px;
+            }
+            
+            .cell_r h2 {
+                font-size: 18px;
+            }
+            
+            .cell_r p {
+                font-size: 14px;
+            }
+            
+            .matchup {
+                font-size: 2rem;
+            }
+        }
+        
+        @media (max-height: 700px) {
+            .container {
+                max-width: 90%;
+                padding: 15px;
+            }
+            
+            h1.main_manue {
+                font-size: 1.5rem;
+                padding-bottom: 10px;
+            }
+            
+            .cell_r h2 {
+                font-size: 16px;
+            }
+            
+            .cell_r p {
+                font-size: 12px;
+            }
+            
+            .matchup {
+                font-size: 1.8rem;
+            }
+        }
+        
+        /* Driver detail styling */
+        .driver-number {
+            font-weight: bold;
+            color: var(--highlight-color);
+            margin-left: 4px;
+        }
+    </style>
+    <script>
+        // Auto-refresh logic
+        var urlParams = new URLSearchParams(window.location.search);
+        var timer = urlParams.get('timer')
+        if (timer == null) {
+            timer = 10
+        } else {
+            timer = timer * 1000
+        }
+        
+        // Animation sequence control
+        let isAnimating = false;
+        
+        function refreshPage() {
+            if (isAnimating) return;
+            isAnimating = true;
+            
+            // Sequential exit animation to the right
+            const rows = document.querySelectorAll('.rows');
+            let exitDelay = 0;
+            
+            // Start with the last row and move up
+            for (let i = rows.length - 1; i >= 0; i--) {
+                setTimeout(() => {
+                    rows[i].classList.remove('animate__fadeInLeft');
+                    rows[i].classList.add('animate__animated', 'animate__fadeOutRight');
+                }, exitDelay);
+                exitDelay += 100; // Time between each row's exit
+            }
+            
+            // After all rows have exited, reload the page
+            setTimeout(function(){
+                window.location.reload(1);
+            }, exitDelay + 300); // Add some buffer time
+        }
+        
+        // Set timer for auto-refresh
+        setTimeout(refreshPage, timer);
+        
+        // When document is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Get references to elements
+            const rows = document.querySelectorAll('.rows');
+            const container = document.querySelector('.container');
+            const title = document.querySelector('#main_title');
+            
+            // Hide all rows initially
+            rows.forEach(row => {
+                row.style.opacity = '0';
+                row.style.transform = 'translateX(-100%)';
+            });
+            
+            // Show the container and title immediately
+            container.style.opacity = '1';
+            title.style.opacity = '1';
+            
+            // Bring in rows sequentially from the left
+            let entryDelay = 200; // Start after a small delay
+            
+            rows.forEach((row, index) => {
+                setTimeout(() => {
+                    row.style.opacity = '1';
+                    row.classList.add('animate__animated', 'animate__fadeInLeft');
+                    row.style.transform = 'translateX(0)';
+                }, entryDelay + (index * 100)); // 100ms between each row
+            });
+            
+            // Format driver information after animations
+            setTimeout(formatDriverDisplay, entryDelay + (rows.length * 100) + 100);
+            
+            // Auto-scale based on content
+            adjustSizeForContent();
+        });
+        
+        // Format driver information
+        function formatDriverDisplay() {
+            const cells = document.querySelectorAll('.cell_r h2');
+            cells.forEach(cell => {
+                const text = cell.innerText;
+                // Extract the number in brackets [X]
+                const match = text.match(/\[(.*?)\]/);
+                if (match) {
+                    const number = match[1];
+                    const formatted = text.replace(/\[(.*?)\]/, '')
+                        + '<span class="driver-number">#' + number + '</span>';
+                    cell.innerHTML = formatted;
+                }
+            });
+        }
+        
+        // Dynamic sizing based on content amount
+        function adjustSizeForContent() {
+            const container = document.querySelector('.container');
+            const rows = document.querySelectorAll('.rows');
+            
+            // If we have more than 8 entries
+            if (rows.length > 8) {
+                document.documentElement.style.setProperty('--font-scale', '0.9');
+                rows.forEach(row => {
+                    row.style.padding = '4px 2px';
+                });
+            }
+            
+            // If we have more than 12 entries, make everything even more compact
+            if (rows.length > 12) {
+                document.documentElement.style.setProperty('--font-scale', '0.8');
+                rows.forEach(row => {
+                    row.style.padding = '3px 2px';
+                });
+                
+                const title = document.querySelector('.main_manue');
+                title.style.paddingBottom = '10px';
+            }
+        }
+        
+        // Handle window resize for responsive behavior
+        window.addEventListener('resize', adjustSizeForContent);
+        
+        // Execute when DOM is loaded
+        window.onload = function() {
+            formatDriverDisplay();
+            adjustSizeForContent();
+        };
+    </script>
 </head>
 
 <body>
     <div class="container">
-        <h1 class="main_manue" id="main_title">Startliste: {{ title }}</h1>
-        
+        <h1 id="st_title" style="font-size: 30px; text-align: center;">STARTLISTE</h1>
+        <h1 class="main_manue" id="main_title">{{ title | replace("Eikerapen Bakkeløp ", "") }}</h1>
         <hr>
 
         <div id="startlist-container" class="table-wrapper">
@@ -116,9 +371,9 @@ setTimeout(function(){
                 {% if loop.index % 2 != 0 %}
                     <div class="cell_r">
                         <h2>{{ entry[1] }} {{ entry[2] }} [{{ entry[0] }}]</h2>
+                        <p>{{ entry[4] }}</p>
                     </div>
                 {% endif %}
-
 
                 {% if loop.index % 2 != 0 %}
                     <div class="matchup"><p>{{ ns.count }}</p></div>
@@ -127,10 +382,10 @@ setTimeout(function(){
 
                 {% if loop.index % 2 == 0 %}
                     <div class="cell_r">
-                        <h2>{{ entry[1] }} {{ entry[2] }} [{{ entry[0] }}] </h2>
+                        <h2>{{ entry[1] }} {{ entry[2] }} [{{ entry[0] }}]</h2>
+                        <p>{{ entry[4] }}</p>
                     </div>
                 {% endif %}
-
             
                 {% if loop.index % 2 == 0 %}
                     </div>
@@ -138,7 +393,6 @@ setTimeout(function(){
                 {% endfor %}
             {% endfor %}
         </div>
-
     </div>
 </body>
 </html>

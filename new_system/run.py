@@ -202,6 +202,10 @@ if __name__ == '__main__':
     app.config['event_content'] = ""
     app.config['remote_result_page_state'] = False
     app.config['remote_result_page_enabled'] = False
+    app.config['stage_ready'] = 3
+    app.config["current_title_2"] = ""
+    app.config["kvali_current_driver_best_time"] = ""
+    app.config["pick_lane"] = [None, False]
     
     configure_logging(app)
     app.logger.info('App started')

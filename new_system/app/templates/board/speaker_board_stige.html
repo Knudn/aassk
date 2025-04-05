@@ -11,12 +11,46 @@
 <script src="{{url_for('static', filename='js/bootstrap.bundle.min.js')}}"></script>
 <script src="{{url_for('static', filename='js/socket.io.js')}}"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/jquery/1.6.2/jquery.min.js"></script>
+<script src="{{url_for('static', filename='js/ladder/vendor.js')}}"></script>
+<script src="{{url_for('static', filename='js/ladder/custom.js')}}"></script>
+<link rel="stylesheet" href="{{url_for('static', filename='css/ladder/app.css')}}">
+<link rel="stylesheet" href="{{url_for('static', filename='css/ladder/custom.css')}}">
 
 
 <link rel="stylesheet" href="{{ url_for('static', filename='css/bootstrap.min.css') }}">
 
 
   <style>
+    .turnament-bracket {
+        padding: 20px;
+        margin-top: 20px;
+        width: 100%;
+        overflow-x: auto;
+        display: flex;
+        justify-content: center;
+    }
+    .graph-block {
+        margin: 0 auto;
+        max-width: 100%;
+    }
+    body.render .turnament-bracket {
+        padding: 5px;
+    }
+    #bracket-container {
+        margin-top: 30px;
+        border-top: 1px solid #ddd;
+        padding-top: 15px;
+        width: 100%;
+        overflow-x: hidden;
+    }
+    .demo {
+        transform-origin: center top;
+    }
+    #bracket-container h4 {
+        text-align: center;
+        margin-bottom: 20px;
+    }
     .qualify-line {
         text-align: center;
         padding: 1px;
@@ -360,9 +394,15 @@
     </div>
   </div>
 
+  <div id="bracket-container">
+    <h4>Tournament Bracket</h4>
+    <div class="turnament-bracket">
+        <div id="doubleElimination" class="graph-block"></div>
+    </div>
+</div>
+
 <script>
     h_server_url = "{{ SpeakerPageConfig_json.h_server_url }}"
-    kvaliCriteria = JSON.parse('{{ kvali_criteria | replace("\\n", "") | safe }}');
 </script>
 
 <script>
@@ -1022,7 +1062,6 @@ function display_results(data) {
     newDiv.className = 'left-results-class';
     newDiv.style = "width: 90%;";
 
-    const isQualification = data[0]?.race_config?.TITLE_2?.includes('Kvalifisering');
     const eventTitle = data[0]?.race_config?.TITLE_2;
     const eventTitle_full = data[0]?.race_config?.TITLE_1 + " " + data[0]?.race_config?.TITLE_2
     
@@ -1118,21 +1157,6 @@ function display_results(data) {
 
     function createContent(drivers, isChecked = false) {
         let html = '';
-        kvaliCriteria.forEach(criteria => {
-            if (criteria.event == eventTitle) {
-                    kvali_nr = criteria.kvalinr
-                }
-        })
-        if (isQualification) {
-            html += `
-            <div class="d-flex justify-content-end mb-2">
-                <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" id="seeCombinedToggle" ${isChecked ? 'checked' : ''}>
-                    <label class="form-check-label" for="seeCombinedToggle">Bestetid fra Kvalifisering</label>
-                </div>
-            </div>`;
-        }
-
 
         html += `
             <table class="table table-sm mb-0">
@@ -1172,16 +1196,6 @@ function display_results(data) {
                         ${driver.status}
                     </td>
                 </tr>`;
-            if (isQualification) {
-            if (index +1 == kvali_nr && isChecked) {
-            html += `<tr>
-                <td colspan="3" class="qualify-line">
-                    <span class="qualify-text">Kvalifisering til Stige/Finale</span>
-                </td>
-            </tr>
-            `
-            }
-        }
         });
 
 
@@ -1196,13 +1210,7 @@ function display_results(data) {
     const parentDiv = document.getElementById('left-driver');
     parentDiv.appendChild(newDiv);
 
-    // Attach initial event listener
-    if (isQualification) {
-        const toggle = document.getElementById('seeCombinedToggle');
-        if (toggle) {
-            toggle.addEventListener('change', handleToggle);
-        }
-    }
+
 }
 
 function retry_entry_table(data) {
@@ -1295,6 +1303,346 @@ function removeDriver(cid) {
    });
 }
 </script>
-  
+<script type="text/javascript">
+    // Driver order setting function
+    function driver_order_setting(timedata) {
+        var driver_order_object = {};
+
+        for (const key in timedata) {
+            if (timedata.hasOwnProperty(key)) {
+                const dataArray = timedata[key];
+                dataArray.forEach(entry => {
+                    if (!driver_order_object.hasOwnProperty(key)) {
+                        driver_order_object[key] = [];
+                    }
+                    driver_order_object[key].push(entry);
+                });
+            }
+        }
+        return driver_order_object;
+    }
+
+    // Transform data function for bracket
+    function transformData(originalData) {
+        console.log(originalData, "GGGGGGGGGGGGGGGGGGGGGGGGGGG")
+        let teams = [];
+        let results = [];
+        let driver_pair_order = driver_order_setting(originalData.Timedata);
+        let exit_loop = false;
+        let skip_entry = false;
+        let finale = [];
+        let semi_finale = [];
+
+        var heat_count = Math.ceil(Math.log2(originalData.Timedata["1"].length));
+        
+        // Check if the required data exists and is in the correct format
+        if (originalData && originalData.Timedata && Array.isArray(originalData.Timedata["1"])) {
+            for (let i = 0; i < originalData.Timedata["1"].length; i += 2) {
+                if (i + 1 < originalData.Timedata["1"].length) {
+                    // Create a pair with the current and next team
+                    let pair = [
+                        { "name": originalData.Timedata["1"][i][1] + " " + originalData.Timedata["1"][i][2], "flag": "no" },
+                        { "name": originalData.Timedata["1"][i + 1][1] + " " + originalData.Timedata["1"][i + 1][2], "flag": "no" }
+                    ];
+                    teams.push(pair);
+                } else {
+                    // If there's no pair (odd number of teams), add the last team alone
+                    let single = { "name": originalData.Timedata["1"][i][1], "flag": "no" };
+                    teams.push([single]);
+                }
+            }
+        } else {
+            console.error('Data is not available or in an unexpected format');
+        }
+        
+        const isEven = num => num % 2 === 0;
+        full_loc_array = [];
+        count = 0;
+
+        for (let key in originalData.Timedata) {
+            med_loc_array = [];
+            if (originalData.Timedata.hasOwnProperty(key)) {
+                let dataArray = originalData.Timedata[key];
+                
+                if (key == 1) { 
+                    num = key;
+                } else {
+                    num = (key - 1);
+                }
+
+                for (let driver_o in driver_pair_order[num]) {
+                    
+                    for (let i = 0; i < dataArray.length; i += 1) {
+                        if (typeof new_loc_array == 'undefined') {
+                            new_loc_array = [];
+                        }
+                        
+                        if (heat_count == key) {
+                            let finale_pair = [];
+                            let semi_finale_pair = [];
+                            let tmp_finale_pair = [];
+                            let tmp_semi_finale = [];
+                            
+                            count += 1;
+                            let tmp_key = (key -1);
+                            
+                            if (driver_pair_order[(tmp_key)][0][7] > driver_pair_order[(tmp_key)][1][7] && driver_pair_order[(tmp_key)][1][6] == 0) {
+                                tmp_semi_finale.push(driver_pair_order[(tmp_key)][0]);
+                                tmp_finale_pair.push(driver_pair_order[(tmp_key)][1]);
+                                console.log("1")
+                            } else {
+                                tmp_semi_finale.push(driver_pair_order[(tmp_key)][1]);
+                                tmp_finale_pair.push(driver_pair_order[(tmp_key)][0]);
+                                console.log("2")
+                            }
+
+                            if (driver_pair_order[(tmp_key)][2][7] > driver_pair_order[(tmp_key)][3][7] && driver_pair_order[(tmp_key)][3][6] == 0) {
+                                tmp_semi_finale.push(driver_pair_order[(tmp_key)][2]);
+                                tmp_finale_pair.push(driver_pair_order[(tmp_key)][3]);
+                                console.log("3")
+                            } else {
+                                tmp_semi_finale.push(driver_pair_order[(tmp_key)][3]);
+                                tmp_finale_pair.push(driver_pair_order[(tmp_key)][2]);
+                                console.log("4")
+                            }
+
+                            for (let b in driver_pair_order[(tmp_key)]) {
+                                for (let g in tmp_finale_pair) {
+                                    if (tmp_finale_pair[g][7] == driver_pair_order[(tmp_key)][b][7]) {
+                                        for (let h in driver_pair_order[(key)]) {
+                                            if (driver_pair_order[key][h][0] == tmp_finale_pair[g][0]) {
+                                                if (driver_pair_order[key][h][6] == 1) {
+                                                    finale_pair.push(11111111);
+                                                } else if (driver_pair_order[key][h][6] == 2) {
+                                                    finale_pair.push(22222222);
+                                                } else if (driver_pair_order[key][h][6] == 3) {
+                                                    finale_pair.push(33333333);
+                                                } else {
+                                                    finale_pair.push(driver_pair_order[key][h][7]);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+
+                                for (let g in tmp_semi_finale) {
+                                    if (tmp_semi_finale[g][7] == driver_pair_order[(tmp_key)][b][7]) {
+                                        for (let h in driver_pair_order[(key)]) {
+                                            if (driver_pair_order[key][h][0] == tmp_semi_finale[g][0]) {
+                                                if (driver_pair_order[key][h][6] == 1) {
+                                                    semi_finale_pair.push(11111111);
+                                                } else if (driver_pair_order[key][h][6] == 2) {
+                                                    semi_finale_pair.push(22222222);
+                                                } else if (driver_pair_order[key][h][6] == 3) {
+                                                    semi_finale_pair.push(33333333);
+                                                } else {
+                                                    semi_finale_pair.push(driver_pair_order[key][h][7]);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                                }
+                            
+                            med_loc_array.push(finale_pair);
+                            med_loc_array.push(semi_finale_pair);
+                            
+                            exit_loop = true;
+                            break;
+                        } else if (driver_pair_order[num][driver_o][0] == dataArray[i][0] && heat_count != key) {
+                            count += 1;
+
+                            if (dataArray[i][6] == 1) {
+                                entry = 11111111;
+                            } else if (dataArray[i][6] == 2) {
+                                entry = 22222222;
+                            } else if (dataArray[i][6] == 3) {
+                                entry = 33333333;
+                            } else {
+                                entry = dataArray[i][7];
+                            }
+                            new_loc_array.push(entry);
+
+                            if (count == 2) {
+                                count = 0;
+                                med_loc_array.push(new_loc_array);
+                                new_loc_array = [];
+                                break;
+                            }
+                        } 
+                    }
+                    if (exit_loop == true) {break;}
+                }
+            }
+            full_loc_array.push(med_loc_array);
+        }
+        
+        results = full_loc_array;
+        data = {teams, results};
+        console.log(data, "ggggggggggggggggggggggggggggggggggggg")
+        return data;
+    }
+
+    // Render function for bracket
+    function render_fn(container, data, score, state) {
+        switch (state) {
+            case "empty-bye":
+                container.append("No team");
+                return;
+            case "empty-tbd":
+                container.append("Upcoming");
+                return;
+            case "entry-no-score":
+            case "entry-default-win":
+            case "entry-complete":
+                container.append(data.name).append();
+                return;
+        }
+    }
+
+    // Edit function for bracket
+    function edit_fn(container, data, place, time, doneCb) {
+        var input = $('<input type="text">');
+        input.val(data ? data.flag + ':' + data.name : '');
+        container.html(input);
+        input.focus();
+        input.blur(function () {
+            var inputValue = input.val();
+            if (inputValue.length === 0) {
+                doneCb(null); // Drop the team and replace with BYE
+            } else {
+                var flagAndName = inputValue.split(':'); // Expects correct input
+                doneCb({flag: flagAndName[0], name: flagAndName[1]});
+            }
+        });
+    }
+
+    // Initialize the bracket when page loads
+    $(document).ready(function() {
+        // Connect to socket for updates if available
+        if (typeof io !== 'undefined') {
+            const socket = io.connect('http://' + document.domain + ':' + location.port);
+            
+            socket.on('connect', function() {
+                console.log('Connected to the server for bracket updates');
+            });
+            
+            socket.on('response', function(dataString) {
+                // Force reload the bracket data when socket data is received
+                loadBracketData();
+            });
+            
+            // Also listen for the retry entries socket
+            const socket_retry = io.connect('http://' + document.domain + ':' + location.port);
+            socket_retry.on('connect', function() {
+                socket_retry.emit('join', { username: 'socket_bracket', room: 'socket_retry' });
+            });
+            
+            socket_retry.on('response', function(dataString) {
+                loadBracketData();
+            });
+        }
+        
+        // Initial load
+        loadBracketData();
+        
+        // Also add a resize handler to adjust scaling
+        //$(window).on('resize', adjustBracketScale);
+    });
+    
+    // Function to adjust bracket scale to fit the screen
+    function adjustBracketScale() {
+        const bracketWidth = $('div#doubleElimination .demo').width();
+        const containerWidth = $('#bracket-container').width();
+        
+        if (bracketWidth > containerWidth) {
+            // Calculate scale factor
+            const scale = containerWidth / bracketWidth * 0.95; // 95% to add some margin
+            $('div#doubleElimination .demo').css({
+                'transform': 'scale(' + scale + ')',
+                'transform-origin': 'center top'
+            });
+        } else {
+            // Reset scale if not needed
+            $('div#doubleElimination .demo').css({
+                'transform': 'scale(1)',
+                'transform-origin': 'center top'
+            });
+        }
+    }
+
+    // Function to load bracket data
+    function loadBracketData() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const event_filter = urlParams.get('event_filter');
+        
+        let url;
+        if (event_filter) {
+            url = "/api/get_specific_event_data?event_filter=" + event_filter;
+        } else {
+            url = "/api/get_specific_event_data";
+        }
+
+        $.getJSON(url, function(data) {
+            const new_data = transformData(data);
+            const drivers_num = new_data.teams.length * 2;
+            
+            let teamWidth, scoreWidth, matchMargin, roundMargin;
+            // Set dimensions based on number of drivers
+            if (drivers_num <= 2) {
+                teamWidth = 300;
+                scoreWidth = 60;
+                matchMargin = 100;
+                roundMargin = 100;
+            } else if (drivers_num <= 4) {
+                teamWidth = 300;
+                scoreWidth = 60;
+                matchMargin = 100;
+                roundMargin = 100;
+                $('div#doubleElimination .demo').css('padding-left', '30%');
+            } else if (drivers_num <= 8) {
+                teamWidth = 300;
+                scoreWidth = 60;
+                matchMargin = 100;
+                roundMargin = 100;
+                $('div#doubleElimination .demo').css('padding-left', '15%');
+            } else if (drivers_num <= 16) {
+                teamWidth = 300;
+                scoreWidth = 60;
+                matchMargin = 60;
+                roundMargin = 60;
+                $('div#doubleElimination .demo').css('padding-left', '10%');
+            } else {
+                teamWidth = 250;
+                scoreWidth = 60;
+                matchMargin = 15;
+                roundMargin = 80;
+            }
+
+            // Clear existing bracket
+            $('div#doubleElimination').empty();
+            $('<div class="demo animated slow"></div>').appendTo('div#doubleElimination');
+            // Create the bracket
+            window.br = $('div#doubleElimination .demo').bracket({
+                dir: 'lr',
+                teamWidth: teamWidth,
+                scoreWidth: scoreWidth,
+                matchMargin: matchMargin,
+                roundMargin: roundMargin,
+                centerConnectors: true,
+                init: new_data,
+                decorator: {
+                    edit: edit_fn,
+                    render: render_fn
+                }
+            });
+            
+            // Run the scale adjustment after bracket is created
+            setTimeout(adjustBracketScale, 100);
+        }).fail(function(jqxhr, textStatus, error) {
+            console.error("Failed to load bracket data:", error);
+        });
+    }
+</script>
 </body>
 </html>

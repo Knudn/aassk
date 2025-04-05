@@ -1,0 +1,420 @@
+import asyncio
+import websockets
+import re
+import json
+import sqlite3
+import logging
+import requests
+import socket
+import time
+import aiohttp
+import string
+import os
+from websockets.exceptions import ConnectionClosed
+
+
+# Setting up logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+current_working_directory = os.getcwd()
+print(current_working_directory)
+
+
+# Constants
+DB_PATH = "site.db"
+URL = 'http://localhost:10000/entry'
+
+
+with sqlite3.connect(DB_PATH) as con:
+    cur = con.cursor()
+
+    listen_ip = cur.execute("SELECT params FROM microservices WHERE path = 'msport_display_proxy.py';").fetchone()[0]
+
+    use_inter = cur.execute("SELECT use_intermediate from global_config;").fetchone()[0]
+
+data_sock = {
+    "Driver1": {"first_name": "", "last_name":"" , "time": "0", "bid":"0", "snowmobile": ""},
+    "Driver2": {"first_name": "", "last_name":"" , "time": "0", "bid":"0", "snowmobile": ""}
+}
+
+driver_index = 0
+
+refresh_triggers = ["DNS", "DSQ", "DNF"]
+
+update_field = False
+
+d_history = ""
+
+d1_update = False
+d2_update = False
+
+old_main_driver = ""
+
+async def async_update_event(listen_ip):
+    async with aiohttp.ClientSession() as session:
+        url = f"http://{listen_ip}:7777/api/active_event_update"
+        try:
+            async with session.get(url) as response:
+                if response.status == 200:
+                    logging.info("Event update successful")
+                else:
+                    logging.error("Event update failed with status: %s", response.status)
+        except Exception as e:
+            logging.error("Failed to send update: %s", str(e))
+
+
+class DatabaseHandler:
+    def __init__(self, db_path):
+        self.conn = sqlite3.connect(db_path, check_same_thread=False)
+        self.conn.row_factory = sqlite3.Row
+
+    def update_driver(self, D1=None, D2=None):
+        with self.conn as con:
+            cur = con.cursor()
+            try:
+                if D1 is not None and D2 is not None:
+                    cur.execute("UPDATE active_drivers SET D1 = ?, D2 = ?;", (D1, D2))
+                elif D1 is not None:
+                    cur.execute("UPDATE active_drivers SET D1 = ?;", (D1,))
+                elif D2 is not None:
+                    cur.execute("UPDATE active_drivers SET D2 = ?;", (D2,))
+                con.commit()
+            except sqlite3.Error as e:
+                logging.error("SQLite error: %s", e)
+            except Exception as e:
+                logging.error("Exception in updating drivers: %s", str(e))
+            finally:
+                logging.info(cur.execute("SELECT * FROM active_drivers;").fetchall())
+
+    def __del__(self):
+        self.conn.close()
+
+
+def strip_stx(input_string):
+    # Remove the STX character (ASCII 2)
+    return re.sub(r'\x02', '', input_string)
+
+def strip_xml_tags(input_string):
+    # Extract content between XML tags if present
+    match = re.search(r'<name1>(.*?)</name1>', input_string)
+    if match:
+        return match.group(1)
+    
+    match = re.search(r'<name2>(.*?)</name2>', input_string)
+    if match:
+        return match.group(1)
+    
+    # If no XML tags found, just return the original string with any tags removed
+    return re.sub(r'<[^>]+>', '', input_string)
+
+def strip_pos_pts_tags(input_string):
+    # Remove POS and PTS prefixes and suffixes
+    return re.sub(r'(POS|PTS)', '', input_string)
+
+def clean_time(time_str):
+    """
+    Clean time strings by removing prefixes and suffixes.
+    Handle various formats like:
+    - '16:15:20.4  OT'
+    - 'TO0.2  OT'
+    - 'TT2.1  TT'
+    - 'TO3.006OT'
+    """
+    # First, trim any whitespace
+    time_str = time_str.strip()
+    
+    # Handle case where first character is a digit (like '16:15:20.4  OT')
+    if time_str and time_str[0].isdigit():
+        # Split by space and take the first part
+        return time_str.split()[0]
+    
+    # Handle TT prefixes
+    if time_str.startswith('TT'):
+        # Remove TT prefix
+        time_str = time_str[2:]
+        # Remove TT suffix if present
+        if 'TT' in time_str:
+            time_str = time_str.split('TT')[0]
+        return time_str.strip()
+
+    # Handle TO prefixes
+    if time_str.startswith('TO'):
+        # Remove TO prefix
+        time_str = time_str[2:]
+        # Remove OT suffix if present
+        if 'OT' in time_str:
+            time_str = time_str.split('OT')[0]
+        return time_str.strip()
+    
+    # Handle O prefix (like 'O3:15:04.2  OT')
+    if time_str.startswith('O'):
+        # Remove O prefix
+        time_str = time_str[1:]
+        # Remove OT suffix if present
+        if 'OT' in time_str:
+            time_str = time_str.split('OT')[0]
+        return time_str.strip()
+    
+    # Fallback - just remove known prefixes/suffixes
+    patterns = ['TO', 'TT', 'OT', 'O']
+    for pattern in patterns:
+        time_str = time_str.replace(pattern, '')
+    
+    return time_str.strip()
+
+def clean_field(input_string):
+    # Apply all cleaning functions and normalize whitespace
+    cleaned = strip_xml_tags(input_string)
+    cleaned = strip_pos_pts_tags(cleaned)
+    # Normalize whitespace (replace multiple spaces with a single space)
+    cleaned = ' '.join(cleaned.split())
+    # Trim leading/trailing whitespace
+    cleaned = cleaned.strip()
+    return cleaned
+
+async def data_clean(data, db_handler):
+    global d1_update
+    global d2_update
+    global old_main_driver
+
+    update_event = False
+
+    data_decoded = data.decode('iso-8859-1')
+
+    data_decoded = strip_stx(data_decoded)
+    data_new = str.splitlines(data_decoded)
+    print(data)
+    for b in data_new:
+        # Skip empty lines
+        if not b:
+            continue
+            
+        # Make sure we have at least 2 characters in the string 
+        if len(b) < 2:
+            continue
+            
+        print(b)
+        if b[0] == "1":
+            driver_1_time = b[2:].rstrip()
+            if driver_1_time == "":
+                continue
+
+            # Clean time string using the improved function
+            driver_1_time = clean_time(driver_1_time)
+            print(f"Cleaned driver 1 time: {driver_1_time}")
+
+            if len(str(data_sock["Driver1"]["time"])) > 4:
+                if (data_sock["Driver1"]["time"][-4] == ".") and driver_1_time in refresh_triggers:
+                    update_event = True
+
+            data_sock["Driver1"]["time"] = driver_1_time
+
+            if data_sock["Driver1"]["time"] in refresh_triggers:
+                d1_update = True
+                print("Set D1 Update to True")
+
+            elif len(str(data_sock["Driver1"]["time"])) > 4:
+                if (data_sock["Driver1"]["time"][-4] == "."):
+                    print("Set D1 Update to True, based on time")
+                    d1_update = True
+
+        elif b[0] == "2":
+            driver_2_time = b[2:].rstrip()
+            if driver_2_time == "":
+                continue
+
+            # Clean time string using the improved function
+            driver_2_time = clean_time(driver_2_time)
+            print(f"Cleaned driver 2 time: {driver_2_time}")
+
+            if len(str(data_sock["Driver2"]["time"])) > 4:
+                if (data_sock["Driver2"]["time"][-4] == ".") and driver_2_time in refresh_triggers:
+                    update_event = True
+
+            data_sock["Driver2"]["time"] = driver_2_time
+
+            if data_sock["Driver2"]["time"] in refresh_triggers:
+                print("Set D2 Update to True")
+                d2_update = True
+
+            elif len(str(data_sock["Driver2"]["time"])) > 4:
+                if (data_sock["Driver2"]["time"][-4] == "."):
+                    print("Set D2 Update to True, based on time")
+                    d2_update = True
+
+        elif b[0] == "3":
+            update_event = True
+
+        elif b[0] == "4":
+            # BID Driver 1
+            raw_bid = b[2:].rstrip()
+            
+            # Look for C1XXXC pattern for driver 1
+            d1_match = re.search(r'C1(\d+)C', raw_bid)
+            if d1_match:
+                # Extract numeric part, but remove the last digit which is part of the postfix
+                driver_1_bid = d1_match.group(1)[:-1]
+                print("Extracted driver 1 BID from C1xxxC pattern:", driver_1_bid)
+                db_handler.update_driver(D1=driver_1_bid)
+                data_sock["Driver1"]["bid"] = driver_1_bid
+                data_sock["Driver1"]["time"] = "0"
+                d1_update = True
+            else:
+                # Fallback to previous method if pattern not found
+                driver_1_bid = clean_field(raw_bid)
+                if driver_1_bid != "" and "date" not in driver_1_bid.lower():
+                    print("Updating BID for driver 1 to", driver_1_bid)
+                    db_handler.update_driver(D1=driver_1_bid)
+                    data_sock["Driver1"]["bid"] = driver_1_bid
+                    data_sock["Driver1"]["time"] = "0"
+                    d1_update = True
+            
+            # Look for C2XXXC pattern for driver 2 (in the same line)
+            d2_match = re.search(r'C2(\d+)C', raw_bid)
+            if d2_match:
+                # Extract numeric part, but remove the last digit which is part of the postfix
+                driver_2_bid = d2_match.group(1)[:-1]
+                print("Extracted driver 2 BID from C2xxxC pattern:", driver_2_bid)
+                db_handler.update_driver(D2=driver_2_bid)
+                data_sock["Driver2"]["bid"] = driver_2_bid
+                data_sock["Driver2"]["time"] = "0"
+                d2_update = True
+
+        elif b[0] == "5":
+            # Check for <name1> tag which indicates driver 1's name
+            raw_text = b[2:].rstrip()
+            
+            # Use regex to extract content between <name1> tags if present
+            name1_match = re.search(r'<name1>(.*?)</name1>', raw_text)
+            if name1_match:
+                driver_name = clean_field(name1_match.group(1))
+                if driver_name:
+                    # Split name into first and last (if space exists)
+                    name_parts = driver_name.split(maxsplit=1)
+                    if len(name_parts) >= 1:
+                        data_sock["Driver1"]["first_name"] = name_parts[0]
+                        print("Driver 1 first name:", name_parts[0])
+                        
+                        if len(name_parts) > 1:
+                            data_sock["Driver1"]["last_name"] = name_parts[1]
+                            print("Driver 1 last name:", name_parts[1])
+
+        elif b[0] == "6":
+            # Check for <name2> tag which indicates driver 2's name
+            raw_text = b[2:].rstrip()
+            
+            # Use regex to extract content between <name2> tags if present
+            name2_match = re.search(r'<name2>(.*?)</name2>', raw_text)
+            if name2_match:
+                driver_name = clean_field(name2_match.group(1))
+                if driver_name:
+                    # Split name into first and last (if space exists)
+                    name_parts = driver_name.split(maxsplit=1)
+                    if len(name_parts) >= 1:
+                        data_sock["Driver2"]["first_name"] = name_parts[0]
+                        print("Driver 2 first name:", name_parts[0])
+                        
+                        if len(name_parts) > 1:
+                            data_sock["Driver2"]["last_name"] = name_parts[1]
+                            print("Driver 2 last name:", name_parts[1])
+            
+        elif b[0] == "7":
+            # Driver 1 snowmobile
+            raw_text = b[2:].rstrip()
+            # Check if it starts with POS which indicates snowmobile info
+            if "POS" in raw_text:
+                snowmobile = clean_field(raw_text)
+                if snowmobile:
+                    data_sock["Driver1"]["snowmobile"] = snowmobile
+                    print("Driver 1 snowmobile:", snowmobile)
+            
+        elif b[0] == "8":
+            # Driver 2 snowmobile
+            raw_text = b[2:].rstrip()
+            # Check if it starts with PTS which indicates snowmobile info
+            if "PTS" in raw_text:
+                snowmobile = clean_field(raw_text)
+                if snowmobile:
+                    data_sock["Driver2"]["snowmobile"] = snowmobile
+                    print("Driver 2 snowmobile:", snowmobile)
+            
+        elif b[0] == "9":
+            # This was for driver 2 last name in original code
+            # But seems less common in the provided data
+            last_name = clean_field(b[2:].rstrip())
+            if last_name:
+                data_sock["Driver2"]["last_name"] = last_name
+                print("Driver 2 last name:", last_name)
+            
+        elif b[0] == "A" or b[0] == "a":
+            # Looks like this might be redundant with newer protocol
+            # But keep for backwards compatibility
+            snowmobile = clean_field(b[2:].rstrip())
+            if snowmobile:
+                data_sock["Driver1"]["snowmobile"] = snowmobile
+                print("Driver 1 snowmobile (from A):", snowmobile)
+            
+        elif b[0] == "B" or b[0] == "b":
+            # Looks like this might be redundant with newer protocol
+            # But keep for backwards compatibility
+            snowmobile = clean_field(b[2:].rstrip())
+            if snowmobile:
+                data_sock["Driver2"]["snowmobile"] = snowmobile
+                print("Driver 2 snowmobile (from B):", snowmobile)
+            
+        elif b[0] == "C" or b[0] == "c":
+            # Update event
+            update_event = True
+
+    if d1_update == True and d2_update == True:
+        update_event = True
+
+    if update_event == True:
+        print("Updating....")
+
+        if str(use_inter) != "1" or old_main_driver != data_sock["Driver1"]["bid"]:
+            asyncio.create_task(async_update_event(listen_ip))
+            old_main_driver = data_sock["Driver1"]["bid"]
+
+        d1_update = False
+        d2_update = False
+        update_event = False
+
+async def server(ws, path=None):
+    try:
+        while True:
+            try:
+                message_to_send = json.dumps(data_sock, indent=4)
+                await ws.send(message_to_send)
+                await asyncio.sleep(0.1)
+            except websockets.exceptions.ConnectionClosed:
+                logging.info("WebSocket connection is closed. Stopping message send.")
+                break
+            except Exception as e:
+                logging.error(f"WebSocket error: {e}")
+                break
+    except Exception as e:
+        logging.error(f"Error in server function: {e}")
+
+async def handle_client(reader, writer):
+    db_handler = DatabaseHandler(DB_PATH)
+    try:
+        while True:
+            data = await reader.read(2048)
+            if data:
+                await data_clean(data, db_handler)
+            await asyncio.sleep(0.1)
+    finally:
+        del db_handler
+
+async def main():
+    server = await asyncio.start_server(handle_client, listen_ip, 7000)
+
+    async with server:
+        await server.serve_forever()
+
+async def start_servers():
+    await asyncio.gather(websockets.serve(server, '0.0.0.0', 4444), main())
+
+if __name__ == '__main__':
+    asyncio.run(start_servers())

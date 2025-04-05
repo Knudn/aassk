@@ -10,6 +10,43 @@ import select
 from threading import Thread
 from flask import current_app
 
+def get_best_kvali_time(drivers, event):
+    from app import db
+    from app.models import Session_Race_Records
+    from sqlalchemy import or_
+
+    data = db.session.query(
+        Session_Race_Records.cid,
+        Session_Race_Records.finishtime,
+        Session_Race_Records.penalty
+    ).filter(
+        Session_Race_Records.title_2 == event,
+        Session_Race_Records.finishtime != 0,
+        or_(
+        Session_Race_Records.cid == drivers["D1"], 
+        Session_Race_Records.cid == drivers["D2"]
+    )).all()
+
+    driver_best_time = {drivers["D1"]:999999999999, drivers["D2"]:999999999999}
+
+    for a in data:
+
+        if a.cid == drivers["D1"]:
+            if driver_best_time[drivers["D1"]] == 999999999999 and a.penalty == 0:
+                driver_best_time[drivers["D1"]] = a.finishtime
+            elif a.finishtime < driver_best_time[drivers["D1"]] and a.penalty == 0:
+                driver_best_time[drivers["D1"]] = a.finishtime
+        elif a.cid == drivers["D2"]:
+            if driver_best_time[drivers["D2"]] == 999999999999 and a.penalty == 0:
+                driver_best_time[drivers["D2"]] = a.finishtime
+            elif a.finishtime < driver_best_time[drivers["D2"]] and a.penalty == 0:
+                driver_best_time[drivers["D2"]] = a.finishtime
+
+    if driver_best_time[drivers["D1"]] >= driver_best_time[drivers["D2"]]:
+        return [drivers["D2"], driver_best_time[drivers["D2"]], drivers["D1"], driver_best_time[drivers["D1"]]]
+    else:
+        return [drivers["D1"], driver_best_time[drivers["D1"]], drivers["D2"], driver_best_time[drivers["D2"]]]
+    
 
 def object_to_dict(obj):
     return {attr: getattr(obj, attr) for attr in dir(obj) if not attr.startswith('_') and not callable(getattr(obj, attr))}
@@ -420,10 +457,6 @@ def format_startlist(event,include_timedata=False):
     else:
         logging.error(f"Active event not initiated operation")
         return "None"
-
-def get_active_event_name():
-    
-    pass
 
 def reorder_list_based_on_dict(original_list, correct_order_dict):
     new_list = []

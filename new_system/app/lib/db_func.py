@@ -266,7 +266,7 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True, sync=Fa
                         heat_count = (heat_count - int(heat)) +1 
                     else:
                         heat_count = (heat_count - int(heat)) +1 
-                        
+                    print(heat_count)
                     query = f"SELECT C_NUM, C_INTER1, C_INTER2, C_INTER3, C_SPEED1, C_STATUS, C_TIME FROM TTIMEINFOS_PARF_HEAT{heat_count}_RUN1"
 
                 else:
@@ -492,8 +492,11 @@ def insert_driver_stats(db, g_config, exclude_lst=False, init_mode=True, sync=Fa
                                 session_data[driver_id] = driver_info
 
                     for value in session_data:
+                        from flask import current_app
                         if len(session_data[value]) == 8:
                             session_data[value].append("0")
+                        
+                        current_app.config["current_title_2"] = session_data[value][3]
 
                         # Delete existing records
                         my_db.session.query(Session_Race_Records)\
