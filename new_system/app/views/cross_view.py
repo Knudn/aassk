@@ -33,7 +33,7 @@ def submit_cross_timestamp():
     print(data)
 
     
-    response = requests.post('http://192.168.1.50:2009', data={'message': data})
+    response = requests.post('http://192.168.20.218:2009', data={'message': data})
     #requests.get("http://192.168.1.50:7777/api/active_event_update")
 
     return {'status': 'success'}
@@ -57,7 +57,7 @@ def submit_timestamp_par():
     data += "\n"
 
     
-    response = requests.post('http://192.168.1.50:2009', data={'message': data})
+    response = requests.post('http://192.168.20.218:2009', data={'message': data})
     #requests.get("http://192.168.1.50:7777/api/active_event_update")
 
     return {'status': 'success'}
@@ -86,7 +86,7 @@ def submit_cross_timestamp_old():
 
     data = "<BOX {1} {0} 23 01 2 1567>\n".format(time_stamp_new, id.zfill(6))
     data += "\n"
-    response = requests.post('http://192.168.1.50:2009', data={'message': data})
+    response = requests.post('http://192.168.20.218:2009', data={'message': data})
     #start_list_dict, con_title, eventex = get_event_data()
     #time.sleep(1)
     return {'status': 'success'}

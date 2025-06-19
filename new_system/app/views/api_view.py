@@ -32,30 +32,33 @@ def start_status():
 
     if request.method == "POST":
         data = request.get_json()
+
         current_app.config['start_list_state'] = data
         return "Updated"
     else:
-        try:
-            with sqlite3.connect("site.db") as con:
-                query = "SELECT D1, D2 FROM active_drivers;"
-                cur = con.cursor()
-                active_driver = cur.execute(query).fetchall()
-                D1 = active_driver[0][0]
-                D2 = active_driver[0][1]
+        with sqlite3.connect("site.db") as con:
+            query = "SELECT D1, D2 FROM active_drivers;"
+            cur = con.cursor()
+            active_driver = cur.execute(query).fetchall()
+            D1 = active_driver[0][0]
+            D2 = active_driver[0][1]
+            current_session = get_active_startlist_w_timedate()
+            for k, a in enumerate(current_session):
+                if k != 0:
+                    if a["drivers"][0]["id"] == D1:
+                        if int(a["drivers"][0]["time_info"]["INTER_1"]) > 1 and a["drivers"][0]["time_info"]["PENELTY"] == 0 and a["drivers"][0]["time_info"]["FINISHTIME"] == 0:
+                            return "STARTED"
 
-                for a in current_app.config['start_list_state']:
-                    print(a)
-                    if int(D1) == int(a["CID"]) and a["STATUS"] == "STARTED":
-                        return "STARTED"
-                    elif int(D2) == int(a["CID"]) and a["STATUS"] == "STARTED":
-                        return "STARTED"
+#            for a in current_app.config['start_list_state']:
+#                if int(D1) == int(a["CID"]) and a["STATUS"] == "STARTED":
+#                    return "STARTED"
+#                elif int(D2) == int(a["CID"]) and a["STATUS"] == "STARTED":
+#                    return "STARTED"
 
-                return "FINISHED"
-                
-            return current_app.config['start_list_state']
-        except:
-            return []
-        
+        return "FINISHED"
+#            
+#       return current_app.config['start_list_state']
+            
 
 
 @api_bp.route('/api/init', methods=['POST'])
@@ -1412,7 +1415,35 @@ def staging_state():
     status = request.args.get('status', '')
 
     current_app.config['stage_ready'] = int(button)
+    current_session = get_active_startlist_w_timedate()
 
+    from flask import current_app
+    list_address = current_app.config['listen_address']
+
+    DB_PATH = "site.db"
+    with sqlite3.connect("site.db") as con:
+        query = "SELECT D1, D2 FROM active_drivers;"
+        cur = con.cursor()
+        active_driver = cur.execute(query).fetchall()
+        D1 = active_driver[0][0]
+    next_d = False 
+    for k, a in enumerate(current_session):
+        if k != 0:
+            if next_d == True:
+                with sqlite3.connect(DB_PATH) as con:
+                    cur = con.cursor()
+                    cur.execute("UPDATE active_drivers SET D1 = ?;", (a["drivers"][0]["id"],))
+                    print(cur.execute("SELECT * FROM active_drivers").fetchall())
+
+                requests.get("http://{0}:7777/api/active_event_update".format(list_address))
+                con.commit()
+
+            if a["drivers"][0]["id"] == D1:
+                if a["drivers"][0]["time_info"]["FINISHTIME"] > 0 or a["drivers"][0]["time_info"]["PENELTY"] > 0:
+                    next_d = True
+                else:
+                    next_d = False
+            
     return {
         'success': True,
         'message': f'Staging state updated: button={button}, status={status}'

@@ -136,6 +136,7 @@ def monitor_files(source_dir, intermediate_dir, use_fifo=False, interval=1):
                             print("Could not access online file")
 
                     if db_file == "Event{0}Ex".format(ACTIVE_STATE["event"]):
+                        print("asdasdasdasd")
                         
                         try:
                             starters = False
@@ -188,7 +189,7 @@ def monitor_files(source_dir, intermediate_dir, use_fifo=False, interval=1):
                                 headers = {
                                     'Content-Type': 'application/json'
                                 }
-                                
+                                 
                                 response = requests.post(url, json=STARTLIST_DICT, headers=headers)
                                 
                                 
